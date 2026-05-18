@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1539f9e40c77c8a41835ad7b1e21e6bb, type: 3}
+  m_Name: PlayerData_NetworkAdmin
+  m_EditorClassIdentifier: Assembly-CSharp::ForTheCompany.Data.PlayerData
+  playerName: "\uB124\uD2B8\uC6CC\uD06C\uAD00\uB9AC\uC790"
+  role: 2
+  maxHP: 9
+  maxAP: 3
+  hacking: 4
+  security: 2
+  investigation: 2
+  displayColor: {r: 0.1, g: 0.75, b: 0.55, a: 1}

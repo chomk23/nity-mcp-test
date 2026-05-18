@@ -105,3 +105,10 @@ InitTestScene*.unity*
 
 # Auto-generated scenes by play mode tests
 /[Aa]ssets/[Ii]nit[Tt]est[Ss]cene*.unity*
+
+# Claude Code workspace (worktrees, etc)
+.claude/
+
+# Debug screenshots captured via MCP
+/[Aa]ssets/Screenshots/
+/[Aa]ssets/Screenshots.meta
