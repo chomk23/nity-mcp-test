@@ -6,12 +6,14 @@ namespace ForTheCompany.Player
     [RequireComponent(typeof(CharacterController))]
     public class RealtimePlayerController : MonoBehaviour
     {
-        public float moveSpeed = 5f;
+        public float walkSpeed = 5f;
+        public float runMultiplier = 1.8f;
         public float gravity = -20f;
 
         private CharacterController controller;
         private float verticalVelocity;
 
+        public bool IsRunning { get; private set; }
         public Vector3 LastInputDirection { get; private set; }
 
         private void Awake()
@@ -33,7 +35,10 @@ namespace ForTheCompany.Player
 
             if (input.sqrMagnitude > 1f) input.Normalize();
 
-            Vector3 horizontal = new Vector3(input.x, 0f, input.y) * moveSpeed;
+            IsRunning = kb != null && (kb.leftShiftKey.isPressed || kb.rightShiftKey.isPressed) && input.sqrMagnitude > 0.01f;
+            float speed = walkSpeed * (IsRunning ? runMultiplier : 1f);
+
+            Vector3 horizontal = new Vector3(input.x, 0f, input.y) * speed;
             LastInputDirection = horizontal.sqrMagnitude > 0.01f ? horizontal.normalized : LastInputDirection;
 
             if (controller.isGrounded && verticalVelocity < 0f) verticalVelocity = -1f;

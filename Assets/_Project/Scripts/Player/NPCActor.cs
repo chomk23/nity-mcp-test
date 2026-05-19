@@ -21,11 +21,6 @@ namespace ForTheCompany.Player
 
         public string DisplayName => data != null ? data.playerName : gameObject.name;
 
-        private void Start()
-        {
-            SnapToGrid();
-        }
-
         public void AddSuspicion(int delta)
         {
             suspicion = Mathf.Max(0, suspicion + delta);
