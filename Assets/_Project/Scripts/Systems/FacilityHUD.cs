@@ -18,6 +18,10 @@ namespace ForTheCompany.Systems
         private GUIStyle endStyle;
         private GUIStyle btnStyle;
         private GUIStyle bodyStyle;
+        private GUIStyle namePlateStyle;
+        private GUIStyle quizQuestionStyle;
+        private GUIStyle quizResultStyle;
+        private GUIStyle quizButtonStyle;
 
         private void Init()
         {
@@ -72,6 +76,30 @@ namespace ForTheCompany.Systems
                 alignment = TextAnchor.MiddleCenter,
                 normal = { textColor = Color.white }
             };
+            namePlateStyle = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 16, fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleCenter,
+                normal = { textColor = Color.white }
+            };
+            quizQuestionStyle = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 20, wordWrap = true,
+                alignment = TextAnchor.UpperLeft,
+                normal = { textColor = Color.white }
+            };
+            quizResultStyle = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 17, wordWrap = true,
+                alignment = TextAnchor.MiddleCenter,
+                normal = { textColor = new Color(0.7f, 1f, 0.7f) }
+            };
+            quizButtonStyle = new GUIStyle(GUI.skin.button)
+            {
+                fontSize = 16, wordWrap = true,
+                alignment = TextAnchor.MiddleLeft,
+                padding = new RectOffset(14, 12, 8, 8)
+            };
         }
 
         private AccusationConsole FindConsole()
@@ -83,12 +111,101 @@ namespace ForTheCompany.Systems
         private void OnGUI()
         {
             Init();
+            DrawNPCNameplates();
             DrawStatusBar();
             DrawInteractionPrompt();
             DrawToast();
+            DrawQuizModal();
             DrawAccusationModal();
             DrawEndScreen();
             DrawHint();
+        }
+
+        private void DrawNPCNameplates()
+        {
+            var roster = NPCRoster.Instance;
+            if (roster == null) return;
+            var cam = Camera.main;
+            if (cam == null) return;
+
+            foreach (var npc in roster.npcs)
+            {
+                if (npc == null) continue;
+                Vector3 worldHead = npc.transform.position + Vector3.up * 2.4f;
+                Vector3 screen = cam.WorldToScreenPoint(worldHead);
+                if (screen.z < 0) continue;
+
+                float guiY = Screen.height - screen.y;
+                string name = npc.DisplayName;
+                float w = 150f, h = 26f;
+                var rect = new Rect(screen.x - w * 0.5f, guiY - h * 0.5f, w, h);
+                GUI.Box(rect, GUIContent.none);
+                GUI.Label(rect, name, namePlateStyle);
+            }
+        }
+
+        private void DrawQuizModal()
+        {
+            var ctrl = SecurityQuizController.Instance;
+            if (ctrl == null) return;
+            // Show result toast (briefly)
+            if (!ctrl.IsOpen && !string.IsNullOrEmpty(ctrl.LastResultText)
+                && Time.time - ctrl.LastResultTime < 3.5f && ctrl.LastWasCorrect)
+            {
+                DrawQuizResultToast(ctrl);
+                return;
+            }
+            if (!ctrl.IsOpen) return;
+
+            var data = ctrl.ActiveClue.data;
+
+            float w = Mathf.Min(740, Screen.width - 80);
+            float h = 560;
+            float x = (Screen.width - w) * 0.5f;
+            float y = (Screen.height - h) * 0.5f;
+
+            GUI.Box(new Rect(x, y, w, h), GUIContent.none);
+            GUI.Label(new Rect(x, y + 18, w, 40), "보안 교육 미션", titleStyle);
+            GUI.Label(new Rect(x + 24, y + 64, w - 48, 28),
+                $"[{data.roomName}] {data.objectLabel}", midStyle);
+            GUI.Label(new Rect(x + 24, y + 100, w - 48, 100), data.quizQuestion, quizQuestionStyle);
+
+            int n = data.quizOptions != null ? data.quizOptions.Length : 0;
+            float btnH = 56;
+            float gap = 8;
+            float startY = y + 210;
+            for (int i = 0; i < n; i++)
+            {
+                var r = new Rect(x + 24, startY + (btnH + gap) * i, w - 48, btnH);
+                string label = $"  {(char)('A' + i)}.  {data.quizOptions[i]}";
+                if (GUI.Button(r, label, quizButtonStyle))
+                    ctrl.Answer(i);
+            }
+
+            // Wrong-answer feedback in modal
+            if (!string.IsNullOrEmpty(ctrl.LastResultText)
+                && !ctrl.LastWasCorrect
+                && Time.time - ctrl.LastResultTime < 3.5f)
+            {
+                GUI.Label(new Rect(x + 24, y + h - 80, w - 48, 40),
+                    ctrl.LastResultText,
+                    new GUIStyle(bodyStyle) { normal = { textColor = new Color(1f, 0.6f, 0.6f) } });
+            }
+
+            // Close button
+            if (GUI.Button(new Rect(x + w - 110, y + 12, 96, 32), "닫기 (ESC)", smallStyle))
+                ctrl.Close();
+        }
+
+        private void DrawQuizResultToast(SecurityQuizController ctrl)
+        {
+            float w = Mathf.Min(640, Screen.width - 80);
+            float h = 120;
+            float x = (Screen.width - w) * 0.5f;
+            float y = Screen.height * 0.2f;
+            GUI.Box(new Rect(x, y, w, h), GUIContent.none);
+            GUI.Label(new Rect(x + 16, y + 12, w - 32, h - 24),
+                ctrl.LastResultText, quizResultStyle);
         }
 
         private void Update()
@@ -207,8 +324,8 @@ namespace ForTheCompany.Systems
 
         private void DrawHint()
         {
-            GUI.Label(new Rect(10, Screen.height - 26, 1100, 22),
-                "WASD: 이동   |   Shift: 달리기   |   마우스 휠: 줌   |   E: 상호작용 (대화/지목)   |   R: 게임 끝나면 재시작",
+            GUI.Label(new Rect(10, Screen.height - 26, 1200, 22),
+                "WASD: 이동   |   Shift: 달리기   |   휠: 줌   |   E: 대화/단서 조사/지목   |   ESC: 모달 닫기   |   R: 재시작",
                 smallStyle);
         }
     }

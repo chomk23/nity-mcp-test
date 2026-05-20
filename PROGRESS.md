@@ -74,19 +74,61 @@ NPC와 대화 (E)
 씬 리로드 + 새 스파이 랜덤 배정
 ```
 
+## 콘텐츠 시스템 (완료)
+
+### NPC 대화 스파이별 분기 (2026-05-21 추가)
+
+- [NPCInteractable.cs](Assets/_Project/Scripts/Player/NPCInteractable.cs) 안에 `ResolveLine(speaker, spy, firstTime)` 메서드
+- **3 스파이 × 3 NPC × 2 (첫/반복) = 18개 대사 분기**
+- 무고한 NPC는 진짜 스파이를 미묘하게 암시, 스파이 NPC는 회피/방어 발언
+- NPCRoster.Spy를 통해 현재 게임의 스파이 정체 파악
+
+### 환경 단서 + 보안 퀴즈 미니게임 (2026-05-21 추가)
+
+- [ClueObject.cs](Assets/_Project/Scripts/Player/ClueObject.cs) — IInteractable, 색깔 큐브 GameObject
+- [SecurityQuizController.cs](Assets/_Project/Scripts/Systems/SecurityQuizController.cs) — `[RuntimeInitializeOnLoadMethod]`로 씬 로드 후 자동 스폰. 6개 단서 + 4지선다 퀴즈
+- FacilityHUD에 **퀴즈 모달** + **정답 토스트** 추가
+- 6개 단서 위치:
+  - 연구실 정체불명 USB (-20, 0.6, 14)
+  - 서버실 모니터 (3, 0.6, 14)
+  - 데이터센터 트래픽 단말 (3, 0.6, -14)
+  - 휴게실 메모 (-15, 0.6, -2)
+  - 창고 수상한 택배 (-20, 0.6, -14)
+  - 카드키 발급 로그 (18, 0.6, 2)
+- 각 단서 — 보안교육 4지선다 → 정답이면 +2 단서 + 비밀 텍스트, 오답이면 재시도
+
+### NPC 머리 위 이름표 (2026-05-21 추가)
+
+- FacilityHUD.DrawNPCNameplates() — `Camera.main.WorldToScreenPoint` 로 NPC 머리(+2.4 unit) 위치를 화면 좌표로 변환
+- "연구원", "네트워크관리자", "시설관리자" 라벨 항상 표시
+
+### 단서 총량 (현재)
+
+- NPC 대화 × 3 = 첫 +2 × 3 = 최대 +6
+- 환경 단서 × 6 = +2 × 6 = +12
+- **최대 ~18 단서**, 지목 최소 단서 = 3개
+
 ## 다음 단계 후보
 
-### 우선순위 1: 콘텐츠 (스파이별 맞춤 스토리)
+### 우선순위 1: Security Race 미니게임 통합
 
-현재 NPC 대화는 직업별 고정 라인. 스파이 정체에 따라 분기되지 않음.
+`C:\Users\CHOMK\Desktop\보안게임자료\security-race.html` (1493줄, 신스웨이브 레이싱 게임)을 Unity에 통합 — 16개 추가 보안교육 문제 + 레이싱 메카닉.
 
-**구상**:
-- 3 스파이 × 3 NPC = 9개 대화 분기
-- 각 NPC가 (자신이 결백할 때) 진짜 스파이를 미묘하게 암시
-- 환경 단서 (서버 로그, 메모, USB) 5~7개 추가
-- 거짓 단서 (red herring) 섞기
+**현재 검토 중인 옵션**: Unity OnGUI로 진행바 + 시간제한 + AI 경쟁 (옵션 B). 휴게실 또는 외곽에 RacingConsole 배치 예정.
 
-**구현 방향**: NPCInteractable에 `Dictionary<RoleType, string>` 형태로 스파이별 대화 분기, 또는 ScriptableObject SO로 대화 데이터 분리.
+### 우선순위 2: 시각 폴리시
+
+- 캐릭터 모델 교체 (Meshy AI로 컨셉아트 → 3D)
+- 방 디테일 (가구·컴퓨터·서버랙)
+- 라이팅 / UI 폴리시
+
+### 우선순위 3: 게임플레이 확장
+
+- 시간/턴 제한
+- 카드키 시스템 실제 작동 (전력실 잠금)
+- NPC 자동 이동 (방 사이 어슬렁)
+- 의심도 시각화 (NPC 머리 위 마커)
+- 메인 메뉴 / 인트로 / 빌드
 
 ### 우선순위 2: 폴리시
 - 사운드 (발소리, 문 열기, 상호작용 효과음)
