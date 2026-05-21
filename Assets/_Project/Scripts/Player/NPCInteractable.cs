@@ -1,5 +1,6 @@
 using UnityEngine;
 using ForTheCompany.Managers;
+using ForTheCompany.Systems;
 
 namespace ForTheCompany.Player
 {
@@ -41,9 +42,10 @@ namespace ForTheCompany.Player
         public string Talk()
         {
             int reward = HasBeenTalkedTo ? repeatTalkClueReward : firstTalkClueReward;
+            bool firstTime = !HasBeenTalkedTo;
 
             string msg;
-            if (!HasBeenTalkedTo)
+            if (firstTime)
             {
                 msg = GetFirstTalkLine();
                 HasBeenTalkedTo = true;
@@ -53,6 +55,30 @@ namespace ForTheCompany.Player
                 msg = GetRepeatTalkLine();
             }
 
+            // NPC가 플레이어를 향해 회전 (대화 자세)
+            FacePlayer();
+
+            // DialogueSystem이 있으면 하단 대화창으로 표시, 종료 시 보상/단계 진행
+            var ds = DialogueSystem.Instance;
+            if (ds != null)
+            {
+                int capturedReward = reward;
+                bool capturedFirstTime = firstTime;
+                ds.StartDialogue(DisplayName, msg, transform,
+                    () => ApplyTalkRewards(capturedReward, capturedFirstTime));
+                Debug.Log($"[Interact] {DisplayName}: 대화 시작 (보상 +{reward}, 대화 종료 후 적용)");
+                return ""; // PlayerInteractor의 Toast는 띄우지 않음
+            }
+
+            // fallback: DialogueSystem 없으면 즉시 적용
+            ApplyTalkRewards(reward, firstTime);
+            Debug.Log($"[Interact] {DisplayName}: {msg} (+{reward} 단서)");
+            return $"{DisplayName}: {msg}\n+{reward} 단서";
+        }
+
+        /// <summary>대화 종료 후 단서/의심도/퀘스트 단계 진행 적용</summary>
+        private void ApplyTalkRewards(int reward, bool firstTime)
+        {
             var session = ForTheCompany.Core.GameSession.Instance;
             if (session != null)
             {
@@ -60,12 +86,23 @@ namespace ForTheCompany.Player
                 session.LastEncounterRewardClues = reward;
             }
 
-            // Slight suspicion bump on the spy when talked to (subtle clue)
+            // 의심도 시스템:
+            // - 무고한 NPC 첫 대화 → 진짜 스파이 의심도 +2 (단서 제공)
+            // - 진짜 스파이 본인 대화 → 자신 의심도 +1 (회피 발언 자체가 미묘한 의심 신호)
+            var realSpy = NPCRoster.Instance != null ? NPCRoster.Instance.Spy : null;
             if (Actor != null && Actor.isSpy)
-                Actor.AddSuspicion(3);
+            {
+                Actor.AddSuspicion(1);
+            }
+            else if (realSpy != null && firstTime)
+            {
+                realSpy.AddSuspicion(2);
+            }
 
-            Debug.Log($"[Interact] {DisplayName}: {msg} (+{reward} 단서)");
-            return $"{DisplayName}: {msg}\n+{reward} 단서";
+            // 스토리 모드: 현재 단계에 맞는 NPC라면 단계 진행
+            var quest = QuestManager.Instance;
+            if (quest != null && Actor != null && Actor.data != null)
+                quest.TryAdvanceByRole(Actor.data.role);
         }
 
         private string GetFirstTalkLine()
@@ -144,6 +181,17 @@ namespace ForTheCompany.Player
                     break;
             }
             return firstTime ? "별다른 단서는 없습니다." : "더 이상 드릴 정보는 없습니다.";
+        }
+
+        /// <summary>대화 시작 시 NPC가 플레이어 방향으로 회전 (Y축만)</summary>
+        private void FacePlayer()
+        {
+            var p = PlayerInteractor.Instance;
+            if (p == null) return;
+            Vector3 toPlayer = p.transform.position - transform.position;
+            toPlayer.y = 0f;
+            if (toPlayer.sqrMagnitude < 0.01f) return;
+            transform.rotation = Quaternion.LookRotation(toPlayer.normalized);
         }
 
         private void OnDrawGizmosSelected()

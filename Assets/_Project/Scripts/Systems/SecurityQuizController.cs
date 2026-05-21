@@ -1,7 +1,9 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 using ForTheCompany.Core;
+using ForTheCompany.Managers;
 using ForTheCompany.Player;
 
 namespace ForTheCompany.Systems
@@ -17,8 +19,22 @@ namespace ForTheCompany.Systems
         public bool LastWasCorrect { get; private set; }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+        private static void Bootstrap()
+        {
+            SceneManager.sceneLoaded -= HandleSceneLoaded;
+            SceneManager.sceneLoaded += HandleSceneLoaded;
+            EnsureSpawned();
+        }
+
+        private static void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
+        {
+            EnsureSpawned();
+        }
+
         private static void EnsureSpawned()
         {
+            // FacilityScene 이외 씬에서는 ClueObject 큐브들이 불필요
+            if (SceneManager.GetActiveScene().name != "FacilityScene") return;
             if (FindFirstObjectByType<SecurityQuizController>() != null) return;
             var go = new GameObject("SecurityQuizController");
             var ctrl = go.AddComponent<SecurityQuizController>();
@@ -61,6 +77,10 @@ namespace ForTheCompany.Systems
                     GameSession.Instance.totalClues += data.clueReward;
                     GameSession.Instance.LastEncounterRewardClues = data.clueReward;
                 }
+                // 환경 단서 정답 → 진짜 스파이의 의심도 +2
+                var realSpy = NPCRoster.Instance != null ? NPCRoster.Instance.Spy : null;
+                if (realSpy != null) realSpy.AddSuspicion(2);
+
                 LastResultText = $"✓ 정답!\n{data.successClue}\n+{data.clueReward} 단서 획득";
                 ActiveClue.MarkResolved();
                 Debug.Log($"[Quiz] {data.id} 정답 — '{data.successClue}' (+{data.clueReward} 단서)");

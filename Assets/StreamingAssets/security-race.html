@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SECURITY RACE</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Noto+Sans+KR:wght@500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --neon-pink:   #ff2d95;
+      --neon-cyan:   #00f0ff;
+      --neon-yellow: #fff200;
+      --neon-purple: #b026ff;
+      --neon-orange: #ff6b00;
+      --neon-green:  #39ff14;
+      --bg-deep:     #0a0118;
+      --bg-mid:      #1e0b3c;
+      --bg-band:     #2a0e58;
+      --text-cream:  #ffe8d0;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Press Start 2P', monospace;
+    }
+    .ko, .ko * {
+      font-family: 'Noto Sans KR', sans-serif;
+      font-weight: 500;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 20px 16px 40px;
+      color: var(--text-cream);
+      background-color: var(--bg-deep);
+      background-image:
+        radial-gradient(ellipse 80% 50% at 50% 0%, rgba(176, 38, 255, 0.35) 0%, transparent 60%),
+        radial-gradient(ellipse 80% 40% at 50% 100%, rgba(255, 45, 149, 0.25) 0%, transparent 60%);
+      overflow-x: hidden;
+      image-rendering: pixelated;
+    }
+
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      pointer-events: none;
+      background-image:
+        radial-gradient(1px 1px at 7%  12%, white, transparent),
+        radial-gradient(1px 1px at 21% 28%, white, transparent),
+        radial-gradient(1px 1px at 35% 16%, white, transparent),
+        radial-gradient(1px 1px at 48% 22%, white, transparent),
+        radial-gradient(1px 1px at 62% 8%,  white, transparent),
+        radial-gradient(1px 1px at 79% 18%, white, transparent),
+        radial-gradient(1px 1px at 91% 31%, white, transparent),
+        radial-gradient(2px 2px at 14% 42%, white, transparent),
+        radial-gradient(1px 1px at 88% 47%, white, transparent),
+        radial-gradient(1px 1px at 4%  60%, white, transparent),
+        radial-gradient(1px 1px at 96% 70%, white, transparent),
+        radial-gradient(2px 2px at 30% 75%, white, transparent);
+      opacity: 0.7;
+      animation: twinkle 3s ease-in-out infinite alternate;
+    }
+    @keyframes twinkle {
+      from { opacity: 0.45; }
+      to   { opacity: 0.85; }
+    }
+
+    body::after {
+      content: '';
+      position: fixed; inset: 0;
+      pointer-events: none;
+      background-image: repeating-linear-gradient(
+        to bottom,
+        transparent 0,
+        transparent 2px,
+        rgba(0, 0, 0, 0.18) 2px,
+        rgba(0, 0, 0, 0.18) 3px
+      );
+      z-index: 100;
+    }
+
+    .container {
+      max-width: 1240px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* 자동차 화면(좌)과 문제 화면(우)을 가로로 배치 */
+    .race-row {
+      display: flex;
+      gap: 16px;
+      align-items: stretch;
+      margin-bottom: 14px;
+    }
+    .race-row > .race-viewport {
+      flex: 1.3 1 0;
+      min-width: 0;
+      margin-bottom: 0;
+    }
+    .race-row > .question-card {
+      flex: 1 1 0;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    @media (max-width: 900px) {
+      .race-row { flex-direction: column; }
+      .race-row > .race-viewport { margin-bottom: 14px; }
+    }
+
+    .pixel-frame {
+      border: 4px solid var(--neon-cyan);
+      background: var(--bg-mid);
+      box-shadow:
+        0 0 0 4px var(--bg-deep),
+        0 0 0 8px var(--neon-cyan),
+        0 0 30px rgba(0, 240, 255, 0.5),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+    }
+
+    .game-header {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 0 12px;
+      margin-bottom: 22px;
+    }
+    .arcade-title {
+      font-size: 14px;
+      color: var(--neon-pink);
+      text-shadow:
+        0 0 4px var(--neon-pink),
+        0 0 14px var(--neon-pink),
+        2px 2px 0 var(--neon-purple);
+      letter-spacing: 4px;
+    }
+
+    .intro-card { padding: 36px 28px; text-align: center; }
+    .intro-title {
+      font-size: 20px;
+      color: var(--neon-yellow);
+      text-shadow:
+        0 0 8px var(--neon-yellow),
+        3px 3px 0 var(--neon-pink),
+        4px 4px 0 var(--neon-purple);
+      margin: 18px 0 16px;
+      letter-spacing: 3px;
+      line-height: 1.5;
+    }
+    .intro-sub {
+      font-size: 13px;
+      color: var(--text-cream);
+      line-height: 1.9;
+      margin-bottom: 22px;
+    }
+    .info-chips {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      margin: 22px 0;
+    }
+    .info-chip {
+      padding: 14px 6px;
+      border: 3px solid;
+      text-align: center;
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .info-chip .chip-label {
+      font-size: 7px;
+      letter-spacing: 1.5px;
+      margin-bottom: 8px;
+      opacity: 0.75;
+    }
+    .info-chip .chip-value {
+      font-size: 10px;
+      letter-spacing: 1px;
+    }
+    .chip-correct { border-color: var(--neon-green);  box-shadow: 0 0 10px rgba(57, 255, 20, 0.3); }
+    .chip-correct .chip-value { color: var(--neon-green); text-shadow: 0 0 6px var(--neon-green); }
+    .chip-wrong   { border-color: var(--neon-pink);   box-shadow: 0 0 10px rgba(255, 45, 149, 0.3); }
+    .chip-wrong .chip-value { color: var(--neon-pink); text-shadow: 0 0 6px var(--neon-pink); }
+    .chip-time    { border-color: var(--neon-cyan);   box-shadow: 0 0 10px rgba(0, 240, 255, 0.3); }
+    .chip-time .chip-value { color: var(--neon-cyan); text-shadow: 0 0 6px var(--neon-cyan); }
+
+    .arcade-btn {
+      display: inline-block;
+      padding: 18px 36px;
+      background: var(--neon-pink);
+      color: var(--bg-deep);
+      border: none;
+      font-size: 12px;
+      letter-spacing: 3px;
+      cursor: pointer;
+      box-shadow:
+        0 0 0 4px var(--bg-deep),
+        0 0 0 8px var(--neon-pink),
+        0 8px 0 var(--neon-purple),
+        0 0 24px rgba(255, 45, 149, 0.5);
+      transition: transform 0.08s, box-shadow 0.08s;
+      animation: btn-pulse 1.4s ease-in-out infinite alternate;
+      text-transform: uppercase;
+      margin-top: 8px;
+      font-family: 'Press Start 2P', monospace;
+    }
+    .arcade-btn:hover { transform: translateY(-2px); }
+    .arcade-btn:active {
+      transform: translateY(6px);
+      box-shadow:
+        0 0 0 4px var(--bg-deep),
+        0 0 0 8px var(--neon-pink),
+        0 2px 0 var(--neon-purple),
+        0 0 24px rgba(255, 45, 149, 0.5);
+    }
+    @keyframes btn-pulse {
+      from {
+        box-shadow:
+          0 0 0 4px var(--bg-deep),
+          0 0 0 8px var(--neon-pink),
+          0 8px 0 var(--neon-purple),
+          0 0 20px rgba(255, 45, 149, 0.4);
+      }
+      to {
+        box-shadow:
+          0 0 0 4px var(--bg-deep),
+          0 0 0 8px var(--neon-pink),
+          0 8px 0 var(--neon-purple),
+          0 0 40px rgba(255, 45, 149, 0.9);
+      }
+    }
+
+    .hud-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .hud-card {
+      padding: 12px 8px;
+      border: 3px solid var(--neon-cyan);
+      background: var(--bg-mid);
+      text-align: center;
+      box-shadow: inset 0 0 12px rgba(0, 240, 255, 0.1);
+    }
+    .hud-label {
+      font-size: 7px;
+      color: var(--neon-cyan);
+      letter-spacing: 2px;
+      margin-bottom: 10px;
+      opacity: 0.8;
+    }
+    .hud-value {
+      font-size: 18px;
+      color: var(--neon-yellow);
+      text-shadow: 0 0 8px var(--neon-yellow), 0 0 16px rgba(255, 242, 0, 0.5);
+      letter-spacing: 1px;
+    }
+
+    .minimap {
+      position: relative;
+      height: 30px;
+      border: 3px solid var(--neon-purple);
+      background: var(--bg-deep);
+      margin-bottom: 14px;
+      overflow: hidden;
+      box-shadow: inset 0 0 8px rgba(176, 38, 255, 0.4);
+    }
+    .mini-track-line {
+      position: absolute;
+      left: 8px; right: 24px;
+      top: 50%; height: 2px;
+      transform: translateY(-50%);
+      background-image: repeating-linear-gradient(
+        to right,
+        var(--neon-purple) 0 4px,
+        transparent 4px 10px
+      );
+      opacity: 0.7;
+    }
+    .mini-finish {
+      position: absolute;
+      right: 4px; top: 4px; bottom: 4px;
+      width: 10px;
+      background: repeating-linear-gradient(to bottom, white 0 4px, var(--bg-deep) 4px 8px);
+      box-shadow: 0 0 8px white;
+    }
+    .mini-dot {
+      position: absolute;
+      top: 50%;
+      width: 10px; height: 10px;
+      transform: translate(-50%, -50%);
+      transition: left 0.18s linear;
+    }
+    .mini-dot.player {
+      background: var(--neon-yellow);
+      box-shadow: 0 0 8px var(--neon-yellow);
+      z-index: 3;
+      width: 12px; height: 12px;
+    }
+    .mini-dot.ai1 { background: var(--neon-cyan); box-shadow: 0 0 6px var(--neon-cyan); z-index: 2; }
+    .mini-dot.ai2 { background: var(--neon-pink); box-shadow: 0 0 6px var(--neon-pink); z-index: 1; }
+
+    .race-viewport {
+      position: relative;
+      height: 420px;
+      overflow: hidden;
+      border: 4px solid var(--neon-pink);
+      box-shadow:
+        0 0 0 4px var(--bg-deep),
+        0 0 0 8px var(--neon-pink),
+        0 0 40px rgba(255, 45, 149, 0.5),
+        inset 0 0 60px rgba(0, 0, 0, 0.7);
+      margin-bottom: 14px;
+      background:
+        radial-gradient(ellipse at 30% 30%, rgba(176, 38, 255, 0.25) 0%, transparent 60%),
+        radial-gradient(ellipse at 70% 70%, rgba(255, 45, 149, 0.18) 0%, transparent 50%),
+        #0a0118;
+    }
+
+    .race-viewport::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: repeating-linear-gradient(
+        to bottom,
+        transparent 0,
+        transparent 1px,
+        rgba(0, 0, 0, 0.25) 1px,
+        rgba(0, 0, 0, 0.25) 2px
+      );
+      pointer-events: none;
+      z-index: 60;
+    }
+    .race-viewport::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse at center, transparent 40%, rgba(0, 0, 0, 0.6) 100%);
+      pointer-events: none;
+      z-index: 55;
+    }
+
+    .grid-floor {
+      position: absolute;
+      inset: 0;
+      background-image:
+        repeating-linear-gradient(to right,
+          transparent 0, transparent 39px,
+          rgba(0, 240, 255, 0.10) 39px, rgba(0, 240, 255, 0.10) 40px),
+        repeating-linear-gradient(to bottom,
+          transparent 0, transparent 39px,
+          rgba(255, 45, 149, 0.10) 39px, rgba(255, 45, 149, 0.10) 40px);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .race-world {
+      position: absolute;
+      left: 0; top: 0;
+      will-change: transform;
+      transition: transform 0.18s linear;
+      z-index: 10;
+    }
+    .race-world.no-tx { transition: none; }
+
+    #road-svg {
+      position: absolute;
+      left: 0; top: 0;
+      shape-rendering: geometricPrecision;
+      pointer-events: none;
+    }
+
+    .marker-sign {
+      position: absolute;
+      width: 34px; height: 36px;
+      transform: translate(-50%, -100%);
+      z-index: 11;
+    }
+    .marker-sign .post {
+      position: absolute;
+      left: 50%; bottom: 0;
+      width: 4px; height: 18px;
+      background: linear-gradient(to bottom, #555, #888);
+      transform: translateX(-50%);
+    }
+    .marker-sign .board {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 16px;
+      background: var(--neon-cyan);
+      color: var(--bg-deep);
+      font-size: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      letter-spacing: 1px;
+      font-family: 'Press Start 2P', monospace;
+      box-shadow:
+        0 0 0 2px var(--bg-deep),
+        0 0 0 4px var(--neon-cyan),
+        0 0 10px var(--neon-cyan);
+    }
+
+    .finish-gate {
+      position: absolute;
+      width: 22px; height: 180px;
+      transform: translate(-50%, -50%);
+      background-color: white;
+      background-image:
+        linear-gradient(45deg, var(--bg-deep) 25%, transparent 25%, transparent 75%, var(--bg-deep) 75%),
+        linear-gradient(45deg, var(--bg-deep) 25%, transparent 25%, transparent 75%, var(--bg-deep) 75%);
+      background-size: 22px 22px;
+      background-position: 0 0, 11px 11px;
+      box-shadow:
+        0 0 0 3px var(--bg-deep),
+        0 0 0 6px var(--neon-yellow),
+        0 0 25px var(--neon-yellow);
+      z-index: 9;
+    }
+    .finish-banner {
+      position: absolute;
+      font-size: 12px;
+      color: var(--neon-yellow);
+      text-shadow:
+        0 0 8px var(--neon-yellow),
+        2px 2px 0 var(--neon-pink),
+        3px 3px 0 var(--neon-purple);
+      letter-spacing: 3px;
+      transform: translate(-50%, -150px);
+      z-index: 12;
+      animation: finish-pulse 1s ease-in-out infinite alternate;
+      white-space: nowrap;
+      font-family: 'Press Start 2P', monospace;
+    }
+    @keyframes finish-pulse {
+      from { transform: translate(-50%, -150px) scale(1); }
+      to   { transform: translate(-50%, -154px) scale(1.05); }
+    }
+
+    .race-viewport.boosting::before {
+      background-image:
+        repeating-linear-gradient(
+          to bottom,
+          transparent 0,
+          transparent 1px,
+          rgba(0, 0, 0, 0.25) 1px,
+          rgba(0, 0, 0, 0.25) 2px
+        ),
+        repeating-linear-gradient(to right,
+          rgba(255, 242, 0, 0.35) 0 6px,
+          transparent 6px 30px,
+          rgba(0, 240, 255, 0.3) 30px 36px,
+          transparent 36px 60px);
+      animation: streak 0.25s linear infinite;
+    }
+    @keyframes streak {
+      from { background-position: 0 0, 0 0; }
+      to   { background-position: 0 0, -60px 0; }
+    }
+
+    .car {
+      position: absolute;
+      left: 0; top: 0;
+      transition: left 0.18s linear, top 0.18s linear, transform 0.18s linear;
+      filter: drop-shadow(3px 3px 0 rgba(0, 0, 0, 0.7));
+    }
+    .car svg {
+      display: block;
+      shape-rendering: crispEdges;
+    }
+    .car.player {
+      z-index: 20;
+      filter:
+        drop-shadow(3px 3px 0 rgba(0, 0, 0, 0.7))
+        drop-shadow(0 0 8px rgba(255, 242, 0, 0.6));
+    }
+    .car-label {
+      position: absolute;
+      left: 50%; top: -16px;
+      transform: translateX(-50%);
+      font-size: 7px;
+      letter-spacing: 1.5px;
+      color: white;
+      text-shadow: 1px 1px 0 var(--bg-deep), 0 0 4px var(--bg-deep);
+      white-space: nowrap;
+    }
+    .car.player .car-label {
+      color: var(--neon-yellow);
+      text-shadow:
+        1px 1px 0 var(--bg-deep),
+        0 0 6px var(--neon-yellow);
+    }
+    .car.ai1 .car-label   { color: var(--neon-cyan); text-shadow: 1px 1px 0 var(--bg-deep), 0 0 5px var(--neon-cyan); }
+    .car.ai2 .car-label   { color: var(--neon-pink); text-shadow: 1px 1px 0 var(--bg-deep), 0 0 5px var(--neon-pink); }
+
+    .car.ai1.boosting-ai {
+      filter:
+        drop-shadow(3px 3px 0 rgba(0, 0, 0, 0.7))
+        drop-shadow(0 0 14px var(--neon-cyan))
+        brightness(1.25);
+    }
+    .car.ai2.boosting-ai {
+      filter:
+        drop-shadow(3px 3px 0 rgba(0, 0, 0, 0.7))
+        drop-shadow(0 0 14px var(--neon-pink))
+        brightness(1.25);
+    }
+
+    .speed-burst { animation: burst 0.6s ease; }
+    @keyframes burst {
+      0%, 100% {
+        filter:
+          drop-shadow(3px 3px 0 rgba(0, 0, 0, 0.7))
+          drop-shadow(0 0 8px rgba(255, 242, 0, 0.6));
+      }
+      30% {
+        filter:
+          drop-shadow(3px 3px 0 rgba(0, 0, 0, 0.7))
+          drop-shadow(0 0 20px var(--neon-yellow))
+          drop-shadow(0 0 30px var(--neon-pink))
+          brightness(1.5) hue-rotate(40deg);
+      }
+      60% {
+        filter:
+          drop-shadow(3px 3px 0 rgba(0, 0, 0, 0.7))
+          drop-shadow(0 0 20px var(--neon-cyan))
+          brightness(1.5) hue-rotate(-40deg);
+      }
+    }
+    .car.player.boosting::after {
+      content: '';
+      position: absolute;
+      right: 100%; top: 50%;
+      transform: translateY(-50%);
+      width: 90px; height: 22px;
+      background: linear-gradient(to left,
+        var(--neon-yellow) 0%,
+        var(--neon-orange) 30%,
+        var(--neon-pink) 60%,
+        transparent 100%);
+      mix-blend-mode: screen;
+      animation: trail 0.18s linear infinite alternate;
+      margin-right: -2px;
+      filter: blur(1px);
+    }
+    @keyframes trail {
+      from { opacity: 0.8; transform: translateY(-50%) scaleX(1); }
+      to   { opacity: 1;   transform: translateY(-50%) scaleX(1.25); }
+    }
+
+    .shake { animation: hit-flash 0.4s; }
+    @keyframes hit-flash {
+      0%, 100% {
+        filter: drop-shadow(3px 3px 0 rgba(0, 0, 0, 0.7));
+      }
+      40% {
+        filter:
+          drop-shadow(0 0 14px var(--neon-pink))
+          drop-shadow(0 0 24px var(--neon-pink))
+          drop-shadow(3px 3px 0 rgba(0, 0, 0, 0.7))
+          brightness(1.4) saturate(2);
+      }
+    }
+
+    .question-card {
+      padding: 22px;
+      background: var(--bg-mid);
+      border: 4px solid var(--neon-green);
+      box-shadow:
+        0 0 0 4px var(--bg-deep),
+        0 0 0 8px var(--neon-green),
+        0 0 30px rgba(57, 255, 20, 0.4);
+      position: relative;
+    }
+    .q-number {
+      display: inline-block;
+      padding: 6px 12px;
+      background: var(--neon-green);
+      color: var(--bg-deep);
+      font-size: 8px;
+      margin-bottom: 14px;
+      letter-spacing: 2px;
+      box-shadow: 3px 3px 0 var(--bg-deep);
+    }
+    .q-text {
+      font-size: 13px;
+      color: var(--text-cream);
+      margin-bottom: 18px;
+      line-height: 1.7;
+      letter-spacing: 0.3px;
+    }
+    .q-options {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .answer-btn {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      background: transparent;
+      border: 3px solid var(--text-cream);
+      color: var(--text-cream);
+      font-size: 11px;
+      font-family: 'Noto Sans KR', sans-serif;
+      font-weight: 500;
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.1s;
+      letter-spacing: 0.2px;
+      line-height: 1.5;
+    }
+    .answer-btn .letter {
+      display: inline-flex;
+      width: 26px; height: 26px;
+      align-items: center;
+      justify-content: center;
+      background: var(--text-cream);
+      color: var(--bg-deep);
+      font-size: 11px;
+      font-family: 'Press Start 2P', monospace;
+      flex-shrink: 0;
+      box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+    }
+    .answer-btn:hover:not(:disabled) {
+      border-color: var(--neon-cyan);
+      color: var(--neon-cyan);
+      transform: translate(-3px, -3px);
+      box-shadow: 5px 5px 0 var(--neon-cyan);
+    }
+    .answer-btn:hover:not(:disabled) .letter {
+      background: var(--neon-cyan);
+    }
+    .answer-btn.correct {
+      border-color: var(--neon-green);
+      color: var(--neon-green);
+      background: rgba(57, 255, 20, 0.12);
+      box-shadow: 0 0 18px rgba(57, 255, 20, 0.5);
+    }
+    .answer-btn.correct .letter { background: var(--neon-green); }
+    .answer-btn.wrong {
+      border-color: var(--neon-pink);
+      color: var(--neon-pink);
+      background: rgba(255, 45, 149, 0.12);
+    }
+    .answer-btn.wrong .letter { background: var(--neon-pink); }
+    .answer-btn:disabled { cursor: default; }
+
+    .result-card {
+      padding: 36px 28px;
+      text-align: center;
+      border-color: var(--neon-yellow);
+      box-shadow:
+        0 0 0 4px var(--bg-deep),
+        0 0 0 8px var(--neon-yellow),
+        0 0 40px rgba(255, 242, 0, 0.5);
+    }
+    .result-title-big {
+      font-size: 24px;
+      color: var(--neon-yellow);
+      text-shadow:
+        0 0 10px var(--neon-yellow),
+        3px 3px 0 var(--neon-pink),
+        5px 5px 0 var(--neon-purple);
+      letter-spacing: 4px;
+      margin-bottom: 14px;
+      animation: result-glow 1.4s ease-in-out infinite alternate;
+    }
+    @keyframes result-glow {
+      from { text-shadow: 0 0 6px var(--neon-yellow), 3px 3px 0 var(--neon-pink), 5px 5px 0 var(--neon-purple); }
+      to   { text-shadow: 0 0 22px var(--neon-yellow), 3px 3px 0 var(--neon-pink), 5px 5px 0 var(--neon-purple); }
+    }
+    .result-sub {
+      font-size: 13px;
+      color: var(--text-cream);
+      margin-bottom: 26px;
+      line-height: 1.8;
+    }
+    .stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 22px;
+    }
+    .stat-card {
+      padding: 16px 6px;
+      border: 3px solid;
+      background: var(--bg-mid);
+    }
+    .stat-card.gold  { border-color: var(--neon-yellow); }
+    .stat-card.cyan  { border-color: var(--neon-cyan); }
+    .stat-card.green { border-color: var(--neon-green); }
+    .stat-label {
+      font-size: 7px;
+      letter-spacing: 2px;
+      margin-bottom: 10px;
+      opacity: 0.8;
+    }
+    .stat-value {
+      font-size: 18px;
+      letter-spacing: 1px;
+    }
+    .stat-card.gold  .stat-value { color: var(--neon-yellow); text-shadow: 0 0 6px var(--neon-yellow); }
+    .stat-card.cyan  .stat-value { color: var(--neon-cyan);   text-shadow: 0 0 6px var(--neon-cyan); }
+    .stat-card.green .stat-value { color: var(--neon-green);  text-shadow: 0 0 6px var(--neon-green); }
+
+    .rank-info {
+      font-size: 8px;
+      color: var(--text-cream);
+      opacity: 0.75;
+      margin-bottom: 22px;
+      letter-spacing: 1px;
+      line-height: 1.8;
+    }
+
+    .btn-row {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+    .btn-solid {
+      padding: 16px;
+      font-size: 10px;
+      cursor: pointer;
+      letter-spacing: 2px;
+      transition: all 0.1s;
+      background: var(--neon-pink);
+      color: var(--bg-deep);
+      border: 3px solid var(--neon-pink);
+      font-family: 'Press Start 2P', monospace;
+    }
+    .btn-solid:hover {
+      box-shadow: 0 0 18px var(--neon-pink);
+      transform: translateY(-2px);
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <div class="game-header">
+    <div class="arcade-title">▶ SECURITY RACE ◀</div>
+  </div>
+
+  <!-- ── INTRO ── -->
+  <div id="intro" class="pixel-frame intro-card">
+    <div style="display:inline-block; margin: 0 auto 10px;">
+      <svg width="120" height="80" viewBox="0 0 30 20" shape-rendering="crispEdges" style="display:block;">
+        <rect x="1"  y="9"  width="28" height="7" fill="#fff200"/>
+        <rect x="5"  y="4"  width="20" height="5" fill="#ff6b00"/>
+        <rect x="7"  y="5"  width="6"  height="3" fill="#00f0ff"/>
+        <rect x="17" y="5"  width="6"  height="3" fill="#00f0ff"/>
+        <rect x="7"  y="5"  width="2"  height="1" fill="#ffffff"/>
+        <rect x="17" y="5"  width="2"  height="1" fill="#ffffff"/>
+        <rect x="1"  y="9"  width="28" height="1" fill="#ffffff" opacity="0.4"/>
+        <rect x="1"  y="15" width="28" height="1" fill="#000000" opacity="0.3"/>
+        <rect x="3"  y="15" width="5"  height="4" fill="#0a0118"/>
+        <rect x="22" y="15" width="5"  height="4" fill="#0a0118"/>
+        <rect x="4"  y="16" width="3"  height="2" fill="#555"/>
+        <rect x="23" y="16" width="3"  height="2" fill="#555"/>
+        <rect x="28" y="10" width="1"  height="4" fill="#ff2d95"/>
+        <rect x="0"  y="12" width="1"  height="2" fill="#888"/>
+      </svg>
+    </div>
+    <div class="intro-title">START YOUR<br>ENGINE</div>
+    <div class="intro-sub ko">
+      60초 안에 보안 문제를 풀어<br>
+      결승선까지 달려라!<br>
+      AI 차들을 제치고 1등을 노려보세요.
+    </div>
+
+    <div class="info-chips">
+      <div class="info-chip chip-correct">
+        <div class="chip-label">CORRECT</div>
+        <div class="chip-value">+SPEED</div>
+      </div>
+      <div class="info-chip chip-wrong">
+        <div class="chip-label">WRONG</div>
+        <div class="chip-value">-1S STOP</div>
+      </div>
+      <div class="info-chip chip-time">
+        <div class="chip-label">TIME</div>
+        <div class="chip-value">60S</div>
+      </div>
+    </div>
+
+    <button class="arcade-btn" onclick="startRace()">▶ PRESS START</button>
+  </div>
+
+  <!-- ── GAME ── -->
+  <div id="game" style="display:none;">
+
+    <div class="hud-grid">
+      <div class="hud-card">
+        <div class="hud-label">TIME</div>
+        <div id="time-left" class="hud-value">60.0</div>
+      </div>
+      <div class="hud-card">
+        <div class="hud-label">POSITION</div>
+        <div id="progress-pct" class="hud-value">0%</div>
+      </div>
+      <div class="hud-card">
+        <div class="hud-label">HITS</div>
+        <div id="correct-count" class="hud-value">0</div>
+      </div>
+    </div>
+
+    <div class="minimap">
+      <div class="mini-track-line"></div>
+      <div id="mini-ai1"    class="mini-dot ai1"    style="left:8px;"></div>
+      <div id="mini-ai2"    class="mini-dot ai2"    style="left:8px;"></div>
+      <div id="mini-player" class="mini-dot player" style="left:8px;"></div>
+      <div class="mini-finish"></div>
+    </div>
+
+    <div class="race-row">
+    <div id="viewport" class="race-viewport">
+      <div class="grid-floor"></div>
+
+      <div id="world" class="race-world">
+        <svg id="road-svg">
+          <path id="path-glow" stroke="#00f0ff" stroke-width="200" fill="none" stroke-linecap="round" opacity="0.18"/>
+          <path id="path-road" stroke="#1a1a2e" stroke-width="172" fill="none" stroke-linecap="round"/>
+          <path id="path-edge-top" stroke="#ff2d95" stroke-width="4" fill="none" filter="url(#pinkGlow)"/>
+          <path id="path-edge-bot" stroke="#00f0ff" stroke-width="4" fill="none" filter="url(#cyanGlow)"/>
+          <path id="path-div-top" stroke="#fff200" stroke-width="3" stroke-dasharray="16 18" fill="none"/>
+          <path id="path-div-bot" stroke="#fff200" stroke-width="3" stroke-dasharray="16 18" fill="none"/>
+          <defs>
+            <filter id="pinkGlow" x="-20%" y="-200%" width="140%" height="500%">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="2"/>
+              <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+            <filter id="cyanGlow" x="-20%" y="-200%" width="140%" height="500%">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="2"/>
+              <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+        </svg>
+
+        <div id="markers"></div>
+        <div id="finish-flag" class="finish-gate"></div>
+        <div id="finish-text" class="finish-banner">FINISH</div>
+
+        <div id="ai1" class="car ai1">
+          <div class="car-label">AI 1</div>
+          <svg width="56" height="32" viewBox="0 0 56 32" shape-rendering="crispEdges">
+            <rect x="4"  y="0"  width="11" height="6" fill="#0a0118"/>
+            <rect x="4"  y="26" width="11" height="6" fill="#0a0118"/>
+            <rect x="41" y="0"  width="11" height="6" fill="#0a0118"/>
+            <rect x="41" y="26" width="11" height="6" fill="#0a0118"/>
+            <rect x="2"  y="6"  width="52" height="20" fill="#00f0ff"/>
+            <rect x="36" y="6"  width="18" height="20" fill="#006688"/>
+            <rect x="30" y="10" width="10" height="12" fill="#ffffff"/>
+            <rect x="14" y="10" width="16" height="12" fill="#0099bb"/>
+            <rect x="6"  y="10" width="8"  height="12" fill="#003344"/>
+            <rect x="2"  y="6"  width="52" height="1" fill="#ffffff" opacity="0.4"/>
+            <rect x="2"  y="25" width="52" height="1" fill="#000000" opacity="0.4"/>
+            <rect x="2"  y="11" width="3"  height="3" fill="#ff2d95"/>
+            <rect x="2"  y="18" width="3"  height="3" fill="#ff2d95"/>
+            <rect x="51" y="11" width="3"  height="3" fill="#ffffff"/>
+            <rect x="51" y="18" width="3"  height="3" fill="#ffffff"/>
+          </svg>
+        </div>
+        <div id="player" class="car player">
+          <div class="car-label">YOU</div>
+          <svg width="60" height="36" viewBox="0 0 60 36" shape-rendering="crispEdges">
+            <rect x="4"  y="0"  width="12" height="7" fill="#0a0118"/>
+            <rect x="4"  y="29" width="12" height="7" fill="#0a0118"/>
+            <rect x="44" y="0"  width="12" height="7" fill="#0a0118"/>
+            <rect x="44" y="29" width="12" height="7" fill="#0a0118"/>
+            <rect x="2"  y="7"  width="56" height="22" fill="#fff200"/>
+            <rect x="38" y="7"  width="20" height="22" fill="#ff6b00"/>
+            <rect x="32" y="11" width="12" height="14" fill="#00f0ff"/>
+            <rect x="14" y="11" width="18" height="14" fill="#b89300"/>
+            <rect x="6"  y="11" width="8"  height="14" fill="#5c4900"/>
+            <rect x="2"  y="7"  width="56" height="1" fill="#ffffff" opacity="0.5"/>
+            <rect x="2"  y="28" width="56" height="1" fill="#000000" opacity="0.4"/>
+            <rect x="2"  y="12" width="4"  height="4" fill="#ff2d95"/>
+            <rect x="2"  y="20" width="4"  height="4" fill="#ff2d95"/>
+            <rect x="54" y="12" width="4"  height="4" fill="#ffffff"/>
+            <rect x="54" y="20" width="4"  height="4" fill="#ffffff"/>
+            <rect x="0"  y="11" width="2"  height="14" fill="#cccccc"/>
+          </svg>
+        </div>
+        <div id="ai2" class="car ai2">
+          <div class="car-label">AI 2</div>
+          <svg width="56" height="32" viewBox="0 0 56 32" shape-rendering="crispEdges">
+            <rect x="4"  y="0"  width="11" height="6" fill="#0a0118"/>
+            <rect x="4"  y="26" width="11" height="6" fill="#0a0118"/>
+            <rect x="41" y="0"  width="11" height="6" fill="#0a0118"/>
+            <rect x="41" y="26" width="11" height="6" fill="#0a0118"/>
+            <rect x="2"  y="6"  width="52" height="20" fill="#ff2d95"/>
+            <rect x="36" y="6"  width="18" height="20" fill="#b026ff"/>
+            <rect x="30" y="10" width="10" height="12" fill="#ffffff"/>
+            <rect x="14" y="10" width="16" height="12" fill="#bb1c75"/>
+            <rect x="6"  y="10" width="8"  height="12" fill="#440019"/>
+            <rect x="2"  y="6"  width="52" height="1" fill="#ffffff" opacity="0.4"/>
+            <rect x="2"  y="25" width="52" height="1" fill="#000000" opacity="0.4"/>
+            <rect x="2"  y="11" width="3"  height="3" fill="#fff200"/>
+            <rect x="2"  y="18" width="3"  height="3" fill="#fff200"/>
+            <rect x="51" y="11" width="3"  height="3" fill="#ffffff"/>
+            <rect x="51" y="18" width="3"  height="3" fill="#ffffff"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="question-card">
+      <div id="q-number" class="q-number">QUESTION 1</div>
+      <p id="q-text" class="q-text ko"></p>
+      <div id="q-options" class="q-options"></div>
+    </div>
+    </div>
+  </div>
+
+  <!-- ── RESULT ── -->
+  <div id="result" class="pixel-frame result-card" style="display:none;">
+    <div id="result-title-big" class="result-title-big">RACE COMPLETE</div>
+    <div id="result-sub" class="result-sub ko"></div>
+
+    <div class="stat-grid">
+      <div class="stat-card gold">
+        <div class="stat-label">SCORE</div>
+        <div id="final-score" class="stat-value">0</div>
+      </div>
+      <div class="stat-card cyan">
+        <div class="stat-label">DISTANCE</div>
+        <div id="final-progress" class="stat-value">0%</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-label">HITS</div>
+        <div id="final-correct" class="stat-value">0</div>
+      </div>
+    </div>
+
+    <div id="rank-info" class="rank-info"></div>
+
+    <div class="btn-row">
+      <button class="btn-solid" onclick="location.reload()">RETRY ▶</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── 문제 풀 ──
+const QUESTIONS = [
+  { q:'강력한 비밀번호의 조건으로 가장 적절한 것은?',
+    options:['짧고 외우기 쉬운 단어', '8자 이상 + 대소문자 + 숫자 + 특수문자', '생년월일이나 전화번호', '동일한 문자 반복'],
+    answer:1 },
+  { q:'피싱 메일을 식별하는 가장 좋은 방법은?',
+    options:['이메일 디자인을 본다', '발신자 주소와 링크 도메인을 확인한다', '제목만 본다', '첨부파일을 열어본다'],
+    answer:1 },
+  { q:'공공 와이파이에서 가장 안전한 행동은?',
+    options:['은행 업무 처리', 'VPN 사용 또는 모바일 데이터 활용', '비밀번호 변경 작업', '쇼핑 결제 진행'],
+    answer:1 },
+  { q:'2단계 인증(2FA)을 사용하는 주된 이유는?',
+    options:['로그인 속도를 빠르게 하기 위해', '비밀번호가 유출되어도 계정을 보호하기 위해', '비밀번호를 잊지 않기 위해', '이메일을 줄이기 위해'],
+    answer:1 },
+  { q:'모르는 사람이 보낸 이메일 첨부파일은?',
+    options:['바로 열어본다', '발신자를 확인하고 의심되면 삭제한다', '친구에게 전달해 의견을 묻는다', '바이러스 검사 없이 다운로드한다'],
+    answer:1 },
+  { q:'소프트웨어 업데이트가 중요한 이유는?',
+    options:['새 기능을 위해서만 필요하다', '보안 취약점이 패치되어 공격을 막아준다', '용량을 늘리기 위해서다', '디자인 개선 때문이다'],
+    answer:1 },
+  { q:'사회공학적 공격의 대표적 예시는?',
+    options:['방화벽 우회 해킹', '직원을 속여 기밀 정보를 얻어내는 행위', '서버 직접 침입', 'DDoS 공격'],
+    answer:1 },
+  { q:'랜섬웨어에 감염되었을 때 가장 먼저 해야 할 일은?',
+    options:['요구한 금액을 즉시 지불한다', '네트워크에서 분리하고 보안팀에 신고한다', '컴퓨터를 포맷한다', '아무것도 하지 않는다'],
+    answer:1 },
+  { q:'USB 메모리 사용 시 주의사항은?',
+    options:['습득한 USB도 자유롭게 사용한다', '출처가 불분명한 USB는 연결하지 않는다', '회사 자료는 개인 USB에 저장한다', '암호화 없이 사용한다'],
+    answer:1 },
+  { q:'개인 데이터 백업의 올바른 방법은?',
+    options:['한 곳에만 저장한다', '3-2-1 규칙(복사본 3개, 매체 2종, 1개는 외부 보관)', '백업하지 않는다', '동일한 디스크에만 복사한다'],
+    answer:1 },
+  { q:'HTTPS와 HTTP의 가장 큰 차이는?',
+    options:['속도만 다르다', 'HTTPS는 통신을 암호화한다', '디자인이 다르다', '비용이 다르다'],
+    answer:1 },
+  { q:'스마트폰 앱 권한 요청 시 올바른 태도는?',
+    options:['항상 모두 허용한다', '필요 최소한만 허용한다', '검토 없이 거부한다', '아무 설정도 하지 않는다'],
+    answer:1 },
+  { q:'회사 노트북을 분실했을 때 가장 먼저 할 일은?',
+    options:['직접 찾아본다', 'IT 보안팀에 즉시 신고한다', '며칠 기다려본다', '비밀번호만 바꾼다'],
+    answer:1 },
+  { q:'안전한 비밀번호 관리 방법은?',
+    options:['모든 사이트에 같은 비밀번호 사용', '비밀번호 관리자(Password Manager) 사용', '메모지에 적어둔다', '브라우저에 평문 저장'],
+    answer:1 },
+  { q:'의심스러운 링크를 안전하게 확인하는 방법은?',
+    options:['바로 클릭한다', '마우스를 올려 실제 URL을 미리 확인한다', '전체 화면으로 본다', '다른 사람에게 전달한다'],
+    answer:1 },
+  { q:'기업 보안의 가장 약한 고리는?',
+    options:['방화벽', '사람', '서버', '네트워크 장비'],
+    answer:1 },
+];
+
+const RACE_TIME      = 60;
+const WORLD_WIDTH    = 2400;
+const WORLD_HEIGHT   = 1600;
+const LANE_OFFSET    = 57;
+const PLAYER_BASE    = 1.0;
+const PLAYER_BOOST   = 2.5;
+const AI1_SPEED      = 1.5;
+const AI2_SPEED      = 0.85;
+const BOOST_DURATION = 1800;
+const SLOW_DURATION  = 1000;
+const CORRECT_JUMP   = 5;
+
+const TRACK_PATH_D = 'M 200 1300 C 400 1300, 600 1300, 800 1200 C 1000 1100, 1100 900, 1100 700 C 1100 500, 1300 350, 1500 350 C 1700 350, 1900 480, 2000 700 C 2100 920, 2160 1120, 2050 1320 C 1900 1470, 1700 1480, 1500 1350';
+
+let trackPathEl = null;
+let trackLength = 0;
+
+let playerPos = 0, ai1Pos = 0, ai2Pos = 0;
+let playerBoostUntil = 0, playerSlowUntil = 0;
+let ai1BoostUntil = 0, ai1NextBoostAt = 0;
+let ai2BoostUntil = 0, ai2NextBoostAt = 0;
+const AI_BOOST_MULT = 1.7;
+let raceRunning = false;
+let raceStart = 0, lastFrame = 0;
+let correctCount = 0, totalAnswered = 0;
+let questionPool = [];
+let currentQIdx = 0;
+let currentShuffled = null;
+let cameraX = 0, cameraY = 0;
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function setupWorld() {
+  const world = document.getElementById('world');
+  world.style.width  = WORLD_WIDTH  + 'px';
+  world.style.height = WORLD_HEIGHT + 'px';
+
+  const svg = document.getElementById('road-svg');
+  svg.setAttribute('width',  WORLD_WIDTH);
+  svg.setAttribute('height', WORLD_HEIGHT);
+  svg.setAttribute('viewBox', `0 0 ${WORLD_WIDTH} ${WORLD_HEIGHT}`);
+  document.getElementById('path-road').setAttribute('d', TRACK_PATH_D);
+  document.getElementById('path-glow').setAttribute('d', TRACK_PATH_D);
+
+  trackPathEl = document.getElementById('path-road');
+  trackLength = trackPathEl.getTotalLength();
+
+  function offsetPath(distOffset, samples = 240) {
+    const pts = [];
+    for (let i = 0; i <= samples; i++) {
+      const d = (i / samples) * trackLength;
+      const p = trackPathEl.getPointAtLength(d);
+      const p2 = trackPathEl.getPointAtLength(Math.min(trackLength, d + 1.5));
+      const dx = p2.x - p.x, dy = p2.y - p.y;
+      const len = Math.hypot(dx, dy) || 1;
+      const nx = -dy / len, ny = dx / len;
+      pts.push(`${(p.x + nx * distOffset).toFixed(1)},${(p.y + ny * distOffset).toFixed(1)}`);
+    }
+    return 'M ' + pts.join(' L ');
+  }
+  document.getElementById('path-edge-top').setAttribute('d', offsetPath(-86));
+  document.getElementById('path-edge-bot').setAttribute('d', offsetPath(86));
+  document.getElementById('path-div-top').setAttribute('d', offsetPath(-29));
+  document.getElementById('path-div-bot').setAttribute('d', offsetPath(29));
+
+  const markers = document.getElementById('markers');
+  markers.innerHTML = '';
+  [25, 50, 75].forEach(p => {
+    const d = (p / 100) * trackLength;
+    const pos = trackPathEl.getPointAtLength(d);
+    const ahead = trackPathEl.getPointAtLength(Math.min(trackLength, d + 1.5));
+    const dx = ahead.x - pos.x, dy = ahead.y - pos.y;
+    const len = Math.hypot(dx, dy) || 1;
+    const nx = -dy / len, ny = dx / len;
+    const signX = pos.x + nx * -110;
+    const signY = pos.y + ny * -110;
+    const sign = document.createElement('div');
+    sign.className = 'marker-sign';
+    sign.style.left = signX + 'px';
+    sign.style.top  = signY + 'px';
+    sign.innerHTML = `<div class="board">${p}%</div><div class="post"></div>`;
+    markers.appendChild(sign);
+  });
+
+  const endP = trackPathEl.getPointAtLength(trackLength);
+  const beforeP = trackPathEl.getPointAtLength(Math.max(0, trackLength - 1.5));
+  const fAngle = Math.atan2(endP.y - beforeP.y, endP.x - beforeP.x) * 180 / Math.PI;
+  const flag = document.getElementById('finish-flag');
+  flag.style.left = endP.x + 'px';
+  flag.style.top  = endP.y + 'px';
+  flag.style.transform = `translate(-50%, -50%) rotate(${fAngle}deg)`;
+  const ftext = document.getElementById('finish-text');
+  ftext.style.left = endP.x + 'px';
+  ftext.style.top  = endP.y + 'px';
+
+  world.classList.add('no-tx');
+  world.style.transform = 'translate(0px, 0px)';
+  requestAnimationFrame(() => world.classList.remove('no-tx'));
+}
+
+function startRace() {
+  playerPos = ai1Pos = ai2Pos = 0;
+  cameraX = cameraY = 0;
+  correctCount = 0;
+  totalAnswered = 0;
+  currentQIdx = 0;
+  playerBoostUntil = 0;
+  playerSlowUntil = 0;
+  ai1BoostUntil = 0; ai1NextBoostAt = performance.now() + 2000 + Math.random() * 2000;
+  ai2BoostUntil = 0; ai2NextBoostAt = performance.now() + 2500 + Math.random() * 2500;
+  questionPool = shuffle(QUESTIONS);
+
+  document.getElementById('intro').style.display = 'none';
+  document.getElementById('game').style.display = 'block';
+
+  setupWorld();
+  updateCarPos('player', 0, 0);
+  updateCarPos('ai1', 0, -1);
+  updateCarPos('ai2', 0, 1);
+  updateMinimap();
+
+  showQuestion();
+
+  raceStart = performance.now();
+  lastFrame = performance.now();
+  raceRunning = true;
+  requestAnimationFrame(loop);
+}
+
+function loop(now) {
+  if (!raceRunning) return;
+  const dt = Math.min(0.05, (now - lastFrame) / 1000);
+  lastFrame = now;
+  const elapsed = (now - raceStart) / 1000;
+  const remaining = Math.max(0, RACE_TIME - elapsed);
+
+  let playerSpeed = PLAYER_BASE;
+  const boosting = now < playerBoostUntil;
+  if (boosting)              playerSpeed = PLAYER_BOOST;
+  if (now < playerSlowUntil) playerSpeed = 0;
+  playerPos = Math.min(100, playerPos + playerSpeed * dt);
+
+  if (now >= ai1NextBoostAt) {
+    const dur = 1000 + Math.random() * 800;
+    ai1BoostUntil = now + dur;
+    ai1NextBoostAt = ai1BoostUntil + 2000 + Math.random() * 2000;
+  }
+  if (now >= ai2NextBoostAt) {
+    const dur = 900 + Math.random() * 700;
+    ai2BoostUntil = now + dur;
+    ai2NextBoostAt = ai2BoostUntil + 2500 + Math.random() * 2500;
+  }
+  const ai1Boosting = now < ai1BoostUntil;
+  const ai2Boosting = now < ai2BoostUntil;
+  const ai1Speed = ai1Boosting ? AI1_SPEED * AI_BOOST_MULT : AI1_SPEED;
+  const ai2Speed = ai2Boosting ? AI2_SPEED * AI_BOOST_MULT : AI2_SPEED;
+  ai1Pos = Math.min(100, ai1Pos + ai1Speed * dt);
+  ai2Pos = Math.min(100, ai2Pos + ai2Speed * dt);
+
+  document.getElementById('ai1').classList.toggle('boosting-ai', ai1Boosting);
+  document.getElementById('ai2').classList.toggle('boosting-ai', ai2Boosting);
+
+  updateCarPos('player', playerPos, 0);
+  updateCarPos('ai1', ai1Pos, -1);
+  updateCarPos('ai2', ai2Pos, 1);
+  updateCamera();
+  updateMinimap();
+
+  const viewport = document.getElementById('viewport');
+  const playerEl = document.getElementById('player');
+  if (boosting) {
+    viewport.classList.add('boosting');
+    playerEl.classList.add('boosting');
+  } else {
+    viewport.classList.remove('boosting');
+    playerEl.classList.remove('boosting');
+  }
+
+  document.getElementById('time-left').textContent     = remaining.toFixed(1);
+  document.getElementById('progress-pct').textContent  = Math.round(playerPos) + '%';
+  document.getElementById('correct-count').textContent = correctCount;
+
+  if (playerPos >= 100 || remaining <= 0) {
+    endRace();
+    return;
+  }
+  requestAnimationFrame(loop);
+}
+
+function carWorldPos(pct, laneIdx) {
+  if (!trackPathEl) return { x: 0, y: 0, angle: 0 };
+  const d = (pct / 100) * trackLength;
+  const p = trackPathEl.getPointAtLength(d);
+  const ahead = trackPathEl.getPointAtLength(Math.min(trackLength, d + 2));
+  const dx = ahead.x - p.x, dy = ahead.y - p.y;
+  const len = Math.hypot(dx, dy) || 1;
+  const nx = -dy / len, ny = dx / len;
+  const offset = laneIdx * LANE_OFFSET;
+  return {
+    x: p.x + nx * offset,
+    y: p.y + ny * offset,
+    angle: Math.atan2(dy, dx) * 180 / Math.PI,
+  };
+}
+
+function updateCarPos(id, pct, laneIdx) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const { x, y, angle } = carWorldPos(pct, laneIdx);
+  el.style.left = x + 'px';
+  el.style.top  = y + 'px';
+  el.style.transform = `translate(-50%, -50%) rotate(${angle}deg)`;
+}
+
+function updateCamera() {
+  const viewport = document.getElementById('viewport');
+  const world = document.getElementById('world');
+  const vw = viewport.offsetWidth;
+  const vh = viewport.offsetHeight;
+  const player = carWorldPos(playerPos, 0);
+  let tx = player.x - vw * 0.32;
+  let ty = player.y - vh * 0.50;
+  tx = Math.max(0, Math.min(WORLD_WIDTH - vw, tx));
+  ty = Math.max(0, Math.min(WORLD_HEIGHT - vh, ty));
+  cameraX = tx;
+  cameraY = ty;
+  world.style.transform = `translate(${-cameraX}px, ${-cameraY}px)`;
+}
+
+function updateMinimap() {
+  const mini = document.querySelector('.minimap');
+  if (!mini) return;
+  const total = mini.offsetWidth - 32;
+  const startX = 8;
+  ['player', 'ai1', 'ai2'].forEach(name => {
+    const dot = document.getElementById('mini-' + name);
+    if (!dot) return;
+    const pos = name === 'player' ? playerPos : (name === 'ai1' ? ai1Pos : ai2Pos);
+    dot.style.left = (startX + (pos / 100) * total) + 'px';
+  });
+}
+
+function showQuestion() {
+  const q = questionPool[currentQIdx % questionPool.length];
+  const tagged = q.options.map((opt, i) => ({ opt, isCorrect: i === q.answer }));
+  const shuffledOpts = shuffle(tagged);
+  const correctIdx = shuffledOpts.findIndex(o => o.isCorrect);
+  currentShuffled = { shuffledOpts, correctIdx };
+
+  document.getElementById('q-number').textContent = `QUESTION ${totalAnswered + 1}`;
+  document.getElementById('q-text').textContent = q.q;
+  const opts = document.getElementById('q-options');
+  opts.innerHTML = shuffledOpts.map((o, i) =>
+    `<button class="answer-btn" onclick="answer(${i})">
+       <span class="letter">${'ABCD'[i]}</span>
+       <span class="ko">${o.opt}</span>
+     </button>`
+  ).join('');
+}
+
+function answer(idx) {
+  if (!currentShuffled) return;
+  const buttons = document.querySelectorAll('.answer-btn');
+  buttons.forEach(b => b.disabled = true);
+
+  const correct = (idx === currentShuffled.correctIdx);
+  if (correct) {
+    buttons[idx].classList.add('correct');
+    correctCount++;
+    playerPos = Math.min(100, playerPos + CORRECT_JUMP);
+    playerBoostUntil = performance.now() + BOOST_DURATION;
+    const player = document.getElementById('player');
+    player.classList.add('speed-burst');
+    setTimeout(() => player.classList.remove('speed-burst'), 600);
+  } else {
+    buttons[idx].classList.add('wrong');
+    buttons[currentShuffled.correctIdx].classList.add('correct');
+    playerSlowUntil = performance.now() + SLOW_DURATION;
+    const player = document.getElementById('player');
+    player.classList.add('shake');
+    setTimeout(() => player.classList.remove('shake'), 400);
+  }
+  totalAnswered++;
+
+  setTimeout(() => {
+    if (!raceRunning) return;
+    currentQIdx++;
+    showQuestion();
+  }, 900);
+}
+
+function endRace() {
+  raceRunning = false;
+  document.getElementById('viewport').classList.remove('boosting');
+  const playerEl = document.getElementById('player');
+  if (playerEl) playerEl.classList.remove('boosting');
+
+  const elapsed = Math.min(RACE_TIME, (performance.now() - raceStart) / 1000);
+  const finished = playerPos >= 100;
+
+  const positions = [
+    { name: 'YOU', pos: playerPos },
+    { name: 'AI 1', pos: ai1Pos },
+    { name: 'AI 2', pos: ai2Pos },
+  ].sort((a, b) => b.pos - a.pos);
+  const myRank = positions.findIndex(p => p.name === 'YOU') + 1;
+
+  let finalScore, subText, bigTitle;
+  if (finished) {
+    const timeBonus = Math.round((RACE_TIME - elapsed) / RACE_TIME * 30);
+    finalScore = Math.min(100, 70 + timeBonus);
+    if (myRank === 1) {
+      bigTitle = '★ 1ST PLACE ★';
+      subText = '모든 차를 제치고 우승했습니다!';
+    } else if (myRank === 2) {
+      bigTitle = 'RACE CLEAR';
+      subText = '2등 — 결승선을 통과했습니다!';
+    } else {
+      bigTitle = 'RACE CLEAR';
+      subText = '결승선 통과! 시간 내 완주했습니다.';
+    }
+  } else {
+    finalScore = Math.round(playerPos * 0.7);
+    bigTitle = 'TIME UP';
+    subText = '시간 초과 — 다음엔 더 빠르게 답해보세요.';
+  }
+
+  document.getElementById('game').style.display = 'none';
+  document.getElementById('result').style.display = 'block';
+  document.getElementById('result-title-big').textContent = bigTitle;
+  document.getElementById('result-sub').textContent = subText;
+  document.getElementById('final-score').textContent = finalScore;
+  document.getElementById('final-progress').textContent = Math.round(playerPos) + '%';
+  document.getElementById('final-correct').textContent = `${correctCount}/${totalAnswered}`;
+  document.getElementById('rank-info').textContent =
+    `RANK ${myRank} / 3   ·   ` + positions.map(p => `${p.name} ${Math.round(p.pos)}%`).join(' · ');
+
+  // Unity Web Browser 임베드 환경에서 등수를 Unity 측으로 전달
+  // (uwb 객체는 UWB 엔진이 자동 주입; 외부 브라우저에선 undefined라 무시됨)
+  try {
+    if (typeof uwb !== 'undefined' && uwb.ExecuteJsMethod) {
+      uwb.ExecuteJsMethod('OnRaceFinished', myRank);
+    }
+  } catch (e) { /* 외부 브라우저 환경 */ }
+}
+</script>
+
+</body>
+</html>

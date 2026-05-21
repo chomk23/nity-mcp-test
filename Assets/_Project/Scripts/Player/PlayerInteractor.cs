@@ -72,6 +72,17 @@ namespace ForTheCompany.Player
 
         private void HandleInput()
         {
+            // Block input when any modal is open
+            var rmc = ForTheCompany.Systems.RacingMissionController.Instance;
+            if (rmc != null && rmc.IsOpen) return;
+            var sqc = ForTheCompany.Systems.SecurityQuizController.Instance;
+            if (sqc != null && sqc.IsOpen) return;
+            // 대화창 활성 중이면 DialogueSystem이 E/Space를 직접 처리 — Interactor는 무시
+            var ds = ForTheCompany.Systems.DialogueSystem.Instance;
+            if (ds != null && ds.IsActive) return;
+            foreach (var ac in FindObjectsByType<AccusationConsole>(FindObjectsSortMode.None))
+                if (ac.IsMenuOpen) return;
+
             if (Nearest == null) return;
             var kb = Keyboard.current;
             if (kb == null) return;
@@ -82,6 +93,11 @@ namespace ForTheCompany.Player
             if (Nearest is NPCInteractable npc && !string.IsNullOrEmpty(npc.LastResult))
             {
                 LastInteractionResult = npc.LastResult;
+                LastInteractionTime = Time.time;
+            }
+            else if (Nearest is GuardNPC guard && !string.IsNullOrEmpty(guard.LastResult))
+            {
+                LastInteractionResult = guard.LastResult;
                 LastInteractionTime = Time.time;
             }
         }

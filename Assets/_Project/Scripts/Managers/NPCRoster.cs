@@ -13,6 +13,7 @@ namespace ForTheCompany.Managers
 
         [Header("Spy")]
         public bool assignSpyOnStart = true;
+        [Tooltip("Editor에서만 콘솔에 스파이 정체를 노출. 빌드된 게임에서는 자동으로 익명 메시지만 출력.")]
         public bool revealSpyInLog = true;
 
         public NPCActor Spy { get; private set; }
@@ -43,8 +44,14 @@ namespace ForTheCompany.Managers
             Spy = npcs[idx];
             Spy.isSpy = true;
 
+#if UNITY_EDITOR
             if (revealSpyInLog)
-                Debug.Log($"[Spy Assigned] {Spy.DisplayName} 가 스파이입니다 (디버그용 표시).");
+                Debug.Log($"[Spy Assigned] {Spy.DisplayName} 가 스파이입니다 (Editor 전용 디버그).");
+            else
+                Debug.Log("[Spy Assigned] 스파이 1명이 무작위로 지정되었습니다.");
+#else
+            Debug.Log("[Spy Assigned] 스파이 1명이 무작위로 지정되었습니다.");
+#endif
         }
 
         public IEnumerator RunAllNPCsTurn()

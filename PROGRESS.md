@@ -14,7 +14,8 @@
 2. **1차 피벗**: 1인 탐정 모드 (단일 룸, 턴제)
 3. **2차 피벗**: FTK식 오버월드 노드 맵 + 다중 인카운터
 4. **3차 피벗**: 단일 씬 모달 인카운터 (Slay the Spire 방식)
-5. **4차 피벗 (현재)**: 컨셉아트 그대로 시설 평면도 + 실시간 자유 이동 + E키 근접 상호작용
+5. **4차 피벗**: 컨셉아트 그대로 시설 평면도 + 실시간 자유 이동 + E키 근접 상호작용
+6. **5차 피벗 (현재, 2026-05-22)**: 자유 탐색 → **선형 스토리 가이드 모드**. 자유 이동은 유지하되 경비원 NPC가 첫 안내 + 우상단 "현재 목표" HUD로 다음 행동 명시. 6단계 진행 (경비원 → 연구원 → 레이싱 → 네트워크관리자 → 시설관리자 → 지목). 자유도와 가이드의 균형.
 
 ## 현재 구현 상태
 
@@ -108,13 +109,81 @@ NPC와 대화 (E)
 - 환경 단서 × 6 = +2 × 6 = +12
 - **최대 ~18 단서**, 지목 최소 단서 = 3개
 
+## 콘텐츠 시스템 (계속)
+
+### Security Race 미니게임 — UnityWebBrowser 임베드 (2026-05-22 완료)
+
+기존 standalone HTML(`security-race.html`)을 **옵션 A: UnityWebBrowser(UWB) CEF 임베드**로 통합. 외부 브라우저 폴백 없이 Unity 게임 화면 안에서 실행.
+
+- [RacingConsole.cs](Assets/_Project/Scripts/Player/RacingConsole.cs) — 휴게실 시안색 캐비닛(-13, 0.75, 2), E키 상호작용
+- [RacingMissionController.cs](Assets/_Project/Scripts/Systems/RacingMissionController.cs) — Phase 상태, JS 브릿지로 자동 1등 감지 (`OnHtmlRaceFinished(rank)`), 보상 +5 단서, 1회 클리어 한정
+- [RacingWebViewBridge.cs](Assets/_Project/Scripts/Systems/RacingWebViewBridge.cs) — Canvas show/hide(`CanvasGroup.alpha`), CEF pre-warm(씬 시작 시 백그라운드 로드 → 첫 진입 시 즉시 반응), Hide() 시 `location.reload()`로 페이지 초기화
+- [RacingWebViewSetup.cs](Assets/_Project/Scripts/Editor/RacingWebViewSetup.cs) — `For The Company → Create Racing WebView Canvas` 메뉴로 1280×720 RawImage+WebBrowserUIBasic+CanvasGroup+EventSystem 자동 구성
+- [security-race.html](Assets/StreamingAssets/security-race.html) — JS 브릿지(`uwb.ExecuteJsMethod('OnRaceFinished', rank)`) + 가로 레이아웃(`.race-row` flex, race-viewport 좌 / question-card 우)
+- 패키지: `dev.voltstro.unitywebbrowser` + `engine.cef` + `engine.cef.win.x64` (2.2.8), Voltstro UPM scoped registry
+
+WebView 활성 동안 [RealtimePlayerController](Assets/_Project/Scripts/Player/RealtimePlayerController.cs) WASD 차단, [FollowCamera](Assets/_Project/Scripts/Core/FollowCamera.cs) 줌 차단, FacilityHUD의 NPC 이름표 숨김 — 모두 `RacingWebViewBridge.Instance.IsShowing` 기반.
+
 ## 다음 단계 후보
 
-### 우선순위 1: Security Race 미니게임 통합
+### 메인 메뉴 + 인트로 컷씬 (2026-05-22 완료)
 
-`C:\Users\CHOMK\Desktop\보안게임자료\security-race.html` (1493줄, 신스웨이브 레이싱 게임)을 Unity에 통합 — 16개 추가 보안교육 문제 + 레이싱 메카닉.
+- [MainMenuController.cs](Assets/_Project/Scripts/Systems/MainMenuController.cs) — OnGUI 메뉴 (FOR THE COMPANY 타이틀 + 인트로 + 시작/종료) + 3장 인트로 컷씬 (기밀 보고서 → 용의자 3명 → 당신의 임무)
+- [MainMenuSetup.cs](Assets/_Project/Scripts/Editor/MainMenuSetup.cs) — "For The Company → Create Main Menu Scene" 메뉴, MainMenuScene.unity 자동 생성 + Build Settings에 0번 등록 (FacilityScene 1번)
+- [FacilityHUD.cs](Assets/_Project/Scripts/Systems/FacilityHUD.cs) 결말 모달에 "메인 메뉴 (M)" 버튼 + M키 단축키
+- 스파이 정체 콘솔 노출은 `#if UNITY_EDITOR`로 감쌈 — 빌드된 게임에선 "스파이 1명 무작위 지정" 익명 메시지만 출력 ([NPCRoster.cs:46](Assets/_Project/Scripts/Managers/NPCRoster.cs:55), [GameSession.cs:50](Assets/_Project/Scripts/Core/GameSession.cs:54))
 
-**현재 검토 중인 옵션**: Unity OnGUI로 진행바 + 시간제한 + AI 경쟁 (옵션 B). 휴게실 또는 외곽에 RacingConsole 배치 예정.
+### 씬 전환 시 자동 스폰 fix (2026-05-22)
+
+`[RuntimeInitializeOnLoadMethod(AfterSceneLoad)]`는 첫 씬에서만 실행되므로 MainMenu→Facility 전환 시 사물 스폰이 안 됨. [SecurityQuizController](Assets/_Project/Scripts/Systems/SecurityQuizController.cs), [RacingMissionController](Assets/_Project/Scripts/Systems/RacingMissionController.cs), [RacingWebViewBridge](Assets/_Project/Scripts/Systems/RacingWebViewBridge.cs) 모두 `SceneManager.sceneLoaded` 이벤트로 매 씬 진입 시 `EnsureSpawned()` 호출 (FacilityScene 이름 체크).
+
+### RPG 스타일 하단 대화창 (2026-05-22 완료)
+
+영상(Roblox Studio RPG 대화 시스템) 참고하여 NPC 대화를 화면 하단 가로 박스로 전환.
+
+- [DialogueSystem.cs](Assets/_Project/Scripts/Systems/DialogueSystem.cs) — 라인 큐 + 타이프라이터(45 chars/sec) + Space/Enter/E로 진행. 타이핑 중이면 즉시 완성, 완성 상태면 다음 라인. OnEnded 콜백 (보상/단계 진행 트리거)
+- [FacilityHUD.DrawDialogueBox()](Assets/_Project/Scripts/Systems/FacilityHUD.cs) — 화면 하단 1100×180 박스 슬라이드 인 (ease-out cubic 0.25s) + 좌상단 NPC 이름 헤더 (박스 위로 살짝 튀어나옴) + 본문 wordWrap + 우하단 `▼ Space — 다음` 깜빡임 진행 표시
+- [NPCInteractable.Talk()](Assets/_Project/Scripts/Player/NPCInteractable.cs), [GuardNPC.Interact()](Assets/_Project/Scripts/Player/GuardNPC.cs) — Toast 대신 DialogueSystem 호출, 대화 종료 콜백에서 단서/의심도/QuestManager 진행 적용
+- 대화 중에는 [RealtimePlayerController](Assets/_Project/Scripts/Player/RealtimePlayerController.cs), [FollowCamera](Assets/_Project/Scripts/Core/FollowCamera.cs), [PlayerInteractor](Assets/_Project/Scripts/Player/PlayerInteractor.cs) 모두 입력 차단 — DialogueSystem이 Space/Enter/E 가로챔
+- [FacilityHUD.DrawToast()](Assets/_Project/Scripts/Systems/FacilityHUD.cs), DrawInteractionPrompt — 대화 중에는 숨김
+- DrawQuestAdvanceToast — 대화창 종료 대기 후 표시 (순차 흐름)
+
+### 스토리 모드 — 선형 퀘스트 가이드 (2026-05-22 완료, 5차 피벗)
+
+- [QuestManager.cs](Assets/_Project/Scripts/Systems/QuestManager.cs) — 6단계 enum + 현재 단계 추적 + `TryAdvance(stage)` / `TryAdvanceByRole(role)` + 단계별 목표 텍스트와 위치 힌트 + 진행 직후 토스트용 LastAdvanceText
+  - 단계: Briefing → MeetResearcher → RacingMission → MeetNetworkAdmin → MeetFacilityManager → Accusation → Done
+- [GuardNPC.cs](Assets/_Project/Scripts/Player/GuardNPC.cs) — **경비원 NPC** 중앙복도 (0, 1.1, 4)에 자동 스폰. 진한 파랑 캡슐. 스파이 후보 아님 (NPCRoster 미등록). 단계별로 다른 안내 대사 + Briefing 단계 트리거
+- [FacilityHUD.cs](Assets/_Project/Scripts/Systems/FacilityHUD.cs) DrawObjectivePanel — **우상단 현재 목표 패널** (320×96, 단계 X/6 + 목표 + 위치 힌트) + DrawQuestAdvanceToast (단계 완료 시 중앙 토스트 4초)
+- [NPCInteractable.cs](Assets/_Project/Scripts/Player/NPCInteractable.cs) — 대화 시 자기 역할이 현재 단계와 일치하면 QuestManager.TryAdvanceByRole 호출 (Researcher/NetworkAdmin/FacilityManager)
+- [RacingMissionController.cs](Assets/_Project/Scripts/Systems/RacingMissionController.cs) — 1등 클리어 시 RacingMission 단계 진행
+- [AccusationConsole.cs](Assets/_Project/Scripts/Player/AccusationConsole.cs) — `IsStoryReady()` 체크: QuestManager.CurrentStage가 Accusation일 때만 사용 가능 ("모든 용의자 조사 후 활성화")
+- [PlayerInteractor.cs](Assets/_Project/Scripts/Player/PlayerInteractor.cs) — GuardNPC.LastResult도 화면에 표시되도록 분기 추가
+- [GameSession.cs](Assets/_Project/Scripts/Core/GameSession.cs) — totalTime 300 → **420초(7분)** (스토리 진행 여유)
+
+**플레이 흐름**:
+1. 시작 → 우상단 "현재 목표: 중앙복도의 경비원에게 브리핑 받기"
+2. 경비원 대화 → 사건 브리핑 + 다음 목표 "연구실의 연구원과 대화"
+3. 자유 이동(다른 방 가도 됨, 그러나 다른 NPC 대화는 단계 진행 X) → 연구원과 대화 → 다음 목표
+4. 휴게실 → 보안 레이싱 1등 → 다음 목표
+5. 네트워크관리자 → 시설관리자 순으로 진행
+6. 마지막 단계 도달 → 보안통제실 빨간 콘솔 활성화 → 지목
+7. 단계 진행마다 우상단 패널 업데이트 + 중앙 토스트로 알림
+
+자유도는 유지 (어디든 갈 수 있고 환경 단서 풀어 의심도 더 누적 가능), 다만 **메인 진행은 명확히 안내**됨.
+
+### 게임플레이 깊이 — 시간 제한 + 의심도 시각화 (2026-05-22 완료)
+
+- [GameSession.cs](Assets/_Project/Scripts/Core/GameSession.cs): `totalTime`(기본 300초/5분), `TimeRemaining`, `TimerActive` 필드 + 매 프레임 카운트다운. 0초 도달 시 자동 `DeclareLose("시간 초과 — 실제 스파이는 X")`. `StopTimer()/ResumeTimer()` 일시정지 지원
+- [NPCInteractable.Talk()](Assets/_Project/Scripts/Player/NPCInteractable.cs): 의심도 메커닉 보정 — 무고한 NPC 첫 대화 → 진짜 스파이 의심도 +2 (단서 제공) / 진짜 스파이 본인 대화 → 자신 +1 (회피 신호)
+- [SecurityQuizController.Answer()](Assets/_Project/Scripts/Systems/SecurityQuizController.cs): 환경 단서 정답 시 → 진짜 스파이 의심도 +2
+- [FacilityHUD.DrawStatusBar()](Assets/_Project/Scripts/Systems/FacilityHUD.cs): 좌상단에 `남은 시간 MM:SS` 표시 — 60초 이하 노랑, 30초 이하 빨강
+- [FacilityHUD.DrawNPCNameplates()](Assets/_Project/Scripts/Systems/FacilityHUD.cs): NPC 머리 위 이름표 아래에 의심도 막대 (0이면 안 보임, 1~3 회색, 4~6 노랑, 7+ 빨강, max 10)
+
+**의도된 플레이 경험**:
+- 5분 안에 단서 모으고 스파이 지목 — 결정 강제
+- 의심도 막대로 "누가 의심받는지" 한눈에 확인 — 단서 진행을 시각적으로 피드백
+- 무고한 NPC들 대화 → 진짜 스파이 막대만 빠르게 차오름 (자연스러운 정답 힌트)
+- 만약 한 NPC만 회피적이라 그 사람 막대가 천천히 차면 → 그 사람이 스파이일 가능성 (역설적 단서)
 
 ### 우선순위 2: 시각 폴리시
 

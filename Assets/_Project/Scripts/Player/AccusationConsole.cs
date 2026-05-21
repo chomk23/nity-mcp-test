@@ -1,6 +1,7 @@
 using UnityEngine;
 using ForTheCompany.Core;
 using ForTheCompany.Managers;
+using ForTheCompany.Systems;
 
 namespace ForTheCompany.Player
 {
@@ -18,12 +19,22 @@ namespace ForTheCompany.Player
         public bool CanInteract => GameSession.Instance != null
             && GameSession.Instance.Outcome == RunOutcome.Ongoing;
 
+        /// <summary>스토리 모드: QuestManager가 Accusation 단계여야 사용 가능</summary>
+        private bool IsStoryReady()
+        {
+            var quest = QuestManager.Instance;
+            if (quest == null) return true; // QuestManager 없으면 기존 동작
+            return quest.CurrentStage == QuestManager.Stage.Accusation;
+        }
+
         public string PromptText
         {
             get
             {
                 var s = GameSession.Instance;
                 int c = s != null ? s.totalClues : 0;
+                if (!IsStoryReady())
+                    return "E: 지목 콘솔 — 모든 용의자 조사 후 활성화";
                 if (c < minimumClues)
                     return $"E: 지목 콘솔 — 단서 {c}/{minimumClues}";
                 return IsMenuOpen ? "ESC: 닫기" : "E: 산업스파이 지목";
@@ -34,6 +45,7 @@ namespace ForTheCompany.Player
         {
             var s = GameSession.Instance;
             if (s == null || s.Outcome != RunOutcome.Ongoing) return;
+            if (!IsStoryReady()) return;
             if (s.totalClues < minimumClues) return;
             IsMenuOpen = !IsMenuOpen;
         }

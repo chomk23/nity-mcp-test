@@ -18,6 +18,12 @@ namespace ForTheCompany.Core
         public RunOutcome Outcome { get; private set; } = RunOutcome.Ongoing;
         public string OutcomeMessage { get; private set; } = "";
 
+        [Header("Time Limit")]
+        [Tooltip("총 제한 시간(초). 스토리 모드 기본 7분(420초).")]
+        public float totalTime = 420f;
+        public float TimeRemaining { get; private set; }
+        public bool TimerActive { get; private set; }
+
         [Header("Player Stats")]
         public int playerHacking = 3;
         public int playerInvestigation = 3;
@@ -47,8 +53,31 @@ namespace ForTheCompany.Core
             Outcome = RunOutcome.Ongoing;
             OutcomeMessage = "";
             LastEncounterRewardClues = 0;
-            Debug.Log($"[Session] New run — spy = {SpyRoleNames[spyRoleIndex]}");
+            TimeRemaining = totalTime;
+            TimerActive = true;
+#if UNITY_EDITOR
+            Debug.Log($"[Session] New run — spy role = {SpyRoleNames[spyRoleIndex]} (Editor 전용), time = {totalTime:F0}s");
+#else
+            Debug.Log($"[Session] New run — 스파이 무작위 배정됨, 시간 {totalTime:F0}초");
+#endif
         }
+
+        private void Update()
+        {
+            if (!TimerActive || Outcome != RunOutcome.Ongoing) return;
+            TimeRemaining -= Time.deltaTime;
+            if (TimeRemaining <= 0f)
+            {
+                TimeRemaining = 0f;
+                TimerActive = false;
+                string actualSpy = spyRoleIndex >= 0 && spyRoleIndex < SpyRoleNames.Length
+                    ? SpyRoleNames[spyRoleIndex] : "?";
+                DeclareLose($"시간 초과 — 산업스파이를 잡지 못했습니다. 실제 스파이는 {actualSpy}.");
+            }
+        }
+
+        public void StopTimer() { TimerActive = false; }
+        public void ResumeTimer() { if (Outcome == RunOutcome.Ongoing) TimerActive = true; }
 
         public void DeclareWin(string message)
         {

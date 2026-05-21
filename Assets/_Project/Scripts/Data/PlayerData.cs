@@ -19,5 +19,7 @@ namespace ForTheCompany.Data
 
         [Header("Visual")]
         public Color displayColor = Color.cyan;
+        public Sprite portrait;
+        public Sprite roleIcon;
     }
 }

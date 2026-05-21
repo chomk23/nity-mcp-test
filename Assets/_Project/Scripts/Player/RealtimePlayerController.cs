@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using ForTheCompany.Systems;
 
 namespace ForTheCompany.Player
 {
@@ -21,11 +22,24 @@ namespace ForTheCompany.Player
             controller = GetComponent<CharacterController>();
         }
 
+        private static bool IsInputBlocked()
+        {
+            // WebView 임베드 레이싱이 화면에 떠 있으면 캐릭터 조작 차단
+            var bridge = RacingWebViewBridge.Instance;
+            if (bridge != null && bridge.IsShowing) return true;
+            var rmc = RacingMissionController.Instance;
+            if (rmc != null && rmc.IsOpen) return true;
+            // 대화 진행 중에도 이동 차단
+            var ds = DialogueSystem.Instance;
+            if (ds != null && ds.IsActive) return true;
+            return false;
+        }
+
         private void Update()
         {
             var kb = Keyboard.current;
             Vector2 input = Vector2.zero;
-            if (kb != null)
+            if (kb != null && !IsInputBlocked())
             {
                 if (kb.wKey.isPressed || kb.upArrowKey.isPressed) input.y += 1;
                 if (kb.sKey.isPressed || kb.downArrowKey.isPressed) input.y -= 1;
