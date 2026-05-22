@@ -34,10 +34,10 @@ namespace ForTheCompany.Player
                 var s = GameSession.Instance;
                 int c = s != null ? s.totalClues : 0;
                 if (!IsStoryReady())
-                    return "E: 지목 콘솔 — 모든 용의자 조사 후 활성화";
+                    return "Space: 지목 콘솔 — 모든 용의자 조사 후 활성화";
                 if (c < minimumClues)
-                    return $"E: 지목 콘솔 — 단서 {c}/{minimumClues}";
-                return IsMenuOpen ? "ESC: 닫기" : "E: 산업스파이 지목";
+                    return $"Space: 지목 콘솔 — 단서 {c}/{minimumClues}";
+                return IsMenuOpen ? "ESC: 닫기" : "Space: 산업스파이 지목";
             }
         }
 

@@ -6,6 +6,20 @@ using UnityEngine.SceneManagement;
 
 namespace ForTheCompany.Systems
 {
+    /// <summary>플레이어 선택지 — 마지막 라인 끝에 우측 박스로 표시</summary>
+    public class DialogueChoice
+    {
+        public string Label;        // 선택지 텍스트 (플레이어가 클릭할 답)
+        public string Response;     // NPC의 응답 (선택 시 추가 라인으로 표시)
+        public Action OnSelect;     // 선택 시 추가 콜백 (단계 진행 등)
+
+        public DialogueChoice(string label, string response = null, Action onSelect = null)
+        {
+            Label = label;
+            Response = response;
+            OnSelect = onSelect;
+        }
+    }
     /// <summary>
     /// 화면 하단 RPG 스타일 대화 시스템.
     /// StartDialogue(speaker, lines)로 시작 — 라인이 typewriter 효과로 한 글자씩 표시.
@@ -30,7 +44,13 @@ namespace ForTheCompany.Systems
         public float OpenTime { get; private set; } // 슬라이드 인 애니메이션용
         public Transform CurrentNPCTransform { get; private set; } // 카메라 줌인 대상
 
+        // 선택지 (마지막 라인에서만 표시, 선택 전엔 LineComplete여도 다음 라인 진행 차단)
+        public IReadOnlyList<DialogueChoice> CurrentChoices => choices;
+        public bool HasChoices => choices != null && choices.Count > 0;
+        public bool AwaitingChoice => IsActive && IsLastLine && LineComplete && HasChoices;
+
         private List<string> lines;
+        private List<DialogueChoice> choices;
         private int lineIndex;
         private float charProgress;
         private Action onEnded;
@@ -64,7 +84,8 @@ namespace ForTheCompany.Systems
 
         /// <summary>여러 라인 대화 시작. 종료 시 onEnded 콜백 호출.</summary>
         public void StartDialogue(string speaker, IEnumerable<string> textLines,
-            Transform npcTransform = null, Action onEnded = null)
+            Transform npcTransform = null, Action onEnded = null,
+            IEnumerable<DialogueChoice> playerChoices = null)
         {
             lines = new List<string>();
             foreach (var t in textLines)
@@ -73,6 +94,15 @@ namespace ForTheCompany.Systems
                 lines.Add(t);
             }
             if (lines.Count == 0) return;
+
+            choices = null;
+            if (playerChoices != null)
+            {
+                choices = new List<DialogueChoice>();
+                foreach (var c in playerChoices)
+                    if (c != null) choices.Add(c);
+                if (choices.Count == 0) choices = null;
+            }
 
             CurrentSpeaker = speaker ?? "";
             CurrentNPCTransform = npcTransform;
@@ -85,11 +115,37 @@ namespace ForTheCompany.Systems
 
         /// <summary>한 줄짜리 간편 호출 — \n\n으로 분할</summary>
         public void StartDialogue(string speaker, string text,
-            Transform npcTransform = null, Action onEnded = null)
+            Transform npcTransform = null, Action onEnded = null,
+            IEnumerable<DialogueChoice> playerChoices = null)
         {
             if (string.IsNullOrEmpty(text)) return;
             var split = text.Split(new[] { "\n\n" }, StringSplitOptions.RemoveEmptyEntries);
-            StartDialogue(speaker, split, npcTransform, onEnded);
+            StartDialogue(speaker, split, npcTransform, onEnded, playerChoices);
+        }
+
+        /// <summary>플레이어가 선택지 선택 — index는 0-based</summary>
+        public void SelectChoice(int index)
+        {
+            if (!AwaitingChoice) return;
+            if (index < 0 || index >= choices.Count) return;
+            var choice = choices[index];
+            choices = null; // 선택지 닫음
+
+            // 응답 라인을 다음 라인으로 추가하고 진행
+            if (!string.IsNullOrEmpty(choice.Response))
+            {
+                lines.Add($"{CurrentSpeaker}님이 답합니다: \"{choice.Label}\"");
+                lines.Add(choice.Response);
+                lineIndex = lines.Count - 2;
+                StartLine();
+            }
+            else
+            {
+                // 응답 없으면 그냥 종료
+                lineIndex = lines.Count;
+            }
+
+            choice.OnSelect?.Invoke();
         }
 
         private void StartLine()
@@ -120,12 +176,27 @@ namespace ForTheCompany.Systems
             // wasPressedThisFrame이 또 감지되어 즉시 완성/스킵되는 것 방지
             if (Time.time - OpenTime < 0.2f) return;
 
-            // 진행 입력 (Space / Enter / E)
             var kb = Keyboard.current;
             if (kb == null) return;
+
+            // 선택지 대기 중이면 advance 무시, 숫자키(1~4)로만 선택
+            if (AwaitingChoice)
+            {
+                for (int i = 0; i < Mathf.Min(choices.Count, 4); i++)
+                {
+                    Key num = (Key)((int)Key.Digit1 + i);
+                    if (kb[num].wasPressedThisFrame)
+                    {
+                        SelectChoice(i);
+                        return;
+                    }
+                }
+                return; // 선택 전엔 Space/Enter/E 무시
+            }
+
+            // 진행 입력 (Space / Enter — 상호작용 키와 동일)
             bool advance = kb.spaceKey.wasPressedThisFrame
-                || kb.enterKey.wasPressedThisFrame
-                || kb.eKey.wasPressedThisFrame;
+                || kb.enterKey.wasPressedThisFrame;
             if (!advance) return;
 
             if (!LineComplete)
@@ -154,6 +225,7 @@ namespace ForTheCompany.Systems
         {
             IsActive = false;
             lines = null;
+            choices = null;
             CurrentSpeaker = "";
             CurrentFullLine = "";
             CurrentVisibleLine = "";
@@ -168,6 +240,7 @@ namespace ForTheCompany.Systems
         {
             IsActive = false;
             lines = null;
+            choices = null;
             onEnded = null;
             CurrentSpeaker = "";
             CurrentFullLine = "";

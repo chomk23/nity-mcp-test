@@ -136,6 +136,13 @@ namespace ForTheCompany.Systems
             {
                 GameSession.Instance.totalClues += ClueReward;
                 GameSession.Instance.LastEncounterRewardClues = ClueReward;
+                if (rank == 1)
+                {
+                    GameSession.Instance.AddClue(
+                        "보안 레이싱 우승",
+                        "휴게실 보안 의식 평가를 1등으로 통과. 차세대 보안 칩 보호 절차를 능숙히 수행함.",
+                        ClueSource.Minigame);
+                }
             }
 
             HasCompleted = true;

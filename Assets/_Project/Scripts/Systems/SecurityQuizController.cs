@@ -76,6 +76,11 @@ namespace ForTheCompany.Systems
                 {
                     GameSession.Instance.totalClues += data.clueReward;
                     GameSession.Instance.LastEncounterRewardClues = data.clueReward;
+                    // 인벤토리에 단서 추가 (출처: 환경)
+                    GameSession.Instance.AddClue(
+                        $"[{data.roomName}] {data.objectLabel}",
+                        data.successClue,
+                        ClueSource.Environment);
                 }
                 // 환경 단서 정답 → 진짜 스파이의 의심도 +2
                 var realSpy = NPCRoster.Instance != null ? NPCRoster.Instance.Spy : null;
@@ -127,6 +132,8 @@ namespace ForTheCompany.Systems
                 new ClueData
                 {
                     id = "research_usb",
+                    stageRequired = (int)QuestManager.Stage.MeetResearcher,
+                    unlockHint = "연구원 만난 후",
                     roomName = "연구실",
                     worldPos = new Vector3(-20f, 0.6f, 14f),
                     objectLabel = "정체불명 USB",
@@ -147,6 +154,8 @@ namespace ForTheCompany.Systems
                 new ClueData
                 {
                     id = "server_log",
+                    stageRequired = (int)QuestManager.Stage.MeetNetworkAdmin,
+                    unlockHint = "네트워크관리자 만난 후",
                     roomName = "서버실",
                     worldPos = new Vector3(3f, 0.6f, 14f),
                     objectLabel = "서버실 모니터",
@@ -167,6 +176,8 @@ namespace ForTheCompany.Systems
                 new ClueData
                 {
                     id = "data_traffic",
+                    stageRequired = (int)QuestManager.Stage.MeetNetworkAdmin,
+                    unlockHint = "네트워크관리자 만난 후",
                     roomName = "데이터센터",
                     worldPos = new Vector3(3f, 0.6f, -14f),
                     objectLabel = "트래픽 분석 단말",
@@ -187,6 +198,8 @@ namespace ForTheCompany.Systems
                 new ClueData
                 {
                     id = "lounge_memo",
+                    stageRequired = (int)QuestManager.Stage.RacingMission,
+                    unlockHint = "보안 레이싱 클리어 후",
                     roomName = "휴게실",
                     worldPos = new Vector3(-15f, 0.6f, -2f),
                     objectLabel = "휘갈긴 메모",
@@ -207,6 +220,8 @@ namespace ForTheCompany.Systems
                 new ClueData
                 {
                     id = "storage_box",
+                    stageRequired = (int)QuestManager.Stage.MeetFacilityManager,
+                    unlockHint = "시설관리자 만난 후",
                     roomName = "창고",
                     worldPos = new Vector3(-20f, 0.6f, -14f),
                     objectLabel = "수상한 택배",
@@ -227,6 +242,8 @@ namespace ForTheCompany.Systems
                 new ClueData
                 {
                     id = "cardkey_log",
+                    stageRequired = (int)QuestManager.Stage.MeetFacilityManager,
+                    unlockHint = "시설관리자 만난 후",
                     roomName = "카드키 구역",
                     worldPos = new Vector3(18f, 0.6f, 2f),
                     objectLabel = "카드키 발급 로그",

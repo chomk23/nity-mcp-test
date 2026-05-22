@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
@@ -22,6 +23,9 @@ namespace ForTheCompany.Systems
         private GUIStyle quizQuestionStyle;
         private GUIStyle quizResultStyle;
         private GUIStyle quizButtonStyle;
+
+        public static bool IsInventoryOpen { get; private set; }
+        private Vector2 inventoryScroll;
 
         private void Init()
         {
@@ -108,6 +112,36 @@ namespace ForTheCompany.Systems
             return all.Length > 0 ? all[0] : null;
         }
 
+        private void HandleInventoryToggle(Keyboard kb)
+        {
+            // 인벤토리가 이미 열렸으면 ESC/I로 닫기
+            if (IsInventoryOpen)
+            {
+                if (kb.escapeKey.wasPressedThisFrame || kb.iKey.wasPressedThisFrame)
+                    IsInventoryOpen = false;
+                return;
+            }
+
+            // 다른 모달 떠 있으면 토글 무시
+            var console = FindConsole();
+            if (console != null && console.IsMenuOpen) return;
+            var rmc = RacingMissionController.Instance;
+            if (rmc != null && rmc.IsOpen) return;
+            var ds = DialogueSystem.Instance;
+            if (ds != null && ds.IsActive) return;
+            var sqc = SecurityQuizController.Instance;
+            if (sqc != null && sqc.IsOpen) return;
+            var bridge = RacingWebViewBridge.Instance;
+            if (bridge != null && bridge.IsShowing) return;
+
+            // 결말 후엔 인벤토리 안 열림 (이미 결말 화면)
+            var s = GameSession.Instance;
+            if (s != null && s.Outcome != RunOutcome.Ongoing) return;
+
+            if (kb.iKey.wasPressedThisFrame)
+                IsInventoryOpen = true;
+        }
+
         private void OnGUI()
         {
             Init();
@@ -121,6 +155,7 @@ namespace ForTheCompany.Systems
             DrawRacingModal();
             DrawAccusationModal();
             DrawDialogueBox();
+            DrawInventoryPanel();
             DrawEndScreen();
             DrawHint();
         }
@@ -181,8 +216,12 @@ namespace ForTheCompany.Systems
             GUI.Label(new Rect(boxX + padX, boxY + padTop, boxW - padX * 2, boxH - padTop - padBottom),
                 ds.CurrentVisibleLine, bodyStyle);
 
-            // 우하단 진행 표시 (타이핑 끝났을 때 깜빡임)
-            if (ds.LineComplete)
+            // 선택지 대기 중이면 우측에 선택지 박스 그리기, 아니면 진행 안내
+            if (ds.AwaitingChoice)
+            {
+                DrawDialogueChoices(ds);
+            }
+            else if (ds.LineComplete)
             {
                 float blink = Mathf.Abs(Mathf.Sin(Time.time * 3f));
                 var prev = GUI.color;
@@ -196,6 +235,72 @@ namespace ForTheCompany.Systems
                 GUI.Label(new Rect(boxX + boxW - 280, boxY + boxH - 32, 260, 24), hint, promptSt);
                 GUI.color = prev;
             }
+        }
+
+        /// <summary>화면 우측에 세로로 플레이어 선택지 박스 — 마우스 클릭 또는 1/2/3 키</summary>
+        private void DrawDialogueChoices(DialogueSystem ds)
+        {
+            var choices = ds.CurrentChoices;
+            if (choices == null || choices.Count == 0) return;
+
+            float boxW = 400f;
+            float boxX = Screen.width - boxW - 30f;
+            float startY = Screen.height * 0.30f;
+            float gap = 8f;
+
+            var labelStyle = new GUIStyle(midStyle)
+            {
+                fontSize = 18, wordWrap = true,
+                alignment = TextAnchor.MiddleLeft,
+                padding = new RectOffset(24, 16, 10, 10)
+            };
+
+            Vector2 mp = Event.current.mousePosition;
+            float currentY = startY;
+
+            for (int i = 0; i < choices.Count; i++)
+            {
+                var c = choices[i];
+                string display = $"  {i + 1}.  {c.Label}";
+                var content = new GUIContent(display);
+                float labelH = labelStyle.CalcHeight(content, boxW - 40);
+                float boxH = Mathf.Max(52f, labelH + 10f);
+                var rect = new Rect(boxX, currentY, boxW, boxH);
+
+                bool hover = rect.Contains(mp);
+
+                // 배경
+                Color bg = hover
+                    ? new Color(0.18f, 0.24f, 0.4f, 0.96f)
+                    : new Color(0.08f, 0.1f, 0.18f, 0.92f);
+                DrawSolidRect(rect, bg);
+                // 좌측 강조선
+                DrawSolidRect(new Rect(rect.x, rect.y, 4f, rect.height),
+                    hover ? new Color(1f, 0.9f, 0.5f) : new Color(0.5f, 0.85f, 1f, 0.9f));
+
+                // 텍스트
+                labelStyle.normal.textColor = hover
+                    ? new Color(1f, 0.95f, 0.7f)
+                    : new Color(0.92f, 0.93f, 0.97f);
+                GUI.Label(rect, content, labelStyle);
+
+                // 투명 버튼 — 클릭 감지
+                if (GUI.Button(rect, GUIContent.none, GUIStyle.none))
+                {
+                    ds.SelectChoice(i);
+                }
+
+                currentY += boxH + gap;
+            }
+
+            // 하단 힌트
+            var hintStyle = new GUIStyle(smallStyle)
+            {
+                fontSize = 14, alignment = TextAnchor.MiddleRight,
+                normal = { textColor = new Color(0.7f, 0.75f, 0.85f) }
+            };
+            GUI.Label(new Rect(boxX, currentY + 4, boxW, 20),
+                "마우스 클릭 또는 1·2·3 키로 선택", hintStyle);
         }
 
         /// <summary>우상단에 현재 목표 패널 표시 (스토리 모드 안내). 텍스트 길이에 따라 동적 높이.</summary>
@@ -396,7 +501,7 @@ namespace ForTheCompany.Systems
                 rmc.ResultMessage, bodyStyle);
 
             if (GUI.Button(new Rect(x + (w - 240) * 0.5f, y + h - 80, 240, 56),
-                "확인 (E / ESC / Enter)", btnStyle))
+                "확인 (Space / ESC / Enter)", btnStyle))
                 rmc.Acknowledge();
         }
 
@@ -535,6 +640,9 @@ namespace ForTheCompany.Systems
             if (console != null && console.IsMenuOpen && kb.escapeKey.wasPressedThisFrame)
                 console.Close();
 
+            // 인벤토리 토글 (I) — 다른 모달 없을 때만
+            HandleInventoryToggle(kb);
+
             var rmc = RacingMissionController.Instance;
             if (rmc != null)
             {
@@ -542,7 +650,7 @@ namespace ForTheCompany.Systems
                     && kb.escapeKey.wasPressedThisFrame)
                     rmc.Cancel();
                 else if (rmc.CurrentPhase == RacingMissionController.Phase.Finished
-                    && (kb.eKey.wasPressedThisFrame || kb.escapeKey.wasPressedThisFrame
+                    && (kb.spaceKey.wasPressedThisFrame || kb.escapeKey.wasPressedThisFrame
                         || kb.enterKey.wasPressedThisFrame))
                     rmc.Acknowledge();
             }
@@ -699,9 +807,144 @@ namespace ForTheCompany.Systems
 
         private void DrawHint()
         {
-            GUI.Label(new Rect(10, Screen.height - 26, 1200, 22),
-                "WASD: 이동   |   Shift: 달리기   |   휠: 줌   |   E: 대화/단서 조사/지목   |   ESC: 모달 닫기   |   R: 재시작   |   M: 메인 메뉴",
+            GUI.Label(new Rect(10, Screen.height - 26, 1400, 22),
+                "WASD: 이동   |   Shift: 달리기   |   휠: 줌   |   Space: 대화/단서/지목   |   I: 인벤토리   |   ESC: 모달 닫기   |   R: 재시작   |   M: 메인 메뉴",
                 smallStyle);
+        }
+
+        /// <summary>I키로 토글되는 인벤토리 — 수집한 단서 카드 리스트</summary>
+        private void DrawInventoryPanel()
+        {
+            if (!IsInventoryOpen) return;
+            var s = GameSession.Instance;
+            if (s == null) return;
+
+            // 반투명 어두운 배경
+            DrawSolidRect(new Rect(0, 0, Screen.width, Screen.height), new Color(0, 0, 0, 0.65f));
+
+            float w = Mathf.Min(860, Screen.width - 60);
+            float h = Mathf.Min(680, Screen.height - 80);
+            float x = (Screen.width - w) * 0.5f;
+            float y = (Screen.height - h) * 0.5f;
+
+            // 메인 패널
+            DrawSolidRect(new Rect(x, y, w, h), new Color(0.06f, 0.08f, 0.16f, 0.97f));
+            DrawSolidRect(new Rect(x, y, w, 3f), new Color(0.5f, 0.85f, 1f));
+
+            // 헤더
+            var titleSt = new GUIStyle(bigStyle)
+            {
+                fontSize = 26, alignment = TextAnchor.MiddleLeft,
+                normal = { textColor = new Color(1f, 0.85f, 0.5f) }
+            };
+            GUI.Label(new Rect(x + 28, y + 14, w - 60, 40),
+                $"수집한 단서  ({s.CollectedClues.Count}개)", titleSt);
+
+            var subSt = new GUIStyle(smallStyle)
+            {
+                fontSize = 14, alignment = TextAnchor.MiddleRight,
+                normal = { textColor = new Color(0.7f, 0.75f, 0.85f) }
+            };
+            GUI.Label(new Rect(x, y + 22, w - 28, 24), "I 또는 ESC : 닫기", subSt);
+
+            // 비어있을 때
+            if (s.CollectedClues.Count == 0)
+            {
+                var emptySt = new GUIStyle(midStyle)
+                {
+                    fontSize = 18, wordWrap = true,
+                    alignment = TextAnchor.MiddleCenter,
+                    normal = { textColor = new Color(0.6f, 0.65f, 0.75f) }
+                };
+                GUI.Label(new Rect(x + 40, y + h * 0.45f, w - 80, 80),
+                    "아직 수집한 단서가 없습니다.\nNPC와 대화하거나 환경 단서를 조사하면 여기에 기록됩니다.",
+                    emptySt);
+                return;
+            }
+
+            // 스타일 준비
+            var bodySt = new GUIStyle(midStyle)
+            {
+                fontSize = 16, wordWrap = true,
+                normal = { textColor = new Color(0.92f, 0.94f, 0.96f) }
+            };
+            var titleCardSt = new GUIStyle(midStyle)
+            {
+                fontSize = 18, fontStyle = FontStyle.Bold,
+                normal = { textColor = new Color(1f, 0.95f, 0.85f) }
+            };
+
+            // 단서 카드 리스트 (스크롤뷰)
+            float listY = y + 62;
+            float listH = h - 80;
+            var viewRect = new Rect(x + 20, listY, w - 40, listH);
+
+            float cardW = viewRect.width - 24; // 스크롤바 공간
+            float gap = 10;
+
+            // 콘텐츠 높이 계산
+            var heights = new List<float>(s.CollectedClues.Count);
+            float total = 0;
+            foreach (var c in s.CollectedClues)
+            {
+                float bodyH = bodySt.CalcHeight(new GUIContent(c.text), cardW - 40);
+                float cardH = bodyH + 56;
+                heights.Add(cardH);
+                total += cardH + gap;
+            }
+
+            var contentRect = new Rect(0, 0, cardW, total);
+            inventoryScroll = GUI.BeginScrollView(viewRect, inventoryScroll, contentRect);
+
+            float cy = 0;
+            for (int i = 0; i < s.CollectedClues.Count; i++)
+            {
+                var c = s.CollectedClues[i];
+                float cardH = heights[i];
+                var cardRect = new Rect(0, cy, cardW, cardH);
+
+                // 카드 배경
+                DrawSolidRect(cardRect, new Color(0.1f, 0.13f, 0.22f, 0.95f));
+
+                // 출처별 색깔
+                Color srcColor;
+                string srcLabel;
+                switch (c.source)
+                {
+                    case ClueSource.Environment:
+                        srcColor = new Color(1f, 0.85f, 0.3f); srcLabel = "환경 단서"; break;
+                    case ClueSource.NPC:
+                        srcColor = new Color(0.5f, 0.85f, 1f); srcLabel = "증언"; break;
+                    case ClueSource.Minigame:
+                        srcColor = new Color(0.55f, 1f, 0.6f); srcLabel = "미니게임"; break;
+                    default:
+                        srcColor = Color.gray; srcLabel = "기타"; break;
+                }
+
+                // 좌측 강조선
+                DrawSolidRect(new Rect(cardRect.x, cardRect.y, 4f, cardH), srcColor);
+
+                // 제목
+                GUI.Label(new Rect(cardRect.x + 18, cardRect.y + 10, cardW - 130, 24),
+                    c.title, titleCardSt);
+
+                // 출처 라벨
+                var tagSt = new GUIStyle(smallStyle)
+                {
+                    fontSize = 13, alignment = TextAnchor.MiddleRight,
+                    normal = { textColor = srcColor }
+                };
+                GUI.Label(new Rect(cardRect.x + cardW - 110, cardRect.y + 12, 100, 20),
+                    srcLabel, tagSt);
+
+                // 본문
+                GUI.Label(new Rect(cardRect.x + 18, cardRect.y + 38, cardW - 40, cardH - 48),
+                    c.text, bodySt);
+
+                cy += cardH + gap;
+            }
+
+            GUI.EndScrollView();
         }
     }
 }

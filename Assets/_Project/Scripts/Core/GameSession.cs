@@ -5,6 +5,17 @@ namespace ForTheCompany.Core
 {
     public enum RunOutcome { Ongoing, Win, Lose }
 
+    public enum ClueSource { Environment, NPC, Minigame }
+
+    [System.Serializable]
+    public class ClueEntry
+    {
+        public string title;
+        public string text;
+        public ClueSource source;
+        public float acquiredTime;
+    }
+
     public class GameSession : MonoBehaviour
     {
         public static GameSession Instance { get; private set; }
@@ -31,6 +42,11 @@ namespace ForTheCompany.Core
 
         public int LastEncounterRewardClues { get; set; }
 
+        public List<ClueEntry> CollectedClues { get; } = new List<ClueEntry>();
+
+        [Header("Cardkey")]
+        public bool hasFacilityCardkey; // 단계 4(NetworkAdmin) 완료 시 발급 — 전력실 잠금 해제
+
         public static readonly string[] SpyRoleNames = { "연구원", "네트워크관리자", "시설관리자" };
 
         private void Awake()
@@ -53,6 +69,8 @@ namespace ForTheCompany.Core
             Outcome = RunOutcome.Ongoing;
             OutcomeMessage = "";
             LastEncounterRewardClues = 0;
+            CollectedClues.Clear();
+            hasFacilityCardkey = false;
             TimeRemaining = totalTime;
             TimerActive = true;
 #if UNITY_EDITOR
@@ -78,6 +96,20 @@ namespace ForTheCompany.Core
 
         public void StopTimer() { TimerActive = false; }
         public void ResumeTimer() { if (Outcome == RunOutcome.Ongoing) TimerActive = true; }
+
+        /// <summary>인벤토리에 표시될 단서 항목 추가 (출처별 분류)</summary>
+        public void AddClue(string title, string text, ClueSource source)
+        {
+            if (string.IsNullOrEmpty(title) || string.IsNullOrEmpty(text)) return;
+            CollectedClues.Add(new ClueEntry
+            {
+                title = title,
+                text = text,
+                source = source,
+                acquiredTime = Time.time
+            });
+            Debug.Log($"[Clue] +1 [{source}] {title}");
+        }
 
         public void DeclareWin(string message)
         {

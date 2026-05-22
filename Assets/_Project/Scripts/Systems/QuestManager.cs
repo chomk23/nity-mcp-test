@@ -72,10 +72,31 @@ namespace ForTheCompany.Systems
                 next = (int)Stage.Done;
             var prev = CurrentStage;
             CurrentStage = (Stage)next;
+
+            // 단계별 부수 효과 — NetworkAdmin 끝나면 카드키 발급 (전력실 잠금 해제)
+            ApplyStageSideEffects(prev);
+
             LastAdvanceText = $"✓ {ObjectiveOf(prev)}\n→ 다음: {ObjectiveOf(CurrentStage)}";
             LastAdvanceTime = Time.time;
             Debug.Log($"[Quest] {prev} → {CurrentStage}");
             return true;
+        }
+
+        private void ApplyStageSideEffects(Stage justCompleted)
+        {
+            if (justCompleted == Stage.MeetNetworkAdmin)
+            {
+                var s = GameSession.Instance;
+                if (s != null && !s.hasFacilityCardkey)
+                {
+                    s.hasFacilityCardkey = true;
+                    s.AddClue(
+                        "보안 카드키 획득",
+                        "네트워크관리자에게 받은 전력실 출입 카드키. 시설관리자 만나러 가는 길이 열림.",
+                        ClueSource.NPC);
+                    Debug.Log("[Quest] 보안 카드키 발급 — 전력실 잠금 해제");
+                }
+            }
         }
 
         /// <summary>NPC 역할에 따라 단계 진행 — NPCInteractable에서 호출</summary>

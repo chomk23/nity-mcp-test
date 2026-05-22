@@ -26,6 +26,14 @@ namespace ForTheCompany.Managers
                 return;
             }
             Instance = this;
+
+            // 모든 NPC에 patrol 컴포넌트 자동 부착 (시설이 살아있는 느낌)
+            foreach (var n in npcs)
+            {
+                if (n == null) continue;
+                if (n.GetComponent<NPCPatrol>() == null)
+                    n.gameObject.AddComponent<NPCPatrol>();
+            }
         }
 
         private void Start()

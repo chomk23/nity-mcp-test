@@ -32,6 +32,8 @@ namespace ForTheCompany.Player
             // 대화 진행 중에도 이동 차단
             var ds = DialogueSystem.Instance;
             if (ds != null && ds.IsActive) return true;
+            // 인벤토리 열림 중에도 이동 차단
+            if (FacilityHUD.IsInventoryOpen) return true;
             return false;
         }
 

@@ -1,5 +1,7 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using ForTheCompany.Core;
 using ForTheCompany.Systems;
 
 namespace ForTheCompany.Player
@@ -25,7 +27,7 @@ namespace ForTheCompany.Player
         public float InteractRadius => interactRadius;
         public bool CanInteract => ForTheCompany.Core.GameSession.Instance == null
             || ForTheCompany.Core.GameSession.Instance.Outcome == ForTheCompany.Core.RunOutcome.Ongoing;
-        public string PromptText => $"E: {displayName}과 대화";
+        public string PromptText => $"Space: {displayName}과 대화";
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Bootstrap()
@@ -71,24 +73,64 @@ namespace ForTheCompany.Player
 
         public void Interact()
         {
-            string msg = ResolveLine();
-            Debug.Log($"[Guard] {msg}");
-
-            // 플레이어를 향해 회전
             FacePlayer();
 
+            var quest = QuestManager.Instance;
             var ds = DialogueSystem.Instance;
+
+            // Briefing 단계 — 다중 라인 + 선택지 표시
+            if (ds != null && quest != null && quest.CurrentStage == QuestManager.Stage.Briefing)
+            {
+                LastResult = "";
+                var lines = new[]
+                {
+                    "보안조사관님, 와주셔서 감사합니다.",
+                    "어제 차세대 보안 칩 설계도가 외부로 유출됐습니다. " +
+                    "내부 감사 결과 — 시설 안의 누군가가 정보를 빼돌리고 있습니다.",
+                    "용의자는 셋 — 연구원, 네트워크관리자, 시설관리자. " +
+                    "셋 중 한 명이 진짜 산업스파이입니다.",
+                    "조사를 어떻게 시작하시겠습니까?"
+                };
+                var choices = new List<DialogueChoice>
+                {
+                    new DialogueChoice(
+                        "연구원부터 먼저 만나보겠습니다.",
+                        "현명한 선택입니다. 연구실은 서북쪽 파란 방입니다. 행운을 빕니다."),
+                    new DialogueChoice(
+                        "시설을 자유롭게 둘러보며 단서부터 모으겠습니다.",
+                        "좋은 방법입니다. 시설 곳곳에 환경 단서가 흩어져 있습니다. 휴게실 보안 게임도 도전해보세요."),
+                    new DialogueChoice(
+                        "용의자 셋의 인상부터 알려주시겠습니까?",
+                        "연구원은 칩 설계 핵심 인력, 네트워크관리자는 외부 통신 권한 보유, 시설관리자는 카드키 발급 담당입니다. 모두 동기가 있죠.")
+                };
+
+                ds.StartDialogue(displayName, lines, transform,
+                    () =>
+                    {
+                        quest.TryAdvance(QuestManager.Stage.Briefing);
+                        // 인벤토리에 브리핑 내용 기록
+                        GameSession.Instance?.AddClue(
+                            "경비원 브리핑",
+                            "차세대 보안 칩 설계도가 외부 유출. 용의자 셋: 연구원, 네트워크관리자, 시설관리자. " +
+                            "각자의 직무 권한과 동기가 있으나 진짜 스파이는 한 명.",
+                            ClueSource.NPC);
+                    },
+                    choices);
+                Debug.Log("[Guard] Briefing 시작 (분기 선택지 포함)");
+                return;
+            }
+
+            // 반복 대화 — 현재 단계 안내 메시지만 (단일 라인)
+            string msg = ResolveLine();
+            Debug.Log($"[Guard] {msg}");
             if (ds != null)
             {
-                LastResult = ""; // Toast 표시 안 함 — 대화창이 담당
-                ds.StartDialogue(displayName, msg, transform,
-                    () => QuestManager.Instance?.TryAdvance(QuestManager.Stage.Briefing));
+                LastResult = "";
+                ds.StartDialogue(displayName, msg, transform, null);
             }
             else
             {
-                // fallback
                 LastResult = $"{displayName}: {msg}";
-                QuestManager.Instance?.TryAdvance(QuestManager.Stage.Briefing);
             }
         }
 

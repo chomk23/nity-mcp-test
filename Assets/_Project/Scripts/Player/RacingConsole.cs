@@ -30,7 +30,7 @@ namespace ForTheCompany.Player
             {
                 var rmc = ForTheCompany.Systems.RacingMissionController.Instance;
                 if (rmc != null && rmc.HasCompleted) return "이미 클리어 (보안 레이싱)";
-                return "E: 보안 레이싱 시작 (60초)";
+                return "Space: 보안 레이싱 시작 (60초)";
             }
         }
 

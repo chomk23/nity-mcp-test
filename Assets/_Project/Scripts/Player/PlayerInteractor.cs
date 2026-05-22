@@ -80,13 +80,15 @@ namespace ForTheCompany.Player
             // 대화창 활성 중이면 DialogueSystem이 E/Space를 직접 처리 — Interactor는 무시
             var ds = ForTheCompany.Systems.DialogueSystem.Instance;
             if (ds != null && ds.IsActive) return;
+            // 인벤토리 열림 중에도 상호작용 차단
+            if (ForTheCompany.Systems.FacilityHUD.IsInventoryOpen) return;
             foreach (var ac in FindObjectsByType<AccusationConsole>(FindObjectsSortMode.None))
                 if (ac.IsMenuOpen) return;
 
             if (Nearest == null) return;
             var kb = Keyboard.current;
             if (kb == null) return;
-            if (!kb.eKey.wasPressedThisFrame) return;
+            if (!kb.spaceKey.wasPressedThisFrame) return;
 
             Nearest.Interact();
 

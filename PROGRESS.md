@@ -137,6 +137,59 @@ WebView 활성 동안 [RealtimePlayerController](Assets/_Project/Scripts/Player/
 
 `[RuntimeInitializeOnLoadMethod(AfterSceneLoad)]`는 첫 씬에서만 실행되므로 MainMenu→Facility 전환 시 사물 스폰이 안 됨. [SecurityQuizController](Assets/_Project/Scripts/Systems/SecurityQuizController.cs), [RacingMissionController](Assets/_Project/Scripts/Systems/RacingMissionController.cs), [RacingWebViewBridge](Assets/_Project/Scripts/Systems/RacingWebViewBridge.cs) 모두 `SceneManager.sceneLoaded` 이벤트로 매 씬 진입 시 `EnsureSpawned()` 호출 (FacilityScene 이름 체크).
 
+### 대화 확장 + NPC 이동 + 카드키 (2026-05-23)
+
+스토리 풍부함 + 시설이 살아있는 느낌 + 단계간 게이트 추가.
+
+**NPC 대화 다양성** — [NPCInteractable.cs](Assets/_Project/Scripts/Player/NPCInteractable.cs)
+- ResolveLine 단일 문장 → BuildFirstTalkLines/Choices 다중 라인(3줄) + 분기 선택지 9 케이스(3 NPC × 3 스파이)
+- 캐릭터 톤 차별화: 연구원=학자, 네트워크관리자=기술자/로그/패킷, 시설관리자=현장/CCTV/카드키
+- 자기가 스파이일 때 회피·변명·다른 사람 책임 전가, 무고할 때 구체적 시간·장소 단서
+
+**경비원 증언 인벤토리 기록** — [GuardNPC.cs](Assets/_Project/Scripts/Player/GuardNPC.cs) Briefing 종료 콜백에서 AddClue(ClueSource.NPC)
+
+**NPC 자동 이동** — [NPCPatrol.cs](Assets/_Project/Scripts/Player/NPCPatrol.cs)
+- NPCRoster.Awake에서 모든 NPC에 자동 부착
+- 시작 위치 주변 3 waypoint를 천천히(1.4 u/s) 왔다 갔다, 도착 시 2.2초 idle
+- 대화 중(이 NPC가 대화 대상)이면 정지, 결말 후 정지
+
+**카드키 + 전력실 잠금** — [LockedDoor.cs](Assets/_Project/Scripts/Player/LockedDoor.cs) + [GameSession.hasFacilityCardkey](Assets/_Project/Scripts/Core/GameSession.cs)
+- 전력실 입구(12, 1.2, -11)에 빨간 잠금문 자동 스폰 (BoxCollider로 길 막음)
+- [QuestManager.ApplyStageSideEffects](Assets/_Project/Scripts/Systems/QuestManager.cs): MeetNetworkAdmin 단계 완료 시 hasFacilityCardkey=true + 인벤토리에 "보안 카드키 획득" 추가
+- LockedDoor가 GameSession 매 프레임 체크 → 카드키 발급되면 자동 collider 비활성 + 녹색으로 변경 + 살짝 축소(문 열린 느낌)
+
+**의도된 흐름**: 네트워크관리자 대화 → 카드키 발급 → 전력실 잠금 해제 → 시설관리자 대화 가능. 단계 4와 5 사이의 자연스러운 게이트.
+
+**NPC 대화 → 환경 단서 자동 트리거** ([NPCInteractable.AutoOpenRelatedClueAfterDelay](Assets/_Project/Scripts/Player/NPCInteractable.cs))
+- 첫 대화 종료 후 0.7초 뒤 자동으로 NPC 방 관련 환경 단서 퀴즈 모달이 열림
+- 매핑: 연구원→research_usb, 네트워크관리자→server_log, 시설관리자→cardkey_log
+- 다른 모달 떠 있으면 자동 오픈 안 함 (안전장치)
+- ESC 누르면 닫을 수 있고 단서 큐브로 다시 가서 풀이 가능 — 자유도 유지
+
+### 인벤토리 — 수집한 단서 누적 + I키 토글 (2026-05-23)
+
+- [GameSession](Assets/_Project/Scripts/Core/GameSession.cs): `ClueEntry`/`ClueSource`(Environment/NPC/Minigame) + `CollectedClues` 리스트 + `AddClue(title, text, source)`
+- [SecurityQuizController.Answer](Assets/_Project/Scripts/Systems/SecurityQuizController.cs) 정답 시 → `Environment` 단서 추가
+- [NPCInteractable.ApplyTalkRewards](Assets/_Project/Scripts/Player/NPCInteractable.cs) 첫 대화 종료 시 → `NPC` 증언 추가
+- [RacingMissionController.ReportRank(1)](Assets/_Project/Scripts/Systems/RacingMissionController.cs) → `Minigame` 단서 추가
+- [FacilityHUD.DrawInventoryPanel](Assets/_Project/Scripts/Systems/FacilityHUD.cs) — I키 토글, 화면 중앙 860×680 패널, 카드 리스트 (출처별 색깔 띠: 노랑=환경, 파랑=증언, 초록=미니게임), 스크롤 지원
+- 인벤토리 열림 중에는 RealtimePlayerController/FollowCamera/PlayerInteractor 모두 입력 차단
+- 다른 모달(대화/퀴즈/레이싱/지목) 떠 있으면 I키 토글 무시
+
+### 스토리 가이드 강화 — 차례 안내 + 단서 단계 잠금 (2026-05-23)
+
+스토리 모드의 선형 진행이 더 명확하도록 두 가지 보강.
+
+- [NPCInteractable.ShowOutOfTurnGuidance](Assets/_Project/Scripts/Player/NPCInteractable.cs) — 차례가 아닌 NPC와 대화 시도 시 "잠시만요, 지금은 저와 이야기할 차례가 아닌 것 같습니다. 현재 목표: ..." 안내. 단서/의심도/단계 진행 모두 적용 안 됨, HasBeenTalkedTo도 변하지 않아 차례가 되면 본격 대화 가능
+- [ClueData.stageRequired + unlockHint](Assets/_Project/Scripts/Player/ClueObject.cs) — 6개 환경 단서가 QuestManager 단계에 묶임. 잠금 시 큐브가 회색으로 변하고 PromptText는 `잠금 — XX 만난 후`
+  - research_usb → MeetResearcher(1) 부터
+  - lounge_memo → RacingMission(2) 부터
+  - server_log / data_traffic → MeetNetworkAdmin(3) 부터
+  - storage_box / cardkey_log → MeetFacilityManager(4) 부터
+- [ClueObject.Update](Assets/_Project/Scripts/Player/ClueObject.cs) — 단계 변경 즉시 색 자동 갱신 (회색 ↔ 원색)
+
+**의도된 흐름**: 플레이어가 시설을 자유롭게 돌아다녀도 차례 아닌 NPC는 가이드만 제공, 단서 큐브도 회색으로 잠겨 있어 진행 순서가 시각적으로 명확. 단계 진행할 때마다 새 단서가 unlock되며 색이 켜짐.
+
 ### RPG 스타일 하단 대화창 (2026-05-22 완료)
 
 영상(Roblox Studio RPG 대화 시스템) 참고하여 NPC 대화를 화면 하단 가로 박스로 전환.

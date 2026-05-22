@@ -106,6 +106,8 @@ namespace ForTheCompany.Core
             // 대화 중 줌 차단
             var ds = DialogueSystem.Instance;
             if (ds != null && ds.IsActive) return;
+            // 인벤토리 열림 중에도 줌 차단
+            if (FacilityHUD.IsInventoryOpen) return;
 
             var mouse = Mouse.current;
             if (mouse == null) return;
