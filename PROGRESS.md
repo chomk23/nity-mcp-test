@@ -137,6 +137,35 @@ WebView 활성 동안 [RealtimePlayerController](Assets/_Project/Scripts/Player/
 
 `[RuntimeInitializeOnLoadMethod(AfterSceneLoad)]`는 첫 씬에서만 실행되므로 MainMenu→Facility 전환 시 사물 스폰이 안 됨. [SecurityQuizController](Assets/_Project/Scripts/Systems/SecurityQuizController.cs), [RacingMissionController](Assets/_Project/Scripts/Systems/RacingMissionController.cs), [RacingWebViewBridge](Assets/_Project/Scripts/Systems/RacingWebViewBridge.cs) 모두 `SceneManager.sceneLoaded` 이벤트로 매 씬 진입 시 `EnsureSpawned()` 호출 (FacilityScene 이름 체크).
 
+### 방 디테일 — 가구·서버랙·모니터 자동 스폰 (2026-05-23)
+
+[RoomFurniture.cs](Assets/_Project/Scripts/Systems/RoomFurniture.cs) — RuntimeInitialize + sceneLoaded로 FacilityScene 진입 시 약 28개 primitive 가구를 자동 배치. 부모 `RoomFurniture` GameObject 아래로 묶음. Collider 제거(플레이어 통과).
+
+| 방 | 가구 |
+|---|---|
+| 연구실 | 책상 + 모니터 + 의자 + 책장 |
+| 서버실 | 서버랙 4대 + 시안 LED |
+| 데이터센터 | 서버랙 3대 + 트래픽 모니터 벽 |
+| 휴게실 | 소파 + 테이블 + 보라 자판기 |
+| 창고 | 종이박스 팰릿 3개 |
+| 전력실 | 변압기 2대 + 케이블 박스 |
+| 보안통제실 | 거대 모니터 벽 + 책상 + 의자 |
+| 카드키 구역 | 발급 단말 + 시안 LED |
+
+각 가구 색상은 어두운 톤(검정·갈색·짙은 회색) + 일부 강조(시안 LED, 보라 자판기) — Bloom과 어울리는 사이버 분위기.
+
+### 시각 폴리시 — URP Post-Processing + 라이팅 (2026-05-23)
+
+[PostProcessingSetup.cs](Assets/_Project/Scripts/Editor/PostProcessingSetup.cs) — "For The Company → Setup Post Processing" 메뉴로 한 번에 자동 구성.
+
+- VolumeProfile asset 생성 (`Assets/_Project/Settings/FacilityPostProcessing.asset`)
+- Global Volume GameObject + Profile 할당
+- Camera.UniversalAdditionalCameraData.renderPostProcessing=true + SMAA
+- Directional Light: 따뜻한 흰색, Soft Shadows, 50°/-40° 각도
+- Bloom(0.6) + Color Adjustments(콘트라스트+15, 채도+20) + Vignette(0.32) + Tonemapping(Neutral)
+
+각 씬에서 메뉴 한 번씩 실행. MainMenuScene과 FacilityScene 별도 적용 가능.
+
 ### 대화 확장 + NPC 이동 + 카드키 (2026-05-23)
 
 스토리 풍부함 + 시설이 살아있는 느낌 + 단계간 게이트 추가.
