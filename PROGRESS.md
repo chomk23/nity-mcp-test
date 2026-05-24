@@ -137,6 +137,41 @@ WebView 활성 동안 [RealtimePlayerController](Assets/_Project/Scripts/Player/
 
 `[RuntimeInitializeOnLoadMethod(AfterSceneLoad)]`는 첫 씬에서만 실행되므로 MainMenu→Facility 전환 시 사물 스폰이 안 됨. [SecurityQuizController](Assets/_Project/Scripts/Systems/SecurityQuizController.cs), [RacingMissionController](Assets/_Project/Scripts/Systems/RacingMissionController.cs), [RacingWebViewBridge](Assets/_Project/Scripts/Systems/RacingWebViewBridge.cs) 모두 `SceneManager.sceneLoaded` 이벤트로 매 씬 진입 시 `EnsureSpawned()` 호출 (FacilityScene 이름 체크).
 
+### SecureSense 디자인 시스템 적용 (2026-05-25)
+
+Claude Design (claude.ai/design)에서 보낸 디자인 번들 `security-education-ui-remix` 기반:
+- 다크 베이스(#050608) + 네온 그린/시안/마젠타/바이올렛 액센트
+- JetBrains Mono + Space Grotesk (모노 터미널 미학)
+- 스캔라인, 글리치, 펄스 dot, 가짜 OS 윈도우 chrome
+
+[UITheme.cs](Assets/_Project/Scripts/Systems/UITheme.cs) — 디자인 토큰 시스템
+- 색상 팔레트 (Bg0~4, Ink, Neon × 6, 상태색)
+- 헬퍼: `DrawRect`, `DrawBorder`, `DrawCard`, `DrawPulseDot`, `DrawProgressBar`, `DrawWinBar`, `DrawScanlines`, `DrawGridBg`
+- UI 컴포넌트: `NeonButton`, `GhostButton`, `DrawTag`
+- 공용 GUIStyle 캐시: Title, Mono, MonoSmall, InkDimLabel, NeonLabel
+
+[MainMenuController.cs](Assets/_Project/Scripts/Systems/MainMenuController.cs) — Mission Dossier 톤 리디자인
+- 가짜 OS 윈도우 (mac dot 3개) + 그리드 배경 + 스캔라인
+- 글리치 효과 타이틀 (시안/마젠타 오프셋 + 메인 흰색)
+- 네온 그린 "INITIATE INVESTIGATION" 버튼
+- 인트로 3장: CLASSIFIED 형식 + 챕터 dot 인디케이터
+
+[FacilityHUD.cs](Assets/_Project/Scripts/Systems/FacilityHUD.cs) — 게임 내 HUD 전체 리디자인
+- **DrawStatusBar**: 좌상단 카드 (▸ INVESTIGATION // ACTIVE) + 펄스 dot + CLUES/TIME 라벨
+- **DrawObjectivePanel**: 우상단 카드 (▸ OBJECTIVE // STEP XX, 마젠타) + 진행 dot
+- **DrawDialogueBox**: 하단 1120 너비 + 네온 그린 상단 라인 + NPC 이름표 + 터미널 본문
+- **DrawDialogueChoices**: 우측 선택지 (01·02·03 번호 + 시안 강조 띠 + 호버 그린)
+- **DrawInventoryPanel**: evidence-archive.dossier 윈도우 + 카드별 출처 태그 (ENV·LOG / TESTIMONY / MISSION)
+- **DrawQuestAdvanceToast**: 그린 보더 + STAGE CLEARED 헤더 + 페이드아웃
+- **DrawInteractionPrompt**: 시안 보더 + 펄스 dot + ▸ 화살표 프롬프트
+- **DrawToast**: NeonYellow INTEL // RELAY 토스트 (NPC 대화 결과)
+- **DrawAccusationModal**: verdict.terminal + 매젠타 보더 + FINAL ACCUSATION
+- **DrawEndScreen**: mission-result.dossier + VICTORY/DEFEAT (그린/레드)
+- **DrawHint**: 하단 바 (// [WASD] MOVE · [SPACE] INTERACT ...)
+- **DrawNPCNameplates**: 의심도 따라 보더 색 변경 (Line/NeonYellow/Danger)
+- **DrawQuizModal**: security-training.module + NeonViolet + 선택지 0X 번호
+- **DrawRacingModal**: security-race.module + 시안 보더 + 1ST/2ND/3RD 결과
+
 ### Sci-Fi 바닥·벽 머터리얼 변경 (2026-05-24)
 
 - [SciFiFloorsSetup.cs](Assets/_Project/Scripts/Editor/SciFiFloorsSetup.cs) — 메뉴 "Setup Sci-Fi Floors". 기존 방 색깔 바닥 8개(Floor_Research, Floor_Server 등) SetActive(false) + 20m Epoxy Ground 9장(3×3) + 방별 카펫 8장 자동 배치. SciFiFacility는 안 건드림.

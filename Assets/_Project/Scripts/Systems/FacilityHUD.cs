@@ -160,99 +160,129 @@ namespace ForTheCompany.Systems
             DrawHint();
         }
 
-        /// <summary>RPG 스타일 하단 대화창 — 슬라이드 인 + 타이프라이터 + 진행 표시</summary>
+        /// <summary>SecureSense 터미널 톤 — 하단 대화창</summary>
         private void DrawDialogueBox()
         {
             var ds = DialogueSystem.Instance;
             if (ds == null || !ds.IsActive) return;
 
-            // 슬라이드 인 애니메이션 (0.25초)
+            // 슬라이드 인 애니메이션
             float t = Mathf.Clamp01((Time.time - ds.OpenTime) / 0.25f);
-            float eased = 1f - Mathf.Pow(1f - t, 3f); // ease-out cubic
+            float eased = 1f - Mathf.Pow(1f - t, 3f);
 
-            float boxW = Mathf.Min(Screen.width - 60, 1100);
-            float boxH = 180;
+            float boxW = Mathf.Min(Screen.width - 80, 1120);
+            float boxH = 200;
             float boxX = (Screen.width - boxW) * 0.5f;
             float targetY = Screen.height - boxH - 40;
             float startY = Screen.height + 20;
             float boxY = Mathf.Lerp(startY, targetY, eased);
 
-            // 메인 박스
-            DrawSolidRect(new Rect(boxX, boxY, boxW, boxH),
-                new Color(0.04f, 0.05f, 0.12f, 0.92f));
-            // 박스 윗변 강조선
-            DrawSolidRect(new Rect(boxX, boxY, boxW, 2f),
-                new Color(0.5f, 0.85f, 1f, 0.9f));
+            // 메인 박스 — Bg1 + 네온 그린 강조선
+            UITheme.DrawRect(new Rect(boxX, boxY, boxW, boxH), UITheme.Bg1);
+            UITheme.DrawBorder(new Rect(boxX, boxY, boxW, boxH), UITheme.Line);
+            UITheme.DrawRect(new Rect(boxX, boxY, boxW, 2f), UITheme.NeonGreen);
 
-            // 좌측 상단 NPC 이름 헤더 (박스 위로 살짝 튀어나옴)
+            // 좌측 NPC 이름 태그 (위로 살짝 튀어나옴)
             if (!string.IsNullOrEmpty(ds.CurrentSpeaker))
             {
-                float nameW = Mathf.Min(260f, ds.CurrentSpeaker.Length * 22f + 40f);
-                float nameH = 38f;
+                float nameW = Mathf.Min(280f, ds.CurrentSpeaker.Length * 16f + 60f);
+                float nameH = 32f;
                 float nameX = boxX + 24f;
                 float nameY = boxY - nameH * 0.5f;
-                DrawSolidRect(new Rect(nameX, nameY, nameW, nameH),
-                    new Color(0.12f, 0.18f, 0.35f, 0.95f));
-                DrawSolidRect(new Rect(nameX, nameY, nameW, 2f),
-                    new Color(0.7f, 0.9f, 1f, 0.95f));
 
-                var nameStyle = new GUIStyle(midStyle)
+                UITheme.DrawRect(new Rect(nameX, nameY, nameW, nameH), UITheme.Bg3);
+                UITheme.DrawBorder(new Rect(nameX, nameY, nameW, nameH), UITheme.NeonGreen);
+
+                var nameStyle = new GUIStyle(GUI.skin.label)
                 {
-                    fontSize = 20, fontStyle = FontStyle.Bold,
+                    fontSize = 13, fontStyle = FontStyle.Bold,
                     alignment = TextAnchor.MiddleCenter,
-                    normal = { textColor = new Color(0.95f, 0.95f, 1f) }
+                    normal = { textColor = UITheme.NeonGreen }
                 };
-                GUI.Label(new Rect(nameX, nameY, nameW, nameH), ds.CurrentSpeaker, nameStyle);
+                GUI.Label(new Rect(nameX, nameY, nameW, nameH),
+                    "▸ " + ds.CurrentSpeaker.ToUpper(), nameStyle);
+
+                // 우측 윈도우 chrome — "transmission.log"
+                var winLabel = new GUIStyle(GUI.skin.label)
+                {
+                    fontSize = 10,
+                    alignment = TextAnchor.MiddleRight,
+                    padding = new RectOffset(0, 24, 0, 0),
+                    normal = { textColor = UITheme.InkFaint }
+                };
+                GUI.Label(new Rect(boxX, boxY + 8, boxW, 16),
+                    $"// {ds.CurrentSpeaker.ToLower()}-transmission.log", winLabel);
             }
 
-            // 본문 텍스트 (타이프라이터 진행 중인 부분)
-            var bodyStyle = new GUIStyle(midStyle)
+            // 본문 텍스트 — 타이프라이팅
+            var bodyStyle = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 22, wordWrap = true,
+                fontSize = 18, wordWrap = true,
                 alignment = TextAnchor.UpperLeft,
-                normal = { textColor = new Color(0.95f, 0.95f, 0.98f) }
+                normal = { textColor = UITheme.Ink }
             };
-            float padX = 36, padTop = 28, padBottom = 36;
+            float padX = 36, padTop = 40, padBottom = 40;
             GUI.Label(new Rect(boxX + padX, boxY + padTop, boxW - padX * 2, boxH - padTop - padBottom),
                 ds.CurrentVisibleLine, bodyStyle);
 
-            // 선택지 대기 중이면 우측에 선택지 박스 그리기, 아니면 진행 안내
+            // 진행/선택지
             if (ds.AwaitingChoice)
             {
                 DrawDialogueChoices(ds);
             }
             else if (ds.LineComplete)
             {
+                // 우하단 진행 안내 (블링킹)
                 float blink = Mathf.Abs(Mathf.Sin(Time.time * 3f));
                 var prev = GUI.color;
-                GUI.color = new Color(1f, 0.9f, 0.5f, 0.5f + 0.5f * blink);
-                var promptSt = new GUIStyle(smallStyle)
+                GUI.color = new Color(1f, 1f, 1f, 0.6f + 0.4f * blink);
+                var promptSt = new GUIStyle(GUI.skin.label)
                 {
-                    fontSize = 16, alignment = TextAnchor.MiddleRight,
-                    normal = { textColor = new Color(1f, 0.9f, 0.5f) }
+                    fontSize = 11, fontStyle = FontStyle.Bold,
+                    alignment = TextAnchor.MiddleRight,
+                    padding = new RectOffset(0, 28, 0, 0),
+                    normal = { textColor = UITheme.NeonGreen }
                 };
-                string hint = ds.IsLastLine ? "▼ Space — 대화 종료" : "▼ Space — 다음";
-                GUI.Label(new Rect(boxX + boxW - 280, boxY + boxH - 32, 260, 24), hint, promptSt);
+                string hint = ds.IsLastLine ? "▸ [SPACE] END TRANSMISSION" : "▸ [SPACE] CONTINUE";
+                GUI.Label(new Rect(boxX, boxY + boxH - 26, boxW, 18), hint, promptSt);
                 GUI.color = prev;
             }
         }
 
-        /// <summary>화면 우측에 세로로 플레이어 선택지 박스 — 마우스 클릭 또는 1/2/3 키</summary>
+        /// <summary>SecureSense 톤 — 우측 세로 선택지 박스 (마우스/숫자키)</summary>
         private void DrawDialogueChoices(DialogueSystem ds)
         {
             var choices = ds.CurrentChoices;
             if (choices == null || choices.Count == 0) return;
 
-            float boxW = 400f;
+            float boxW = 420f;
             float boxX = Screen.width - boxW - 30f;
-            float startY = Screen.height * 0.30f;
-            float gap = 8f;
+            float startY = Screen.height * 0.28f;
+            float gap = 10f;
 
-            var labelStyle = new GUIStyle(midStyle)
+            // 헤더
+            var headerSt = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 18, wordWrap = true,
+                fontSize = 10, fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleLeft,
-                padding = new RectOffset(24, 16, 10, 10)
+                padding = new RectOffset(8, 0, 0, 0),
+                normal = { textColor = UITheme.NeonCyan }
+            };
+            GUI.Label(new Rect(boxX, startY - 24, boxW, 20),
+                "▸ RESPONSE OPTIONS // SELECT ONE", headerSt);
+
+            var labelStyle = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 15, wordWrap = true,
+                alignment = TextAnchor.MiddleLeft,
+                padding = new RectOffset(48, 16, 10, 10)
+            };
+            var numStyle = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 18, fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleLeft,
+                padding = new RectOffset(20, 0, 0, 0),
+                normal = { textColor = UITheme.NeonGreen }
             };
 
             Vector2 mp = Event.current.mousePosition;
@@ -261,27 +291,28 @@ namespace ForTheCompany.Systems
             for (int i = 0; i < choices.Count; i++)
             {
                 var c = choices[i];
-                string display = $"  {i + 1}.  {c.Label}";
+                string display = c.Label;
                 var content = new GUIContent(display);
-                float labelH = labelStyle.CalcHeight(content, boxW - 40);
-                float boxH = Mathf.Max(52f, labelH + 10f);
+                float labelH = labelStyle.CalcHeight(content, boxW - 80);
+                float boxH = Mathf.Max(54f, labelH + 10f);
                 var rect = new Rect(boxX, currentY, boxW, boxH);
 
                 bool hover = rect.Contains(mp);
 
-                // 배경
-                Color bg = hover
-                    ? new Color(0.18f, 0.24f, 0.4f, 0.96f)
-                    : new Color(0.08f, 0.1f, 0.18f, 0.92f);
-                DrawSolidRect(rect, bg);
-                // 좌측 강조선
-                DrawSolidRect(new Rect(rect.x, rect.y, 4f, rect.height),
-                    hover ? new Color(1f, 0.9f, 0.5f) : new Color(0.5f, 0.85f, 1f, 0.9f));
+                // 배경 + 보더
+                UITheme.DrawRect(rect, hover ? UITheme.Bg3 : UITheme.Bg2);
+                UITheme.DrawBorder(rect, hover ? UITheme.NeonGreen : UITheme.Line);
+
+                // 좌측 강조 띠
+                UITheme.DrawRect(new Rect(rect.x, rect.y, 3f, rect.height),
+                    hover ? UITheme.NeonGreen : UITheme.NeonCyan);
+
+                // 번호
+                GUI.Label(new Rect(rect.x, rect.y, 40, rect.height),
+                    $"0{i + 1}", numStyle);
 
                 // 텍스트
-                labelStyle.normal.textColor = hover
-                    ? new Color(1f, 0.95f, 0.7f)
-                    : new Color(0.92f, 0.93f, 0.97f);
+                labelStyle.normal.textColor = hover ? UITheme.Ink : UITheme.InkDim;
                 GUI.Label(rect, content, labelStyle);
 
                 // 투명 버튼 — 클릭 감지
@@ -294,52 +325,91 @@ namespace ForTheCompany.Systems
             }
 
             // 하단 힌트
-            var hintStyle = new GUIStyle(smallStyle)
+            var hintStyle = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 14, alignment = TextAnchor.MiddleRight,
-                normal = { textColor = new Color(0.7f, 0.75f, 0.85f) }
+                fontSize = 10, fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleRight,
+                padding = new RectOffset(0, 8, 0, 0),
+                normal = { textColor = UITheme.InkFaint }
             };
-            GUI.Label(new Rect(boxX, currentY + 4, boxW, 20),
-                "마우스 클릭 또는 1·2·3 키로 선택", hintStyle);
+            GUI.Label(new Rect(boxX, currentY + 6, boxW, 18),
+                "// [CLICK] OR [1·2·3] TO SELECT", hintStyle);
         }
 
-        /// <summary>우상단에 현재 목표 패널 표시 (스토리 모드 안내). 텍스트 길이에 따라 동적 높이.</summary>
+        /// <summary>우상단에 현재 목표 패널 — SecureSense Mission Dossier 톤</summary>
         private void DrawObjectivePanel()
         {
             var quest = QuestManager.Instance;
             if (quest == null || quest.CurrentStage == QuestManager.Stage.Done) return;
 
-            // wordWrap 보장된 스타일 (한글 길이 대응)
-            int total = (int)QuestManager.Stage.Done; // 6단계
+            int total = (int)QuestManager.Stage.Done;
             int step = (int)quest.CurrentStage + 1;
 
-            var headerStyle = new GUIStyle(midStyle)
-            { wordWrap = true, normal = { textColor = new Color(1f, 0.85f, 0.5f) } };
-            var bodyStyle = new GUIStyle(midStyle) { wordWrap = true };
-            var hintStyle = new GUIStyle(smallStyle)
-            { wordWrap = true, normal = { textColor = new Color(0.7f, 0.85f, 1f) } };
+            var bodyStyle = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 13, wordWrap = true,
+                alignment = TextAnchor.UpperLeft,
+                normal = { textColor = UITheme.Ink }
+            };
+            var hintStyle = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 11, wordWrap = true,
+                alignment = TextAnchor.UpperLeft,
+                normal = { textColor = UITheme.NeonCyan }
+            };
 
-            float w = 340;
-            float contentW = w - 28;
-            string header = $"현재 목표  ({step}/{total})";
-
-            float headerH = headerStyle.CalcHeight(new GUIContent(header), contentW);
+            float w = 360, x = Screen.width - w - 16, y = 16;
+            float contentW = w - 32;
             float bodyH = bodyStyle.CalcHeight(new GUIContent(quest.CurrentObjective), contentW);
             float hintH = hintStyle.CalcHeight(new GUIContent(quest.CurrentLocationHint), contentW);
 
-            float pad = 10, gap = 6;
-            float h = pad * 2 + headerH + gap + bodyH + gap + hintH;
+            // 헤더(28) + 본문 + 진행도 dot(20) + 위치 힌트 + 패딩
+            float h = 28 + 12 + bodyH + 12 + 20 + 6 + hintH + 14;
 
-            float x = Screen.width - w - 10;
-            float y = 10;
-            GUI.Box(new Rect(x, y, w, h), GUIContent.none);
+            // 카드
+            UITheme.DrawCard(new Rect(x, y, w, h));
+            UITheme.DrawRect(new Rect(x, y, w, 28), UITheme.Bg3);
+            UITheme.DrawRect(new Rect(x, y + 28, w, 1), UITheme.Line);
 
-            float cy = y + pad;
-            GUI.Label(new Rect(x + 14, cy, contentW, headerH), header, headerStyle);
-            cy += headerH + gap;
-            GUI.Label(new Rect(x + 14, cy, contentW, bodyH), quest.CurrentObjective, bodyStyle);
-            cy += bodyH + gap;
-            GUI.Label(new Rect(x + 14, cy, contentW, hintH), quest.CurrentLocationHint, hintStyle);
+            // 헤더
+            var headerSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 10, fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleLeft,
+                padding = new RectOffset(14, 0, 0, 0),
+                normal = { textColor = UITheme.NeonMagenta }
+            };
+            GUI.Label(new Rect(x, y, w - 60, 28),
+                $"▸ OBJECTIVE // STEP {step:D2}", headerSt);
+
+            // 우측 진행 ratio
+            var ratioSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 10, fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleRight,
+                padding = new RectOffset(0, 14, 0, 0),
+                normal = { textColor = UITheme.InkDim }
+            };
+            GUI.Label(new Rect(x, y, w, 28), $"{step:D2} / {total:D2}", ratioSt);
+
+            // 본문
+            float cy = y + 40;
+            GUI.Label(new Rect(x + 16, cy, contentW, bodyH), quest.CurrentObjective, bodyStyle);
+            cy += bodyH + 12;
+
+            // 진행도 dot들
+            float dotSize = 6f, dotGap = 12f;
+            float dotsX = x + 16;
+            for (int i = 0; i < total; i++)
+            {
+                Color c = i < step ? UITheme.NeonGreen : UITheme.Bg4;
+                UITheme.DrawRect(new Rect(dotsX + i * dotGap, cy + 7, dotSize, dotSize), c);
+            }
+            cy += 20;
+
+            // 위치 힌트
+            GUI.Label(new Rect(x + 16, cy, contentW, hintH),
+                "▸ " + quest.CurrentLocationHint, hintStyle);
         }
 
         // 단계 완료 토스트가 NPC 대화 토스트 종료 후 시작되도록 추적
@@ -376,29 +446,58 @@ namespace ForTheCompany.Systems
             float elapsed = Time.time - advanceToastStartTime;
             if (elapsed > AdvanceToastDuration) return;
 
-            float w = 600;
-            float contentW = w - 40;
-            var bodySt = new GUIStyle(midStyle)
-            { alignment = TextAnchor.UpperCenter, wordWrap = true };
+            float w = 640;
+            float contentW = w - 60;
+            var bodySt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 14, wordWrap = true,
+                alignment = TextAnchor.UpperLeft,
+                normal = { textColor = UITheme.Ink }
+            };
             float bodyH = bodySt.CalcHeight(new GUIContent(quest.LastAdvanceText), contentW);
 
-            float headerH = 36;
-            float pad = 16;
+            float headerH = 52;
+            float pad = 18;
             float h = headerH + bodyH + pad * 2;
 
             float x = (Screen.width - w) * 0.5f;
-            float y = Screen.height * 0.28f;
+            float y = Screen.height * 0.24f;
             float alpha = Mathf.Clamp01(1f - (elapsed - 3f));
             var prev = GUI.color;
             GUI.color = new Color(1f, 1f, 1f, alpha);
 
-            GUI.Box(new Rect(x, y, w, h), GUIContent.none);
-            var titleSt = new GUIStyle(bigStyle)
-            { alignment = TextAnchor.UpperCenter,
-              normal = { textColor = new Color(1f, 0.9f, 0.5f) } };
-            GUI.Label(new Rect(x, y + pad, w, headerH), "단계 완료!", titleSt);
-            GUI.Label(new Rect(x + 20, y + pad + headerH, contentW, bodyH),
+            var toastRect = new Rect(x, y, w, h);
+
+            // ── 패널 ──
+            UITheme.DrawRect(toastRect, UITheme.Bg2);
+            UITheme.DrawBorder(toastRect, UITheme.NeonGreen, 1f);
+
+            // 좌측 강조선 (네온 그린)
+            UITheme.DrawRect(new Rect(x, y, 3f, h), UITheme.NeonGreen);
+
+            // 펄스 dot + 헤더
+            UITheme.DrawPulseDot(new Vector2(x + 22, y + 22), UITheme.NeonGreen, 4f);
+
+            var tagSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 10, fontStyle = FontStyle.Bold,
+                normal = { textColor = UITheme.NeonGreen }
+            };
+            GUI.Label(new Rect(x + 36, y + 14, w - 60, 14),
+                "▸ STAGE CLEARED // PROGRESS UPDATED", tagSt);
+
+            var titleSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 22, fontStyle = FontStyle.Bold,
+                normal = { textColor = UITheme.Ink }
+            };
+            GUI.Label(new Rect(x + 36, y + 28, w - 60, 28),
+                "단계 완료", titleSt);
+
+            // 본문
+            GUI.Label(new Rect(x + pad + 18, y + pad + headerH, contentW, bodyH),
                 quest.LastAdvanceText, bodySt);
+
             GUI.color = prev;
         }
 
@@ -408,29 +507,53 @@ namespace ForTheCompany.Systems
             if (rmc == null || !rmc.IsOpen) return;
 
             // 임베드 WebView가 보이는 중엔 Unity 등수 입력 모달 숨김
-            // (HTML 끝나면 uwb.ExecuteJsMethod로 자동 보고됨)
             var bridge = RacingWebViewBridge.Instance;
             bool isEmbedded = bridge != null && bridge.IsShowing;
             if (rmc.CurrentPhase == RacingMissionController.Phase.AwaitingRank && isEmbedded)
             {
-                // ESC로 강제 종료 버튼만 작은 모달로
                 DrawRacingEmbeddedClose(rmc);
                 return;
             }
 
-            float w = Mathf.Min(640, Screen.width - 80);
-            float h = 460;
+            // 어둠 오버레이
+            UITheme.DrawRect(new Rect(0, 0, Screen.width, Screen.height),
+                new Color(UITheme.Bg0.r, UITheme.Bg0.g, UITheme.Bg0.b, 0.86f));
+            UITheme.DrawScanlines(new Rect(0, 0, Screen.width, Screen.height), 0.05f);
+
+            float w = Mathf.Min(680, Screen.width - 80);
+            float h = 500;
             float x = (Screen.width - w) * 0.5f;
             float y = (Screen.height - h) * 0.5f;
 
-            // Background (neon frame)
-            var bgColor = new Color(0.04f, 0.01f, 0.1f, 1f);
-            DrawSolidRect(new Rect(x, y, w, h), bgColor);
-            DrawSolidRect(new Rect(x, y, w, 4), new Color(0f, 0.94f, 1f));
-            DrawSolidRect(new Rect(x, y + h - 4, w, 4), new Color(1f, 0.18f, 0.58f));
+            var rect = new Rect(x, y, w, h);
+            UITheme.DrawRect(rect, UITheme.Bg1);
+            UITheme.DrawBorder(rect, UITheme.NeonCyan, 1f);
 
-            var titleS = new GUIStyle(titleStyle) { normal = { textColor = new Color(0f, 0.94f, 1f) } };
-            GUI.Label(new Rect(x, y + 18, w, 38), "SECURITY RACE", titleS);
+            // 윈도우 헤더
+            UITheme.DrawWinBar(new Rect(x, y, w, 32), "security-race.module");
+
+            // 헤더 섹션
+            float headerY = y + 50;
+            UITheme.DrawPulseDot(new Vector2(x + 28, headerY + 12), UITheme.NeonCyan, 4f);
+
+            var tagSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 10, fontStyle = FontStyle.Bold,
+                normal = { textColor = UITheme.NeonCyan }
+            };
+            GUI.Label(new Rect(x + 44, headerY + 2, w - 80, 14),
+                "▸ HIGH-SPEED INFILTRATION // STAGE", tagSt);
+
+            var titleSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 26, fontStyle = FontStyle.Bold,
+                normal = { textColor = UITheme.Ink }
+            };
+            GUI.Label(new Rect(x + 44, headerY + 16, w - 80, 32),
+                "SECURITY RACE", titleSt);
+
+            // 구분선
+            UITheme.DrawRect(new Rect(x + 24, headerY + 58, w - 48, 1), UITheme.Line);
 
             if (rmc.CurrentPhase == RacingMissionController.Phase.AwaitingRank)
                 DrawRankInputModal(rmc, x, y, w, h);
@@ -440,68 +563,115 @@ namespace ForTheCompany.Systems
 
         private void DrawRacingEmbeddedClose(RacingMissionController rmc)
         {
-            // 우상단에 작은 닫기 안내 (HTML이 자동 결과 보고하지만 ESC로 수동 종료 가능)
-            float w = 320, h = 56;
+            float w = 340, h = 60;
             float x = Screen.width - w - 20;
             float y = 20;
-            GUI.Box(new Rect(x, y, w, h), GUIContent.none);
-            GUI.Label(new Rect(x + 12, y + 4, w - 24, 20),
-                "SECURITY RACE 진행 중", midStyle);
-            GUI.Label(new Rect(x + 12, y + 28, w - 24, 20),
-                "ESC: 강제 종료 (보상 없음)", smallStyle);
+
+            var rect = new Rect(x, y, w, h);
+            UITheme.DrawRect(rect, UITheme.Bg2);
+            UITheme.DrawBorder(rect, UITheme.NeonCyan, 1f);
+            UITheme.DrawRect(new Rect(x, y, 3f, h), UITheme.NeonCyan);
+
+            UITheme.DrawPulseDot(new Vector2(x + 18, y + 18), UITheme.NeonCyan, 3f);
+
+            var tagSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 10, fontStyle = FontStyle.Bold,
+                normal = { textColor = UITheme.NeonCyan }
+            };
+            GUI.Label(new Rect(x + 32, y + 10, w - 50, 14),
+                "▸ SECURITY RACE // RUNNING", tagSt);
+
+            var hintSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 11,
+                normal = { textColor = UITheme.InkDim }
+            };
+            GUI.Label(new Rect(x + 16, y + 30, w - 32, 24),
+                "[ESC] 강제 종료 (보상 없음)", hintSt);
         }
 
         private void DrawRankInputModal(RacingMissionController rmc, float x, float y, float w, float h)
         {
-            GUI.Label(new Rect(x + 24, y + 70, w - 48, 90),
-                "SECURITY RACE를 플레이하셨습니다.\n\n1등으로 결승선을 통과하면 클리어, 그 외엔 재시도하세요.",
-                bodyStyle);
+            var bodySt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 13, wordWrap = true,
+                alignment = TextAnchor.UpperLeft,
+                normal = { textColor = UITheme.InkDim }
+            };
+            GUI.Label(new Rect(x + 30, y + 120, w - 60, 80),
+                "SECURITY RACE를 플레이하셨습니다.\n1등으로 결승선을 통과하면 클리어, 그 외엔 재시도하세요.",
+                bodySt);
 
-            float btnH = 70;
-            float gap = 12;
-            float startY = y + 200;
+            float btnH = 60;
+            float gap = 10;
+            float startY = y + 220;
 
-            DrawRankButton(new Rect(x + 24, startY, w - 48, btnH),
-                "🥇  1등 했음 — 클리어 (+5 단서)",
-                new Color(1f, 0.85f, 0.2f), () => rmc.ReportRank(1));
+            DrawRankButton(new Rect(x + 30, startY, w - 60, btnH),
+                "▸ 1등 했음 — 클리어 (+5 단서)",
+                UITheme.NeonGreen, () => rmc.ReportRank(1));
 
-            DrawRankButton(new Rect(x + 24, startY + (btnH + gap), w - 48, btnH),
-                "1등 못 함 — 재시도 (보상 없음)",
-                new Color(0.55f, 0.55f, 0.55f), () => rmc.Cancel());
+            DrawRankButton(new Rect(x + 30, startY + (btnH + gap), w - 60, btnH),
+                "▸ 1등 못 함 — 재시도 (보상 없음)",
+                UITheme.InkDim, () => rmc.Cancel());
         }
 
         private void DrawRankButton(Rect r, string label, Color tint, System.Action onClick)
         {
-            var prev = GUI.backgroundColor;
-            GUI.backgroundColor = tint;
-            var s = new GUIStyle(btnStyle)
+            bool hover = r.Contains(Event.current.mousePosition);
+            UITheme.DrawRect(r, hover ? new Color(tint.r, tint.g, tint.b, 0.14f) : UITheme.Bg2);
+            UITheme.DrawBorder(r, hover ? tint : UITheme.Line, hover ? 2f : 1f);
+
+            var s = new GUIStyle(GUI.skin.label)
             {
-                fontStyle = FontStyle.Bold,
-                normal = { textColor = new Color(0.05f, 0.02f, 0.1f) }
+                fontSize = 14, fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleLeft,
+                normal = { textColor = hover ? tint : UITheme.Ink },
+                padding = new RectOffset(20, 0, 0, 0)
             };
-            if (GUI.Button(r, label, s)) onClick?.Invoke();
-            GUI.backgroundColor = prev;
+            GUI.Label(r, label, s);
+
+            if (GUI.Button(r, GUIContent.none, GUIStyle.none)) onClick?.Invoke();
         }
 
         private void DrawRacingFinished(RacingMissionController rmc, float x, float y, float w, float h)
         {
-            string rankLabel = rmc.FinalRank == 1 ? "🥇 1등"
-                             : rmc.FinalRank == 2 ? "🥈 2등"
-                             : "🥉 3등";
+            string rankLabel = rmc.FinalRank == 1 ? "1ST"
+                             : rmc.FinalRank == 2 ? "2ND"
+                             : "3RD";
+            Color rankColor = rmc.FinalRank == 1 ? UITheme.NeonYellow : UITheme.NeonCyan;
 
-            var rankS = new GUIStyle(endStyle)
+            var rankS = new GUIStyle(GUI.skin.label)
             {
-                normal = { textColor = rmc.FinalRank == 1
-                    ? new Color(1f, 0.85f, 0.2f)
-                    : new Color(0.85f, 0.92f, 1f) }
+                fontSize = 56, fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleCenter,
+                normal = { textColor = rankColor }
             };
-            GUI.Label(new Rect(x, y + 90, w, 80), rankLabel, rankS);
+            GUI.Label(new Rect(x, y + 130, w, 80), rankLabel, rankS);
 
-            GUI.Label(new Rect(x + 30, y + 200, w - 60, 60),
-                rmc.ResultMessage, bodyStyle);
+            var subSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 14, fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleCenter,
+                normal = { textColor = UITheme.InkDim }
+            };
+            GUI.Label(new Rect(x, y + 200, w, 22),
+                rmc.FinalRank == 1 ? "// SUCCESS"
+                : rmc.FinalRank == 2 ? "// RUNNER-UP"
+                : "// FINISHED", subSt);
 
-            if (GUI.Button(new Rect(x + (w - 240) * 0.5f, y + h - 80, 240, 56),
-                "확인 (Space / ESC / Enter)", btnStyle))
+            var bodySt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 13, wordWrap = true,
+                alignment = TextAnchor.UpperCenter,
+                normal = { textColor = UITheme.Ink }
+            };
+            GUI.Label(new Rect(x + 30, y + 240, w - 60, 80),
+                rmc.ResultMessage, bodySt);
+
+            // 확인 버튼
+            if (UITheme.NeonButton(new Rect(x + (w - 280) * 0.5f, y + h - 70, 280, 46),
+                "▸ ACKNOWLEDGE  [SPACE / ESC / ENTER]", rankColor))
                 rmc.Acknowledge();
         }
 
@@ -531,6 +701,13 @@ namespace ForTheCompany.Systems
             var cam = Camera.main;
             if (cam == null) return;
 
+            var nameSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 11, fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleCenter,
+                normal = { textColor = UITheme.Ink }
+            };
+
             foreach (var npc in roster.npcs)
             {
                 if (npc == null) continue;
@@ -540,29 +717,35 @@ namespace ForTheCompany.Systems
 
                 float guiY = Screen.height - screen.y;
                 string name = npc.DisplayName;
-                float w = 150f, h = 26f;
+                float w = 160f, h = 24f;
                 var rect = new Rect(screen.x - w * 0.5f, guiY - h * 0.5f, w, h);
-                GUI.Box(rect, GUIContent.none);
-                GUI.Label(rect, name, namePlateStyle);
+
+                // 의심도에 따른 보더 색
+                int sus = npc.suspicion;
+                Color borderColor = sus >= 7 ? UITheme.Danger
+                    : sus >= 4 ? UITheme.NeonYellow
+                    : UITheme.Line;
+
+                UITheme.DrawRect(rect, new Color(UITheme.Bg1.r, UITheme.Bg1.g, UITheme.Bg1.b, 0.92f));
+                UITheme.DrawBorder(rect, borderColor, 1f);
+
+                GUI.Label(rect, name, nameSt);
 
                 // 의심도 막대 (이름표 바로 아래)
-                int sus = npc.suspicion;
                 if (sus > 0)
                 {
                     const float MaxSuspicion = 10f;
-                    float barW = 120f, barH = 6f;
+                    float barW = 130f, barH = 4f;
                     float barX = screen.x - barW * 0.5f;
-                    float barY = guiY + h * 0.5f + 4f;
+                    float barY = guiY + h * 0.5f + 3f;
 
-                    // 배경 (어둡게)
-                    DrawSolidRect(new Rect(barX, barY, barW, barH),
-                        new Color(0f, 0f, 0f, 0.65f));
+                    UITheme.DrawRect(new Rect(barX, barY, barW, barH), UITheme.Bg3);
 
                     float pct = Mathf.Clamp01(sus / MaxSuspicion);
-                    Color susColor = sus >= 7 ? new Color(1f, 0.35f, 0.35f) // 빨강
-                        : sus >= 4 ? new Color(1f, 0.85f, 0.3f) // 노랑
-                        : new Color(0.7f, 0.7f, 0.75f);          // 회색
-                    DrawSolidRect(new Rect(barX, barY, barW * pct, barH), susColor);
+                    Color susColor = sus >= 7 ? UITheme.Danger
+                        : sus >= 4 ? UITheme.NeonYellow
+                        : UITheme.InkDim;
+                    UITheme.DrawRect(new Rect(barX, barY, barW * pct, barH), susColor);
                 }
             }
         }
@@ -582,53 +765,148 @@ namespace ForTheCompany.Systems
 
             var data = ctrl.ActiveClue.data;
 
-            float w = Mathf.Min(740, Screen.width - 80);
-            float h = 560;
+            // 어둠 오버레이
+            UITheme.DrawRect(new Rect(0, 0, Screen.width, Screen.height),
+                new Color(UITheme.Bg0.r, UITheme.Bg0.g, UITheme.Bg0.b, 0.86f));
+            UITheme.DrawScanlines(new Rect(0, 0, Screen.width, Screen.height), 0.05f);
+
+            float w = Mathf.Min(780, Screen.width - 80);
+            float h = 600;
             float x = (Screen.width - w) * 0.5f;
             float y = (Screen.height - h) * 0.5f;
 
-            GUI.Box(new Rect(x, y, w, h), GUIContent.none);
-            GUI.Label(new Rect(x, y + 18, w, 40), "보안 교육 미션", titleStyle);
-            GUI.Label(new Rect(x + 24, y + 64, w - 48, 28),
-                $"[{data.roomName}] {data.objectLabel}", midStyle);
-            GUI.Label(new Rect(x + 24, y + 100, w - 48, 100), data.quizQuestion, quizQuestionStyle);
+            var rect = new Rect(x, y, w, h);
 
+            // 패널
+            UITheme.DrawRect(rect, UITheme.Bg1);
+            UITheme.DrawBorder(rect, UITheme.NeonViolet, 1f);
+
+            // 윈도우 헤더
+            UITheme.DrawWinBar(new Rect(x, y, w, 32), "security-training.module");
+
+            // 헤더
+            float headerY = y + 48;
+            UITheme.DrawPulseDot(new Vector2(x + 28, headerY + 12), UITheme.NeonViolet, 4f);
+
+            var tagSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 10, fontStyle = FontStyle.Bold,
+                normal = { textColor = UITheme.NeonViolet }
+            };
+            GUI.Label(new Rect(x + 44, headerY + 2, w - 100, 14),
+                "▸ SECURITY TRAINING // MODULE", tagSt);
+
+            var titleSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 22, fontStyle = FontStyle.Bold,
+                normal = { textColor = UITheme.Ink }
+            };
+            GUI.Label(new Rect(x + 44, headerY + 16, w - 100, 30),
+                "보안 교육 미션", titleSt);
+
+            // 위치 / 객체 태그
+            var locTagSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 11, fontStyle = FontStyle.Bold,
+                normal = { textColor = UITheme.NeonCyan }
+            };
+            GUI.Label(new Rect(x + 28, headerY + 54, w - 56, 18),
+                $"▸ {data.roomName.ToUpper()}  //  {data.objectLabel.ToUpper()}", locTagSt);
+
+            // 구분선
+            UITheme.DrawRect(new Rect(x + 24, headerY + 78, w - 48, 1), UITheme.Line);
+
+            // 질문
+            var qSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 16, fontStyle = FontStyle.Bold, wordWrap = true,
+                normal = { textColor = UITheme.Ink }
+            };
+            GUI.Label(new Rect(x + 30, headerY + 92, w - 60, 100), data.quizQuestion, qSt);
+
+            // 선택지 버튼들
             int n = data.quizOptions != null ? data.quizOptions.Length : 0;
-            float btnH = 56;
+            float btnH = 52;
             float gap = 8;
-            float startY = y + 210;
+            float startY = y + 240;
+
             for (int i = 0; i < n; i++)
             {
-                var r = new Rect(x + 24, startY + (btnH + gap) * i, w - 48, btnH);
-                string label = $"  {(char)('A' + i)}.  {data.quizOptions[i]}";
-                if (GUI.Button(r, label, quizButtonStyle))
+                var r = new Rect(x + 30, startY + (btnH + gap) * i, w - 60, btnH);
+                string label = $"  0{i + 1}    {data.quizOptions[i]}";
+
+                bool hover = r.Contains(Event.current.mousePosition);
+                Color accent = UITheme.NeonViolet;
+
+                UITheme.DrawRect(r, hover ? new Color(accent.r, accent.g, accent.b, 0.14f) : UITheme.Bg2);
+                UITheme.DrawBorder(r, hover ? accent : UITheme.Line, hover ? 2f : 1f);
+
+                var btnSt = new GUIStyle(GUI.skin.label)
+                {
+                    fontSize = 13, fontStyle = FontStyle.Bold,
+                    alignment = TextAnchor.MiddleLeft,
+                    normal = { textColor = hover ? accent : UITheme.Ink }
+                };
+                GUI.Label(r, label, btnSt);
+
+                if (GUI.Button(r, GUIContent.none, GUIStyle.none))
                     ctrl.Answer(i);
             }
 
-            // Wrong-answer feedback in modal
+            // 오답 피드백
             if (!string.IsNullOrEmpty(ctrl.LastResultText)
                 && !ctrl.LastWasCorrect
                 && Time.time - ctrl.LastResultTime < 3.5f)
             {
+                var feedSt = new GUIStyle(GUI.skin.label)
+                {
+                    fontSize = 13, wordWrap = true,
+                    alignment = TextAnchor.MiddleCenter,
+                    normal = { textColor = UITheme.Danger }
+                };
                 GUI.Label(new Rect(x + 24, y + h - 80, w - 48, 40),
-                    ctrl.LastResultText,
-                    new GUIStyle(bodyStyle) { normal = { textColor = new Color(1f, 0.6f, 0.6f) } });
+                    "▸ " + ctrl.LastResultText, feedSt);
             }
 
-            // Close button
-            if (GUI.Button(new Rect(x + w - 110, y + 12, 96, 32), "닫기 (ESC)", smallStyle))
+            // 닫기 버튼
+            var closeRect = new Rect(x + w - 96, y + 8, 80, 24);
+            if (UITheme.GhostButton(closeRect, "[ESC]"))
                 ctrl.Close();
         }
 
         private void DrawQuizResultToast(SecurityQuizController ctrl)
         {
-            float w = Mathf.Min(640, Screen.width - 80);
-            float h = 120;
+            float w = Mathf.Min(660, Screen.width - 80);
+
+            var bodySt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 14, wordWrap = true,
+                alignment = TextAnchor.MiddleLeft,
+                normal = { textColor = UITheme.Ink }
+            };
+            float contentW = w - 80;
+            float contentH = bodySt.CalcHeight(new GUIContent(ctrl.LastResultText), contentW);
+            float h = Mathf.Max(96, contentH + 56);
+
             float x = (Screen.width - w) * 0.5f;
             float y = Screen.height * 0.2f;
-            GUI.Box(new Rect(x, y, w, h), GUIContent.none);
-            GUI.Label(new Rect(x + 16, y + 12, w - 32, h - 24),
-                ctrl.LastResultText, quizResultStyle);
+
+            var rect = new Rect(x, y, w, h);
+            UITheme.DrawRect(rect, UITheme.Bg2);
+            UITheme.DrawBorder(rect, UITheme.NeonGreen, 1f);
+            UITheme.DrawRect(new Rect(x, y, 3f, h), UITheme.NeonGreen);
+
+            UITheme.DrawPulseDot(new Vector2(x + 22, y + 22), UITheme.NeonGreen, 4f);
+            var tagSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 10, fontStyle = FontStyle.Bold,
+                normal = { textColor = UITheme.NeonGreen }
+            };
+            GUI.Label(new Rect(x + 36, y + 14, w - 60, 14),
+                "▸ CORRECT // SECURITY MODULE PASSED", tagSt);
+
+            GUI.Label(new Rect(x + 36, y + 36, contentW, contentH),
+                ctrl.LastResultText, bodySt);
         }
 
         private void Update()
@@ -686,19 +964,53 @@ namespace ForTheCompany.Systems
             int clues = s != null ? s.totalClues : 0;
             float timeLeft = s != null ? s.TimeRemaining : 0f;
 
-            GUI.Box(new Rect(10, 10, 280, 116), GUIContent.none);
-            GUI.Label(new Rect(24, 18, 260, 30), "산업스파이 조사", bigStyle);
-            GUI.Label(new Rect(24, 52, 260, 24), $"단서   {clues}", midStyle);
+            // SecureSense 카드 — 좌상단
+            float x = 16, y = 16, w = 300, h = 130;
+            UITheme.DrawCard(new Rect(x, y, w, h));
+            UITheme.DrawRect(new Rect(x, y, w, 28), UITheme.Bg3);
+            UITheme.DrawRect(new Rect(x, y + 28, w, 1), UITheme.Line);
 
-            // 시간 표시 — 30초 이하 빨강, 60초 이하 노랑
+            // 헤더 — 네온 그린 + 펄스 dot
+            var headerSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 10, fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleLeft,
+                padding = new RectOffset(14, 0, 0, 0),
+                normal = { textColor = UITheme.NeonGreen }
+            };
+            GUI.Label(new Rect(x, y, w - 30, 28), "▸ INVESTIGATION // ACTIVE", headerSt);
+            UITheme.DrawPulseDot(new Vector2(x + w - 18, y + 14), UITheme.NeonGreen, 4f);
+
+            // 단서 라벨 + 값
+            var labelSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 11, alignment = TextAnchor.MiddleLeft,
+                padding = new RectOffset(14, 0, 0, 0),
+                normal = { textColor = UITheme.InkDim }
+            };
+            var valueSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 22, fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleRight,
+                padding = new RectOffset(0, 16, 0, 0),
+                normal = { textColor = UITheme.Ink }
+            };
+            GUI.Label(new Rect(x, y + 36, w, 18), "CLUES COLLECTED", labelSt);
+            GUI.Label(new Rect(x, y + 36, w, 28), clues.ToString("D2"), valueSt);
+
+            // 구분선
+            UITheme.DrawRect(new Rect(x + 14, y + 80, w - 28, 1), UITheme.Line);
+
+            // 타이머
             int totalSec = Mathf.Max(0, Mathf.CeilToInt(timeLeft));
             int mm = totalSec / 60;
             int ss = totalSec % 60;
-            Color timeCol = timeLeft <= 30f ? new Color(1f, 0.35f, 0.35f)
-                : timeLeft <= 60f ? new Color(1f, 0.85f, 0.3f)
-                : Color.white;
-            var timeStyle = new GUIStyle(midStyle) { normal = { textColor = timeCol } };
-            GUI.Label(new Rect(24, 82, 260, 24), $"남은 시간   {mm:D2}:{ss:D2}", timeStyle);
+            Color timeCol = timeLeft <= 30f ? UITheme.Danger
+                : timeLeft <= 60f ? UITheme.NeonYellow
+                : UITheme.NeonCyan;
+            var timeValSt = new GUIStyle(valueSt) { normal = { textColor = timeCol } };
+            GUI.Label(new Rect(x, y + 90, w, 18), "TIME REMAINING", labelSt);
+            GUI.Label(new Rect(x, y + 90, w, 28), $"{mm:D2}:{ss:D2}", timeValSt);
         }
 
         private void DrawInteractionPrompt()
@@ -716,11 +1028,26 @@ namespace ForTheCompany.Systems
 
             string prompt = p.Nearest.PromptText;
 
-            float w = 420;
+            float w = 480;
+            float h = 52;
             float x = (Screen.width - w) * 0.5f;
-            float y = Screen.height - 130;
-            GUI.Box(new Rect(x, y, w, 50), GUIContent.none);
-            GUI.Label(new Rect(x, y + 8, w, 36), prompt, promptStyle);
+            float y = Screen.height - 150;
+
+            var rect = new Rect(x, y, w, h);
+            UITheme.DrawRect(rect, UITheme.Bg2);
+            UITheme.DrawBorder(rect, UITheme.NeonCyan, 1f);
+
+            // 좌측 펄스 dot
+            UITheme.DrawPulseDot(new Vector2(x + 18, y + h * 0.5f), UITheme.NeonCyan, 3f);
+
+            // 좌측 '▸' 화살표 + 텍스트
+            var promptSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 14, fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleCenter,
+                normal = { textColor = UITheme.Ink }
+            };
+            GUI.Label(rect, "▸ " + prompt, promptSt);
         }
 
         private void DrawToast()
@@ -731,21 +1058,52 @@ namespace ForTheCompany.Systems
 
             var p = PlayerInteractor.Instance;
             if (p == null || string.IsNullOrEmpty(p.LastInteractionResult)) return;
-            if (Time.time - p.LastInteractionTime > 4f) return;
+            float elapsed = Time.time - p.LastInteractionTime;
+            if (elapsed > 4f) return;
 
-            float w = Mathf.Min(680, Screen.width - 80);
-            float contentW = w - 40;
-            // 텍스트 길이에 맞춰 박스 높이 동적 계산
-            float contentH = toastStyle.CalcHeight(new GUIContent(p.LastInteractionResult), contentW);
-            float h = contentH + 32;
+            float w = Mathf.Min(700, Screen.width - 80);
+            float contentW = w - 60;
 
-            // 두 토스트는 순차 표시하므로 NPC 대화 토스트는 항상 본래 위치
+            var bodySt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 15, wordWrap = true,
+                normal = { textColor = UITheme.Ink }
+            };
+            float contentH = bodySt.CalcHeight(new GUIContent(p.LastInteractionResult), contentW);
+
+            float headerH = 28;
+            float pad = 14;
+            float h = headerH + contentH + pad * 2;
+
             float x = (Screen.width - w) * 0.5f;
-            float y = Screen.height * 0.28f;
+            float y = Screen.height * 0.24f;
 
-            GUI.Box(new Rect(x, y, w, h), GUIContent.none);
-            GUI.Label(new Rect(x + 20, y + 16, contentW, contentH),
-                p.LastInteractionResult, toastStyle);
+            // 페이드아웃
+            float alpha = Mathf.Clamp01(1f - (elapsed - 3f));
+            var prev = GUI.color;
+            GUI.color = new Color(1f, 1f, 1f, alpha);
+
+            var rect = new Rect(x, y, w, h);
+            UITheme.DrawRect(rect, UITheme.Bg2);
+            UITheme.DrawBorder(rect, UITheme.NeonYellow, 1f);
+
+            // 좌측 강조선
+            UITheme.DrawRect(new Rect(x, y, 3f, h), UITheme.NeonYellow);
+
+            // 헤더 라벨
+            var headerSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 10, fontStyle = FontStyle.Bold,
+                normal = { textColor = UITheme.NeonYellow }
+            };
+            GUI.Label(new Rect(x + 18, y + 10, w - 36, 16),
+                "▸ INTEL // RELAY", headerSt);
+
+            // 본문
+            GUI.Label(new Rect(x + pad + 14, y + pad + headerH, contentW, contentH),
+                p.LastInteractionResult, bodySt);
+
+            GUI.color = prev;
         }
 
         private void DrawAccusationModal()
@@ -753,27 +1111,85 @@ namespace ForTheCompany.Systems
             var console = FindConsole();
             if (console == null || !console.IsMenuOpen) return;
 
-            float w = Mathf.Min(640, Screen.width - 80);
-            float h = 400;
+            // 어둠 오버레이
+            UITheme.DrawRect(new Rect(0, 0, Screen.width, Screen.height),
+                new Color(UITheme.Bg0.r, UITheme.Bg0.g, UITheme.Bg0.b, 0.88f));
+            UITheme.DrawScanlines(new Rect(0, 0, Screen.width, Screen.height), 0.05f);
+
+            float w = Mathf.Min(680, Screen.width - 80);
+            float h = 440;
             float x = (Screen.width - w) * 0.5f;
             float y = (Screen.height - h) * 0.5f;
 
-            GUI.Box(new Rect(x, y, w, h), GUIContent.none);
-            GUI.Label(new Rect(x, y + 18, w, 40), "산업스파이 지목", titleStyle);
-            GUI.Label(new Rect(x + 24, y + 70, w - 48, 60),
-                "수집한 단서를 바탕으로 산업스파이를 지목하라. 정답이면 승리, 오답이면 패배.",
-                bodyStyle);
+            var rect = new Rect(x, y, w, h);
 
+            // 패널 + 매젠타 보더 (위협적인 톤)
+            UITheme.DrawRect(rect, UITheme.Bg1);
+            UITheme.DrawBorder(rect, UITheme.NeonMagenta, 1f);
+
+            // 윈도우 헤더
+            UITheme.DrawWinBar(new Rect(x, y, w, 32), "verdict.terminal");
+
+            // 헤더 섹션
+            float headerY = y + 50;
+            UITheme.DrawPulseDot(new Vector2(x + 26, headerY + 14), UITheme.NeonMagenta, 4f);
+
+            var tagSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 10, fontStyle = FontStyle.Bold,
+                normal = { textColor = UITheme.NeonMagenta }
+            };
+            GUI.Label(new Rect(x + 40, headerY + 4, w - 80, 14),
+                "▸ FINAL ACCUSATION // IRREVERSIBLE", tagSt);
+
+            var titleSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 24, fontStyle = FontStyle.Bold,
+                normal = { textColor = UITheme.Ink }
+            };
+            GUI.Label(new Rect(x + 40, headerY + 18, w - 80, 32),
+                "산업스파이 지목", titleSt);
+
+            // 구분선
+            UITheme.DrawRect(new Rect(x + 24, headerY + 60, w - 48, 1), UITheme.Line);
+
+            // 본문 설명
+            var bodySt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 13, wordWrap = true,
+                normal = { textColor = UITheme.InkDim }
+            };
+            GUI.Label(new Rect(x + 30, headerY + 70, w - 60, 60),
+                "수집한 단서를 바탕으로 산업스파이를 지목하라.\n정답이면 승리, 오답이면 패배 — 되돌릴 수 없다.",
+                bodySt);
+
+            // 용의자 버튼 리스트
             var roster = NPCRoster.Instance;
             int n = roster != null ? roster.npcs.Count : 0;
-            float btnH = 60;
-            float gap = 10;
-            float startY = y + h - (btnH + gap) * Mathf.Max(1, n) - 16;
+            float btnH = 50;
+            float gap = 8;
+            float startY = y + h - (btnH + gap) * Mathf.Max(1, n) - 24;
+
             for (int i = 0; i < n; i++)
             {
-                var r = new Rect(x + 24, startY + (btnH + gap) * i, w - 48, btnH);
+                var r = new Rect(x + 30, startY + (btnH + gap) * i, w - 60, btnH);
                 string label = roster.npcs[i] != null ? roster.npcs[i].DisplayName : "?";
-                if (GUI.Button(r, label, btnStyle))
+                string display = $"  0{i + 1}    {label}";
+
+                bool hover = r.Contains(Event.current.mousePosition);
+                UITheme.DrawRect(r, hover ? new Color(UITheme.NeonMagenta.r, UITheme.NeonMagenta.g,
+                    UITheme.NeonMagenta.b, 0.14f) : UITheme.Bg2);
+                UITheme.DrawBorder(r, hover ? UITheme.NeonMagenta : UITheme.Line, hover ? 2f : 1f);
+
+                var btnSt = new GUIStyle(GUI.skin.label)
+                {
+                    fontSize = 14, fontStyle = FontStyle.Bold,
+                    alignment = TextAnchor.MiddleLeft,
+                    normal = { textColor = hover ? UITheme.NeonMagenta : UITheme.Ink }
+                };
+                GUI.Label(r, display, btnSt);
+
+                if (GUI.Button(r, GUIContent.none, GUIStyle.none))
                     console.Accuse(i);
             }
         }
@@ -783,112 +1199,208 @@ namespace ForTheCompany.Systems
             var s = GameSession.Instance;
             if (s == null || s.Outcome == RunOutcome.Ongoing) return;
 
-            float w = Mathf.Min(720, Screen.width - 80);
-            float h = 280;
+            bool win = s.Outcome == RunOutcome.Win;
+            Color accent = win ? UITheme.NeonGreen : UITheme.Danger;
+
+            // 풀스크린 어둠 + 스캔라인
+            UITheme.DrawRect(new Rect(0, 0, Screen.width, Screen.height),
+                new Color(UITheme.Bg0.r, UITheme.Bg0.g, UITheme.Bg0.b, 0.92f));
+            UITheme.DrawScanlines(new Rect(0, 0, Screen.width, Screen.height), 0.06f);
+
+            float w = Mathf.Min(760, Screen.width - 80);
+            float h = 360;
             float x = (Screen.width - w) * 0.5f;
             float y = (Screen.height - h) * 0.5f;
-            GUI.Box(new Rect(x, y, w, h), GUIContent.none);
+            var rect = new Rect(x, y, w, h);
 
-            bool win = s.Outcome == RunOutcome.Win;
-            var st = new GUIStyle(endStyle)
-            { normal = { textColor = win ? new Color(0.6f, 1f, 0.7f) : new Color(1f, 0.5f, 0.5f) } };
-            GUI.Label(new Rect(x, y + 30, w, 60), win ? "승리" : "패배", st);
-            GUI.Label(new Rect(x + 24, y + 110, w - 48, 80), s.OutcomeMessage, bodyStyle);
+            // 패널
+            UITheme.DrawRect(rect, UITheme.Bg1);
+            UITheme.DrawBorder(rect, accent, 1f);
 
-            float btnW = 240, btnH = 56, gap = 16;
+            // 윈도우 헤더
+            UITheme.DrawWinBar(new Rect(x, y, w, 32), "mission-result.dossier");
+
+            // 상태 태그 (좌측 상단)
+            float headerY = y + 50;
+            UITheme.DrawPulseDot(new Vector2(x + 28, headerY + 14), accent, 5f);
+
+            var tagSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 11, fontStyle = FontStyle.Bold,
+                normal = { textColor = accent }
+            };
+            GUI.Label(new Rect(x + 44, headerY + 4, w - 80, 16),
+                win ? "▸ MISSION SUCCESS // SUSPECT IDENTIFIED"
+                    : "▸ MISSION FAILED // INVESTIGATION COMPROMISED", tagSt);
+
+            // 메인 결과 라벨
+            var bigSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 56, fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleCenter,
+                normal = { textColor = accent }
+            };
+            GUI.Label(new Rect(x, y + 90, w, 80), win ? "VICTORY" : "DEFEAT", bigSt);
+
+            // 부제 한국어
+            var subKoSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 16, fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleCenter,
+                normal = { textColor = UITheme.InkDim }
+            };
+            GUI.Label(new Rect(x, y + 156, w, 26), win ? "사건 해결" : "조사 실패", subKoSt);
+
+            // 본문 메시지
+            var bodySt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 14, wordWrap = true,
+                alignment = TextAnchor.UpperCenter,
+                normal = { textColor = UITheme.Ink }
+            };
+            GUI.Label(new Rect(x + 40, y + 192, w - 80, 60),
+                s.OutcomeMessage, bodySt);
+
+            // 버튼 영역
+            float btnW = 230, btnH = 46, gap = 14;
             float twoW = btnW * 2 + gap;
             float bx = x + (w - twoW) * 0.5f;
-            float by = y + h - 76;
-            if (GUI.Button(new Rect(bx, by, btnW, btnH), "다시 시작 (R)", btnStyle))
+            float by = y + h - 70;
+
+            if (UITheme.NeonButton(new Rect(bx, by, btnW, btnH),
+                "▸ RESTART  [R]", win ? UITheme.NeonGreen : UITheme.NeonCyan))
                 Restart();
-            if (GUI.Button(new Rect(bx + btnW + gap, by, btnW, btnH), "메인 메뉴 (M)", btnStyle))
+
+            if (UITheme.GhostButton(new Rect(bx + btnW + gap, by, btnW, btnH),
+                "▸ MAIN MENU  [M]"))
                 ReturnToMenu();
         }
 
         private void DrawHint()
         {
-            GUI.Label(new Rect(10, Screen.height - 26, 1400, 22),
-                "WASD: 이동   |   Shift: 달리기   |   휠: 줌   |   Space: 대화/단서/지목   |   I: 인벤토리   |   ESC: 모달 닫기   |   R: 재시작   |   M: 메인 메뉴",
-                smallStyle);
+            float h = 22;
+            var bgRect = new Rect(0, Screen.height - h, Screen.width, h);
+            UITheme.DrawRect(bgRect, new Color(UITheme.Bg0.r, UITheme.Bg0.g, UITheme.Bg0.b, 0.85f));
+            UITheme.DrawRect(new Rect(0, Screen.height - h, Screen.width, 1), UITheme.Line);
+
+            var st = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 10, fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleLeft,
+                normal = { textColor = UITheme.InkFaint }
+            };
+            GUI.Label(new Rect(14, Screen.height - h, Screen.width - 28, h),
+                "// [WASD] MOVE  ·  [SHIFT] SPRINT  ·  [WHEEL] ZOOM  ·  [SPACE] INTERACT  ·  [I] INVENTORY  ·  [ESC] CLOSE  ·  [R] RESTART  ·  [M] MENU",
+                st);
         }
 
-        /// <summary>I키로 토글되는 인벤토리 — 수집한 단서 카드 리스트</summary>
+        /// <summary>I키로 토글되는 인벤토리 — SecureSense Dossier 스타일 단서 아카이브</summary>
         private void DrawInventoryPanel()
         {
             if (!IsInventoryOpen) return;
             var s = GameSession.Instance;
             if (s == null) return;
 
-            // 반투명 어두운 배경
-            DrawSolidRect(new Rect(0, 0, Screen.width, Screen.height), new Color(0, 0, 0, 0.65f));
+            // ── 전체 어둠 오버레이 ──
+            UITheme.DrawRect(new Rect(0, 0, Screen.width, Screen.height),
+                new Color(UITheme.Bg0.r, UITheme.Bg0.g, UITheme.Bg0.b, 0.88f));
+            UITheme.DrawScanlines(new Rect(0, 0, Screen.width, Screen.height), 0.04f);
 
-            float w = Mathf.Min(860, Screen.width - 60);
-            float h = Mathf.Min(680, Screen.height - 80);
+            float w = Mathf.Min(900, Screen.width - 60);
+            float h = Mathf.Min(700, Screen.height - 80);
             float x = (Screen.width - w) * 0.5f;
             float y = (Screen.height - h) * 0.5f;
 
-            // 메인 패널
-            DrawSolidRect(new Rect(x, y, w, h), new Color(0.06f, 0.08f, 0.16f, 0.97f));
-            DrawSolidRect(new Rect(x, y, w, 3f), new Color(0.5f, 0.85f, 1f));
+            var panelRect = new Rect(x, y, w, h);
 
-            // 헤더
-            var titleSt = new GUIStyle(bigStyle)
+            // ── 패널 (윈도우 chrome + 보더) ──
+            UITheme.DrawRect(panelRect, UITheme.Bg1);
+            UITheme.DrawBorder(panelRect, UITheme.LineStrong, 1f);
+
+            // 윈도우 헤더 바
+            var winBarRect = new Rect(x, y, w, 32);
+            UITheme.DrawWinBar(winBarRect, "evidence-archive.dossier");
+
+            // ── 헤더 섹션 ──
+            float headerY = y + 44;
+            // 좌측 펄스 dot
+            UITheme.DrawPulseDot(new Vector2(x + 22, headerY + 14), UITheme.NeonGreen, 4f);
+
+            var sectionTitle = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 26, alignment = TextAnchor.MiddleLeft,
-                normal = { textColor = new Color(1f, 0.85f, 0.5f) }
+                fontSize = 18, fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleLeft,
+                normal = { textColor = UITheme.NeonGreen }
             };
-            GUI.Label(new Rect(x + 28, y + 14, w - 60, 40),
-                $"수집한 단서  ({s.CollectedClues.Count}개)", titleSt);
+            GUI.Label(new Rect(x + 36, headerY, w - 200, 28),
+                "▸ EVIDENCE COLLECTED", sectionTitle);
 
-            var subSt = new GUIStyle(smallStyle)
+            // 우측 카운트 태그
+            int count = s.CollectedClues.Count;
+            string countLabel = $"{count:D2} / ∞ ITEMS";
+            float tagW = 120;
+            UITheme.DrawTag(new Rect(x + w - tagW - 24, headerY + 2, tagW, 22),
+                countLabel, UITheme.NeonCyan);
+
+            // 닫기 안내
+            var hintStyle = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 14, alignment = TextAnchor.MiddleRight,
-                normal = { textColor = new Color(0.7f, 0.75f, 0.85f) }
+                fontSize = 11,
+                alignment = TextAnchor.MiddleRight,
+                normal = { textColor = UITheme.InkFaint }
             };
-            GUI.Label(new Rect(x, y + 22, w - 28, 24), "I 또는 ESC : 닫기", subSt);
+            GUI.Label(new Rect(x + 24, headerY + 28, w - 48, 16),
+                "// PRESS [I] OR [ESC] TO CLOSE", hintStyle);
 
-            // 비어있을 때
-            if (s.CollectedClues.Count == 0)
+            // 헤더 하단 구분선
+            UITheme.DrawRect(new Rect(x + 20, headerY + 50, w - 40, 1), UITheme.Line);
+
+            // ── 비어있을 때 ──
+            if (count == 0)
             {
-                var emptySt = new GUIStyle(midStyle)
+                var emptyTitle = new GUIStyle(GUI.skin.label)
                 {
-                    fontSize = 18, wordWrap = true,
+                    fontSize = 16, fontStyle = FontStyle.Bold,
                     alignment = TextAnchor.MiddleCenter,
-                    normal = { textColor = new Color(0.6f, 0.65f, 0.75f) }
+                    normal = { textColor = UITheme.InkDim }
                 };
-                GUI.Label(new Rect(x + 40, y + h * 0.45f, w - 80, 80),
-                    "아직 수집한 단서가 없습니다.\nNPC와 대화하거나 환경 단서를 조사하면 여기에 기록됩니다.",
-                    emptySt);
+                GUI.Label(new Rect(x + 40, y + h * 0.42f, w - 80, 28),
+                    "// NO ENTRIES IN ARCHIVE", emptyTitle);
+
+                var emptyBody = new GUIStyle(GUI.skin.label)
+                {
+                    fontSize = 13, wordWrap = true,
+                    alignment = TextAnchor.MiddleCenter,
+                    normal = { textColor = UITheme.InkFaint }
+                };
+                GUI.Label(new Rect(x + 40, y + h * 0.48f, w - 80, 60),
+                    "NPC와 대화하거나 환경 단서를 조사하면\n수집한 정보가 자동으로 기록됩니다.",
+                    emptyBody);
                 return;
             }
 
-            // 스타일 준비
-            var bodySt = new GUIStyle(midStyle)
-            {
-                fontSize = 16, wordWrap = true,
-                normal = { textColor = new Color(0.92f, 0.94f, 0.96f) }
-            };
-            var titleCardSt = new GUIStyle(midStyle)
-            {
-                fontSize = 18, fontStyle = FontStyle.Bold,
-                normal = { textColor = new Color(1f, 0.95f, 0.85f) }
-            };
-
-            // 단서 카드 리스트 (스크롤뷰)
-            float listY = y + 62;
-            float listH = h - 80;
+            // ── 카드 리스트 (스크롤뷰) ──
+            float listY = headerY + 60;
+            float listH = h - (listY - y) - 20;
             var viewRect = new Rect(x + 20, listY, w - 40, listH);
 
-            float cardW = viewRect.width - 24; // 스크롤바 공간
-            float gap = 10;
+            float cardW = viewRect.width - 24;
+            float gap = 8;
+
+            // 카드 본문 텍스트 스타일
+            var cardBodySt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 13, wordWrap = true,
+                normal = { textColor = UITheme.Ink }
+            };
 
             // 콘텐츠 높이 계산
-            var heights = new List<float>(s.CollectedClues.Count);
+            var heights = new List<float>(count);
             float total = 0;
             foreach (var c in s.CollectedClues)
             {
-                float bodyH = bodySt.CalcHeight(new GUIContent(c.text), cardW - 40);
-                float cardH = bodyH + 56;
+                float bodyH = cardBodySt.CalcHeight(new GUIContent(c.text), cardW - 60);
+                float cardH = bodyH + 60;
                 heights.Add(cardH);
                 total += cardH + gap;
             }
@@ -897,49 +1409,60 @@ namespace ForTheCompany.Systems
             inventoryScroll = GUI.BeginScrollView(viewRect, inventoryScroll, contentRect);
 
             float cy = 0;
-            for (int i = 0; i < s.CollectedClues.Count; i++)
+            for (int i = 0; i < count; i++)
             {
                 var c = s.CollectedClues[i];
                 float cardH = heights[i];
                 var cardRect = new Rect(0, cy, cardW, cardH);
 
-                // 카드 배경
-                DrawSolidRect(cardRect, new Color(0.1f, 0.13f, 0.22f, 0.95f));
-
-                // 출처별 색깔
+                // 출처별 색깔 (SecureSense 네온 매핑)
                 Color srcColor;
                 string srcLabel;
                 switch (c.source)
                 {
                     case ClueSource.Environment:
-                        srcColor = new Color(1f, 0.85f, 0.3f); srcLabel = "환경 단서"; break;
+                        srcColor = UITheme.NeonYellow; srcLabel = "ENV·LOG"; break;
                     case ClueSource.NPC:
-                        srcColor = new Color(0.5f, 0.85f, 1f); srcLabel = "증언"; break;
+                        srcColor = UITheme.NeonCyan; srcLabel = "TESTIMONY"; break;
                     case ClueSource.Minigame:
-                        srcColor = new Color(0.55f, 1f, 0.6f); srcLabel = "미니게임"; break;
+                        srcColor = UITheme.NeonGreen; srcLabel = "MISSION"; break;
                     default:
-                        srcColor = Color.gray; srcLabel = "기타"; break;
+                        srcColor = UITheme.NeonViolet; srcLabel = "MISC"; break;
                 }
 
-                // 좌측 강조선
-                DrawSolidRect(new Rect(cardRect.x, cardRect.y, 4f, cardH), srcColor);
+                // 카드 배경 + 보더
+                UITheme.DrawRect(cardRect, UITheme.Bg2);
+                UITheme.DrawBorder(cardRect, UITheme.Line, 1f);
+
+                // 좌측 강조선 (출처 색)
+                UITheme.DrawRect(new Rect(cardRect.x, cardRect.y, 3f, cardH), srcColor);
+
+                // 카드 번호 (왼쪽 상단)
+                var idxStyle = new GUIStyle(GUI.skin.label)
+                {
+                    fontSize = 10,
+                    normal = { textColor = UITheme.InkFaint }
+                };
+                GUI.Label(new Rect(cardRect.x + 14, cardRect.y + 8, 40, 14),
+                    $"#{(i + 1):D3}", idxStyle);
 
                 // 제목
-                GUI.Label(new Rect(cardRect.x + 18, cardRect.y + 10, cardW - 130, 24),
-                    c.title, titleCardSt);
-
-                // 출처 라벨
-                var tagSt = new GUIStyle(smallStyle)
+                var titleSt = new GUIStyle(GUI.skin.label)
                 {
-                    fontSize = 13, alignment = TextAnchor.MiddleRight,
-                    normal = { textColor = srcColor }
+                    fontSize = 15, fontStyle = FontStyle.Bold,
+                    normal = { textColor = UITheme.Ink }
                 };
-                GUI.Label(new Rect(cardRect.x + cardW - 110, cardRect.y + 12, 100, 20),
-                    srcLabel, tagSt);
+                GUI.Label(new Rect(cardRect.x + 50, cardRect.y + 6, cardW - 200, 22),
+                    c.title, titleSt);
+
+                // 출처 태그 (우측 상단)
+                float tagWidth = 100;
+                UITheme.DrawTag(new Rect(cardRect.x + cardW - tagWidth - 14, cardRect.y + 8,
+                    tagWidth, 18), srcLabel, srcColor);
 
                 // 본문
-                GUI.Label(new Rect(cardRect.x + 18, cardRect.y + 38, cardW - 40, cardH - 48),
-                    c.text, bodySt);
+                GUI.Label(new Rect(cardRect.x + 18, cardRect.y + 34, cardW - 36, cardH - 42),
+                    c.text, cardBodySt);
 
                 cy += cardH + gap;
             }
