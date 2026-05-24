@@ -83,6 +83,55 @@ namespace ForTheCompany.Systems
             }
         }
 
+        /// <summary>
+        /// Editor 시점에 박힌 절대경로(C:/.../Assets/StreamingAssets/security-race.html)는
+        /// 빌드본에서 작동 안 함. CEF 초기화 후 런타임 streamingAssetsPath로 다시 LoadUrl.
+        /// </summary>
+        private void Start()
+        {
+            if (canvasRoot == null) return;
+            StartCoroutine(EnsureCorrectUrlLoaded());
+        }
+
+        private System.Collections.IEnumerator EnsureCorrectUrlLoaded()
+        {
+            // CEF가 초기화될 때까지 잠시 대기 (빌드본은 첫 실행 시 1~2초 걸림)
+            yield return new WaitForSeconds(1.5f);
+
+            string url = "file:///" + System.IO.Path.Combine(
+                Application.streamingAssetsPath, "security-race.html").Replace("\\", "/");
+            LoadUrlOnClient(url);
+        }
+
+        private void LoadUrlOnClient(string url)
+        {
+            var client = GetOrFindClient();
+            if (client == null)
+            {
+                Debug.LogWarning("[RacingWebView] WebBrowserClient를 찾을 수 없음 — LoadUrl 스킵");
+                return;
+            }
+            try
+            {
+                var loadUrl = client.GetType().GetMethod("LoadUrl",
+                    System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance,
+                    null, new System.Type[] { typeof(string) }, null);
+                if (loadUrl != null)
+                {
+                    loadUrl.Invoke(client, new object[] { url });
+                    Debug.Log($"[RacingWebView] 런타임 LoadUrl 호출: {url}");
+                }
+                else
+                {
+                    Debug.LogWarning("[RacingWebView] LoadUrl 메서드를 찾을 수 없음");
+                }
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning($"[RacingWebView] LoadUrl 실패: {e.Message}");
+            }
+        }
+
         public void Show()
         {
             if (canvasRoot == null)
