@@ -137,6 +137,39 @@ WebView 활성 동안 [RealtimePlayerController](Assets/_Project/Scripts/Player/
 
 `[RuntimeInitializeOnLoadMethod(AfterSceneLoad)]`는 첫 씬에서만 실행되므로 MainMenu→Facility 전환 시 사물 스폰이 안 됨. [SecurityQuizController](Assets/_Project/Scripts/Systems/SecurityQuizController.cs), [RacingMissionController](Assets/_Project/Scripts/Systems/RacingMissionController.cs), [RacingWebViewBridge](Assets/_Project/Scripts/Systems/RacingWebViewBridge.cs) 모두 `SceneManager.sceneLoaded` 이벤트로 매 씬 진입 시 `EnsureSpawned()` 호출 (FacilityScene 이름 체크).
 
+### Sci-Fi 바닥·벽 머터리얼 변경 (2026-05-24)
+
+- [SciFiFloorsSetup.cs](Assets/_Project/Scripts/Editor/SciFiFloorsSetup.cs) — 메뉴 "Setup Sci-Fi Floors". 기존 방 색깔 바닥 8개(Floor_Research, Floor_Server 등) SetActive(false) + 20m Epoxy Ground 9장(3×3) + 방별 카펫 8장 자동 배치. SciFiFacility는 안 건드림.
+- [SciFiWallsSetup.cs](Assets/_Project/Scripts/Editor/SciFiWallsSetup.cs) — 메뉴 "Setup Sci-Fi Walls". 외곽 벽 4개(Wall_North/East/South/West) + 내부 벽 W_* 모두 MeshRenderer sharedMaterial을 `ScifiOfficeLite/Walls/Wall Set 2.mat`로 일괄 교체. 위치/사이즈 그대로, 색감만 sci-fi 톤.
+
+### Sci-Fi Facility prefab 워크플로우 전환 (2026-05-24)
+
+SciFiFacilitySetup 메뉴를 prefab instantiate 방식으로 단순화.
+
+- 사용자가 Unity Editor에서 시설 가구 배치를 직접 수정한 후 SciFiFacility GameObject를 `Assets/_Project/Prefabs/SciFiFacility.prefab`으로 저장
+- [SciFiFacilitySetup.cs](Assets/_Project/Scripts/Editor/SciFiFacilitySetup.cs)는 그 prefab만 instantiate — 80여 개 코드 좌표 제거하고 단순화
+- 가구 변경: Hierarchy에서 수정 → Inspector "Overrides → Apply All" 클릭하면 prefab에 자동 반영
+
+### Sci-Fi Facility — 외부 에셋 prefab 기반 시설 (2026-05-24)
+
+[SciFiFacilitySetup.cs](Assets/_Project/Scripts/Editor/SciFiFacilitySetup.cs) — "For The Company → Setup Sci-Fi Facility" 메뉴로 한 번에 시설 전체 가구/바닥/조명을 [ScifiOfficeLite](Assets/ScifiOfficeLite/) (Terresquall, Free Sci-Fi Office Pack)의 sci-fi prefab들로 교체.
+
+- 부모 GameObject `SciFiFacility` 아래로 묶음
+- **바닥**: 시설 중앙에 20m Epoxy Ground 한 장 (기존 색깔 바닥 위 살짝 떠 있음)
+- **연구실**: Table Dark Oak + Office Chair + PC 2 + TV 32" + Drawer
+- **서버실**: Server Rack 4대 + Mechanical Arm 2개
+- **데이터센터**: Server Rack 3대 + 모니터 벽 2개
+- **휴게실**: Table White Wood + 의자 2개 + TV + Stool (RacingConsole 옆)
+- **창고**: Shelf with Crates 2개 + Shelf without Crates
+- **전력실**: Server Rack 2 + Mechanical Arm + Drawer
+- **보안통제실**: Drawer Table Long + 모니터 벽 2개 + PC + Office Chair
+- **카드키 구역**: Drawer Table Long + PC
+- **조명**: 각 방 천장에 Ceiling Light 8개 (서버실/전력실/보안통제실은 Bright 버전)
+
+[RoomFurniture.cs](Assets/_Project/Scripts/Systems/RoomFurniture.cs) — `SciFiFacility` GameObject가 씬에 있으면 primitive 가구 자동 스폰 안 함 (둘 동시 사용 방지).
+
+벽은 아직 교체 안 됨 (기존 회색 벽 유지). 사용자 피드백 후 추가.
+
 ### 방 디테일 — 가구·서버랙·모니터 자동 스폰 (2026-05-23)
 
 [RoomFurniture.cs](Assets/_Project/Scripts/Systems/RoomFurniture.cs) — RuntimeInitialize + sceneLoaded로 FacilityScene 진입 시 약 28개 primitive 가구를 자동 배치. 부모 `RoomFurniture` GameObject 아래로 묶음. Collider 제거(플레이어 통과).

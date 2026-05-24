@@ -30,6 +30,8 @@ namespace ForTheCompany.Systems
         {
             if (SceneManager.GetActiveScene().name != "FacilityScene") return;
             if (GameObject.Find(ParentName) != null) return;
+            // Sci-Fi 시설이 이미 설정돼 있으면 primitive 가구 자동 스폰 안 함
+            if (GameObject.Find("SciFiFacility") != null) return;
 
             var parent = new GameObject(ParentName);
             int count = 0;

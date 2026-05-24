@@ -47,10 +47,11 @@ namespace ForTheCompany.Player
             if (SceneManager.GetActiveScene().name != "FacilityScene") return;
             if (FindFirstObjectByType<GuardNPC>() != null) return;
 
-            // 중앙복도 시작 지점 근처에 경비원 배치
+            // 중앙복도 시작 지점 근처에 경비원 배치, player 방향(남쪽) 향함
             var go = GameObject.CreatePrimitive(PrimitiveType.Capsule);
             go.name = "GuardNPC";
             go.transform.position = new Vector3(0f, 1.1f, 4f);
+            go.transform.rotation = Quaternion.Euler(0f, 180f, 0f); // 평소 player 방향 향함
             go.transform.localScale = new Vector3(1.4f, 1.4f, 1.4f);
 
             var mr = go.GetComponent<MeshRenderer>();
@@ -141,7 +142,10 @@ namespace ForTheCompany.Player
             Vector3 toPlayer = p.transform.position - transform.position;
             toPlayer.y = 0f;
             if (toPlayer.sqrMagnitude < 0.01f) return;
+
+            // 둘이 서로 마주보게 회전 (다른 NPC와 동일)
             transform.rotation = Quaternion.LookRotation(toPlayer.normalized);
+            p.transform.rotation = Quaternion.LookRotation(-toPlayer.normalized);
         }
 
         /// <summary>현재 단계에 맞춰 다른 안내 대사</summary>

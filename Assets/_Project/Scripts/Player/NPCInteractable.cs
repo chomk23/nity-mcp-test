@@ -201,7 +201,9 @@ namespace ForTheCompany.Player
             Vector3 toPlayer = p.transform.position - transform.position;
             toPlayer.y = 0f;
             if (toPlayer.sqrMagnitude < 0.01f) return;
+            // NPC가 플레이어 향함 + 플레이어도 NPC 향함 (서로 마주보기)
             transform.rotation = Quaternion.LookRotation(toPlayer.normalized);
+            p.transform.rotation = Quaternion.LookRotation(-toPlayer.normalized);
         }
 
         // ═══════════════════ 대화 콘텐츠 ═══════════════════

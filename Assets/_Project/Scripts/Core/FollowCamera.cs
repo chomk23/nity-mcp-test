@@ -11,6 +11,9 @@ namespace ForTheCompany.Core
         public float followSmooth = 8f;
 
         [Header("Zoom")]
+        [Tooltip("게임 시작 시 기본 줌 (1=원래 크기, 0.7=가까이, 1.5=멀리). minZoom~maxZoom 사이.")]
+        [Range(0.3f, 2f)]
+        public float defaultZoom = 0.7f;
         public float zoomSpeed = 4f;
         public float minZoom = 0.5f;
         public float maxZoom = 1.8f;
@@ -32,6 +35,13 @@ namespace ForTheCompany.Core
         private float zoomTarget = 1f;
         private float dialogueBlend = 0f; // 0=일반 모드, 1=대화 모드
         private Vector3 dialogueSideSign = Vector3.right; // 측면 방향 락 (대화 도중 좌우 흔들림 방지)
+
+        private void Awake()
+        {
+            // 기본 줌 적용 (Inspector의 defaultZoom 값)
+            zoomLevel = defaultZoom;
+            zoomTarget = defaultZoom;
+        }
 
         private void LateUpdate()
         {
