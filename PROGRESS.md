@@ -157,8 +157,8 @@ Claude Design (claude.ai/design)에서 보낸 디자인 번들 `security-educati
 - 인트로 3장: CLASSIFIED 형식 + 챕터 dot 인디케이터
 
 [FacilityHUD.cs](Assets/_Project/Scripts/Systems/FacilityHUD.cs) — 게임 내 HUD 전체 리디자인
-- **DrawStatusBar**: 좌상단 카드 (▸ INVESTIGATION // ACTIVE) + 펄스 dot + CLUES/TIME 라벨
-- **DrawObjectivePanel**: 우상단 카드 (▸ OBJECTIVE // STEP XX, 마젠타) + 진행 dot
+- **DrawMiniMap** (좌상단): 시설 평면도 미니맵 + 방 사각형/이름 + 플레이어 펄스 점 + NPC 점 (의심도 색)
+- **DrawInfoPanel** (우상단, 통합): 수사 진행 중 헤더 + 단서·시간 2열 + 현재 목표 + 진행 dot + 위치 힌트
 - **DrawDialogueBox**: 하단 1120 너비 + 네온 그린 상단 라인 + NPC 이름표 + 터미널 본문
 - **DrawDialogueChoices**: 우측 선택지 (01·02·03 번호 + 시안 강조 띠 + 호버 그린)
 - **DrawInventoryPanel**: evidence-archive.dossier 윈도우 + 카드별 출처 태그 (ENV·LOG / TESTIMONY / MISSION)

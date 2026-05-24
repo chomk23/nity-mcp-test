@@ -146,8 +146,8 @@ namespace ForTheCompany.Systems
         {
             Init();
             DrawNPCNameplates();
-            DrawStatusBar();
-            DrawObjectivePanel();
+            DrawMiniMap();        // 좌상단 — 미니맵
+            DrawInfoPanel();      // 우상단 — 통합 UI (단서/시간/목표)
             DrawQuestAdvanceToast();
             DrawInteractionPrompt();
             DrawToast();
@@ -336,53 +336,279 @@ namespace ForTheCompany.Systems
                 "// [CLICK] OR [1·2·3] TO SELECT", hintStyle);
         }
 
-        /// <summary>우상단에 현재 목표 패널 — SecureSense Mission Dossier 톤</summary>
-        private void DrawObjectivePanel()
+        // ═══════════════════ 미니맵 (좌상단) ═══════════════════
+
+        // 시설 좌표 범위 (SciFiFloorsSetup 방 좌표 기반)
+        private const float FacMinX = -28f, FacMaxX = 28f;
+        private const float FacMinZ = -22f, FacMaxZ = 18f;
+
+        // 방 정보: (이름, 중심 X, 중심 Z, 폭, 깊이, 색)
+        private static readonly (string label, float cx, float cz, float w, float d, System.Func<Color> col)[] Rooms =
         {
-            var quest = QuestManager.Instance;
-            if (quest == null || quest.CurrentStage == QuestManager.Stage.Done) return;
+            ("연구실",     -17f, 11f, 10f, 8f, () => UITheme.NeonCyan),
+            ("서버실",      0f,  11f, 10f, 8f, () => UITheme.NeonMagenta),
+            ("보안통제실", 13f,  11f, 10f, 8f, () => UITheme.NeonViolet),
+            ("휴게실",    -13f,  0f,  10f, 8f, () => UITheme.NeonGreen),
+            ("카드키",     18f,  2f,  8f,  8f, () => UITheme.Danger),
+            ("창고",      -20f, -14f, 10f, 8f, () => UITheme.NeonYellow),
+            ("데이터센터", 3f,  -14f, 16f, 8f, () => UITheme.NeonCyan),
+            ("전력실",    18f,  -11f, 8f,  8f, () => UITheme.NeonYellow),
+        };
 
-            int total = (int)QuestManager.Stage.Done;
-            int step = (int)quest.CurrentStage + 1;
+        /// <summary>좌상단 미니맵 — 시설 평면도 + 실시간 플레이어 위치</summary>
+        private void DrawMiniMap()
+        {
+            float panelW = 300f, panelH = 240f;
+            float panelX = 16f, panelY = 16f;
+            var panel = new Rect(panelX, panelY, panelW, panelH);
 
-            var bodyStyle = new GUIStyle(GUI.skin.label)
+            // 패널 베이스
+            UITheme.DrawRect(panel, UITheme.Bg1);
+            UITheme.DrawBorder(panel, UITheme.LineStrong, 1f);
+
+            // 윈도우 헤더
+            var headerRect = new Rect(panelX, panelY, panelW, 28);
+            UITheme.DrawRect(headerRect, UITheme.Bg3);
+            UITheme.DrawRect(new Rect(panelX, panelY + 28, panelW, 1), UITheme.Line);
+
+            var headerSt = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 13, wordWrap = true,
+                fontSize = 10, fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleLeft,
+                padding = new RectOffset(14, 0, 0, 0),
+                normal = { textColor = UITheme.NeonGreen }
+            };
+            GUI.Label(headerRect, "▸ 시설 평면도 // 실시간", headerSt);
+            UITheme.DrawPulseDot(new Vector2(panelX + panelW - 18, panelY + 14), UITheme.NeonGreen, 3f);
+
+            // 맵 영역 (헤더 제외)
+            float mapMargin = 12f;
+            float mapX = panelX + mapMargin;
+            float mapY = panelY + 28 + mapMargin;
+            float mapW = panelW - mapMargin * 2;
+            float mapH = panelH - 28 - mapMargin * 2;
+            var mapRect = new Rect(mapX, mapY, mapW, mapH);
+
+            // 맵 배경 (그리드)
+            UITheme.DrawRect(mapRect, UITheme.Bg0);
+
+            // 그리드 라인 (4×4 분할 — 흐릿하게)
+            var gridCol = new Color(UITheme.NeonGreen.r, UITheme.NeonGreen.g, UITheme.NeonGreen.b, 0.06f);
+            for (int i = 1; i < 4; i++)
+            {
+                float gx = mapX + (mapW / 4f) * i;
+                float gy = mapY + (mapH / 4f) * i;
+                UITheme.DrawRect(new Rect(gx, mapY, 1, mapH), gridCol);
+                UITheme.DrawRect(new Rect(mapX, gy, mapW, 1), gridCol);
+            }
+
+            // 방 사각형 + 라벨
+            var roomLabelSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 9, fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleCenter,
+                normal = { textColor = UITheme.Ink }
+            };
+            foreach (var r in Rooms)
+            {
+                Vector2 minWorld = new Vector2(r.cx - r.w * 0.5f, r.cz - r.d * 0.5f);
+                Vector2 maxWorld = new Vector2(r.cx + r.w * 0.5f, r.cz + r.d * 0.5f);
+                Vector2 minPx = WorldToMap(minWorld, mapRect);
+                Vector2 maxPx = WorldToMap(maxWorld, mapRect);
+                // Z가 클수록 화면 위 → minPx.y가 maxPx보다 크므로 정렬
+                float rx = Mathf.Min(minPx.x, maxPx.x);
+                float ry = Mathf.Min(minPx.y, maxPx.y);
+                float rw = Mathf.Abs(maxPx.x - minPx.x);
+                float rh = Mathf.Abs(maxPx.y - minPx.y);
+                var roomRect = new Rect(rx, ry, rw, rh);
+
+                Color rc = r.col();
+                UITheme.DrawRect(roomRect, new Color(rc.r, rc.g, rc.b, 0.18f));
+                UITheme.DrawBorder(roomRect, new Color(rc.r, rc.g, rc.b, 0.7f), 1f);
+
+                // 방 이름 (방이 충분히 크면)
+                if (rw > 32 && rh > 16)
+                    GUI.Label(roomRect, r.label, roomLabelSt);
+            }
+
+            // NPC 점 표시
+            var roster = NPCRoster.Instance;
+            if (roster != null)
+            {
+                foreach (var npc in roster.npcs)
+                {
+                    if (npc == null) continue;
+                    Vector2 p = WorldToMap(
+                        new Vector2(npc.transform.position.x, npc.transform.position.z), mapRect);
+                    // 의심도에 따라 색
+                    int sus = npc.suspicion;
+                    Color npcCol = sus >= 7 ? UITheme.Danger
+                        : sus >= 4 ? UITheme.NeonYellow
+                        : UITheme.InkDim;
+                    UITheme.DrawRect(new Rect(p.x - 3, p.y - 3, 6, 6), npcCol);
+                }
+            }
+
+            // 플레이어 점 (펄스 — 가장 큰 강조)
+            var player = PlayerInteractor.Instance;
+            if (player != null)
+            {
+                Vector2 pp = WorldToMap(
+                    new Vector2(player.transform.position.x, player.transform.position.z),
+                    mapRect);
+
+                // 외곽 펄스 링 (반투명, 큼)
+                float pulse = 0.4f + 0.4f * Mathf.Sin(Time.unscaledTime * 4f);
+                var ringCol = new Color(UITheme.NeonGreen.r, UITheme.NeonGreen.g,
+                    UITheme.NeonGreen.b, pulse * 0.5f);
+                float ringR = 8f;
+                UITheme.DrawRect(new Rect(pp.x - ringR, pp.y - ringR, ringR * 2, ringR * 2), ringCol);
+
+                // 중앙 솔리드 점
+                UITheme.DrawRect(new Rect(pp.x - 4, pp.y - 4, 8, 8), UITheme.NeonGreen);
+                UITheme.DrawBorder(new Rect(pp.x - 5, pp.y - 5, 10, 10), UITheme.Bg0, 1f);
+            }
+
+            // 맵 영역 보더
+            UITheme.DrawBorder(mapRect, UITheme.Line, 1f);
+        }
+
+        /// <summary>월드 (x, z) → 미니맵 픽셀 좌표. Z↑ = 화면↑ (Y 뒤집기)</summary>
+        private static Vector2 WorldToMap(Vector2 world, Rect mapRect)
+        {
+            float u = Mathf.InverseLerp(FacMinX, FacMaxX, world.x);
+            float v = Mathf.InverseLerp(FacMinZ, FacMaxZ, world.y);
+            float px = mapRect.x + u * mapRect.width;
+            // Z가 클수록 화면 위쪽이므로 v 뒤집기
+            float py = mapRect.y + (1f - v) * mapRect.height;
+            return new Vector2(px, py);
+        }
+
+        // ═══════════════════ 통합 정보 패널 (우상단) ═══════════════════
+
+        /// <summary>우상단 통합 패널 — 수사 진행 + 단서·시간 + 현재 목표</summary>
+        private void DrawInfoPanel()
+        {
+            var s = GameSession.Instance;
+            var quest = QuestManager.Instance;
+
+            int clues = s != null ? s.totalClues : 0;
+            float timeLeft = s != null ? s.TimeRemaining : 0f;
+
+            float w = 340f;
+            float x = Screen.width - w - 16f;
+            float y = 16f;
+
+            // 헤더 + 단서/시간 섹션 높이 고정
+            float headerH = 32f;
+            float statsH = 70f;
+            float objectiveH = 0f;
+            bool hasQuest = quest != null && quest.CurrentStage != QuestManager.Stage.Done;
+
+            // 본문 사이즈 계산용 스타일
+            var objBodySt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 12, wordWrap = true,
                 alignment = TextAnchor.UpperLeft,
                 normal = { textColor = UITheme.Ink }
             };
-            var hintStyle = new GUIStyle(GUI.skin.label)
+            var locHintSt = new GUIStyle(GUI.skin.label)
             {
                 fontSize = 11, wordWrap = true,
                 alignment = TextAnchor.UpperLeft,
                 normal = { textColor = UITheme.NeonCyan }
             };
 
-            float w = 360, x = Screen.width - w - 16, y = 16;
-            float contentW = w - 32;
-            float bodyH = bodyStyle.CalcHeight(new GUIContent(quest.CurrentObjective), contentW);
-            float hintH = hintStyle.CalcHeight(new GUIContent(quest.CurrentLocationHint), contentW);
+            float contentW = w - 28;
+            float bodyH = 0, hintH = 0;
+            if (hasQuest)
+            {
+                bodyH = objBodySt.CalcHeight(new GUIContent(quest.CurrentObjective), contentW);
+                hintH = locHintSt.CalcHeight(new GUIContent(quest.CurrentLocationHint), contentW);
+                // 미니헤더(24) + 본문 + 진행dot(16) + 위치힌트 + 패딩
+                objectiveH = 24 + 8 + bodyH + 10 + 16 + 6 + hintH + 16;
+            }
 
-            // 헤더(28) + 본문 + 진행도 dot(20) + 위치 힌트 + 패딩
-            float h = 28 + 12 + bodyH + 12 + 20 + 6 + hintH + 14;
+            float h = headerH + statsH + objectiveH + 12;
 
-            // 카드
-            UITheme.DrawCard(new Rect(x, y, w, h));
-            UITheme.DrawRect(new Rect(x, y, w, 28), UITheme.Bg3);
-            UITheme.DrawRect(new Rect(x, y + 28, w, 1), UITheme.Line);
+            var panel = new Rect(x, y, w, h);
+            UITheme.DrawRect(panel, UITheme.Bg1);
+            UITheme.DrawBorder(panel, UITheme.LineStrong, 1f);
 
-            // 헤더
+            // ── 헤더 ──
+            var headerRect = new Rect(x, y, w, headerH);
+            UITheme.DrawRect(headerRect, UITheme.Bg3);
+            UITheme.DrawRect(new Rect(x, y + headerH, w, 1), UITheme.Line);
+
             var headerSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 10, fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleLeft,
+                padding = new RectOffset(14, 0, 0, 0),
+                normal = { textColor = UITheme.NeonGreen }
+            };
+            GUI.Label(headerRect, "▸ 수사 진행 중", headerSt);
+            UITheme.DrawPulseDot(new Vector2(x + w - 18, y + 16), UITheme.NeonGreen, 4f);
+
+            // ── 단서 / 시간 (2열) ──
+            float statsY = y + headerH + 6;
+            float colW = w * 0.5f;
+
+            var labelSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 10, fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleLeft,
+                padding = new RectOffset(14, 0, 0, 0),
+                normal = { textColor = UITheme.InkDim }
+            };
+
+            // 좌측 — 수집한 단서
+            GUI.Label(new Rect(x, statsY, colW, 16), "수집한 단서", labelSt);
+            var clueValSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 26, fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleLeft,
+                padding = new RectOffset(14, 0, 0, 0),
+                normal = { textColor = UITheme.Ink }
+            };
+            GUI.Label(new Rect(x, statsY + 18, colW, 36), clues.ToString("D2"), clueValSt);
+
+            // 중앙 세로 구분선
+            UITheme.DrawRect(new Rect(x + colW, statsY + 4, 1, statsH - 12), UITheme.Line);
+
+            // 우측 — 남은 시간
+            var labelRSt = new GUIStyle(labelSt) { padding = new RectOffset(14, 0, 0, 0) };
+            GUI.Label(new Rect(x + colW, statsY, colW, 16), "남은 시간", labelRSt);
+
+            int totalSec = Mathf.Max(0, Mathf.CeilToInt(timeLeft));
+            int mm = totalSec / 60;
+            int ss = totalSec % 60;
+            Color timeCol = timeLeft <= 30f ? UITheme.Danger
+                : timeLeft <= 60f ? UITheme.NeonYellow
+                : UITheme.NeonCyan;
+            var timeValSt = new GUIStyle(clueValSt) { normal = { textColor = timeCol } };
+            GUI.Label(new Rect(x + colW, statsY + 18, colW, 36), $"{mm:D2}:{ss:D2}", timeValSt);
+
+            // ── 현재 목표 섹션 ──
+            if (!hasQuest) return;
+
+            int total = (int)QuestManager.Stage.Done;
+            int step = (int)quest.CurrentStage + 1;
+
+            float objY = y + headerH + statsH;
+            UITheme.DrawRect(new Rect(x + 14, objY, w - 28, 1), UITheme.Line);
+
+            // 미니 헤더 (마젠타)
+            var miniHeaderSt = new GUIStyle(GUI.skin.label)
             {
                 fontSize = 10, fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleLeft,
                 padding = new RectOffset(14, 0, 0, 0),
                 normal = { textColor = UITheme.NeonMagenta }
             };
-            GUI.Label(new Rect(x, y, w - 60, 28),
-                $"▸ 현재 목표 // 단계 {step:D2}", headerSt);
+            GUI.Label(new Rect(x, objY + 4, w - 60, 20),
+                $"▸ 현재 목표 // 단계 {step:D2}", miniHeaderSt);
 
-            // 우측 진행 ratio
             var ratioSt = new GUIStyle(GUI.skin.label)
             {
                 fontSize = 10, fontStyle = FontStyle.Bold,
@@ -390,26 +616,26 @@ namespace ForTheCompany.Systems
                 padding = new RectOffset(0, 14, 0, 0),
                 normal = { textColor = UITheme.InkDim }
             };
-            GUI.Label(new Rect(x, y, w, 28), $"{step:D2} / {total:D2}", ratioSt);
+            GUI.Label(new Rect(x, objY + 4, w, 20), $"{step:D2} / {total:D2}", ratioSt);
 
             // 본문
-            float cy = y + 40;
-            GUI.Label(new Rect(x + 16, cy, contentW, bodyH), quest.CurrentObjective, bodyStyle);
-            cy += bodyH + 12;
+            float cy = objY + 30;
+            GUI.Label(new Rect(x + 14, cy, contentW, bodyH), quest.CurrentObjective, objBodySt);
+            cy += bodyH + 10;
 
             // 진행도 dot들
             float dotSize = 6f, dotGap = 12f;
-            float dotsX = x + 16;
+            float dotsX = x + 14;
             for (int i = 0; i < total; i++)
             {
                 Color c = i < step ? UITheme.NeonGreen : UITheme.Bg4;
-                UITheme.DrawRect(new Rect(dotsX + i * dotGap, cy + 7, dotSize, dotSize), c);
+                UITheme.DrawRect(new Rect(dotsX + i * dotGap, cy + 5, dotSize, dotSize), c);
             }
-            cy += 20;
+            cy += 16;
 
             // 위치 힌트
-            GUI.Label(new Rect(x + 16, cy, contentW, hintH),
-                "▸ " + quest.CurrentLocationHint, hintStyle);
+            GUI.Label(new Rect(x + 14, cy + 4, contentW, hintH),
+                "▸ " + quest.CurrentLocationHint, locHintSt);
         }
 
         // 단계 완료 토스트가 NPC 대화 토스트 종료 후 시작되도록 추적
@@ -956,61 +1182,6 @@ namespace ForTheCompany.Systems
                 SceneManager.LoadScene(menuScene);
             else
                 Restart();
-        }
-
-        private void DrawStatusBar()
-        {
-            var s = GameSession.Instance;
-            int clues = s != null ? s.totalClues : 0;
-            float timeLeft = s != null ? s.TimeRemaining : 0f;
-
-            // SecureSense 카드 — 좌상단
-            float x = 16, y = 16, w = 300, h = 130;
-            UITheme.DrawCard(new Rect(x, y, w, h));
-            UITheme.DrawRect(new Rect(x, y, w, 28), UITheme.Bg3);
-            UITheme.DrawRect(new Rect(x, y + 28, w, 1), UITheme.Line);
-
-            // 헤더 — 네온 그린 + 펄스 dot
-            var headerSt = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 10, fontStyle = FontStyle.Bold,
-                alignment = TextAnchor.MiddleLeft,
-                padding = new RectOffset(14, 0, 0, 0),
-                normal = { textColor = UITheme.NeonGreen }
-            };
-            GUI.Label(new Rect(x, y, w - 30, 28), "▸ 수사 진행 중", headerSt);
-            UITheme.DrawPulseDot(new Vector2(x + w - 18, y + 14), UITheme.NeonGreen, 4f);
-
-            // 단서 라벨 + 값
-            var labelSt = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 11, alignment = TextAnchor.MiddleLeft,
-                padding = new RectOffset(14, 0, 0, 0),
-                normal = { textColor = UITheme.InkDim }
-            };
-            var valueSt = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 22, fontStyle = FontStyle.Bold,
-                alignment = TextAnchor.MiddleRight,
-                padding = new RectOffset(0, 16, 0, 0),
-                normal = { textColor = UITheme.Ink }
-            };
-            GUI.Label(new Rect(x, y + 36, w, 18), "수집한 단서", labelSt);
-            GUI.Label(new Rect(x, y + 36, w, 28), clues.ToString("D2"), valueSt);
-
-            // 구분선
-            UITheme.DrawRect(new Rect(x + 14, y + 80, w - 28, 1), UITheme.Line);
-
-            // 타이머
-            int totalSec = Mathf.Max(0, Mathf.CeilToInt(timeLeft));
-            int mm = totalSec / 60;
-            int ss = totalSec % 60;
-            Color timeCol = timeLeft <= 30f ? UITheme.Danger
-                : timeLeft <= 60f ? UITheme.NeonYellow
-                : UITheme.NeonCyan;
-            var timeValSt = new GUIStyle(valueSt) { normal = { textColor = timeCol } };
-            GUI.Label(new Rect(x, y + 90, w, 18), "남은 시간", labelSt);
-            GUI.Label(new Rect(x, y + 90, w, 28), $"{mm:D2}:{ss:D2}", timeValSt);
         }
 
         private void DrawInteractionPrompt()
