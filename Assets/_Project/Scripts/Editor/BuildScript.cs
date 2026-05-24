@@ -1,0 +1,85 @@
+using System.IO;
+using UnityEditor;
+using UnityEditor.Build.Reporting;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+
+namespace ForTheCompany.EditorTools
+{
+    /// <summary>
+    /// 학교 컴퓨터·교수님 시연용 Windows 빌드 자동화.
+    /// 메뉴: For The Company → Build Windows (One Click)
+    /// </summary>
+    public static class BuildScript
+    {
+        private const string BuildFolder = "builds/ForTheCompany_Win";
+        private const string ExeName = "ForTheCompany.exe";
+
+        [MenuItem("For The Company/Build Windows (One Click)", priority = 1)]
+        public static void BuildWindows()
+        {
+            // 빌드 씬 목록 (MainMenu → Facility 순서)
+            var scenes = new[]
+            {
+                "Assets/_Project/Scenes/MainMenuScene.unity",
+                "Assets/_Project/Scenes/FacilityScene.unity"
+            };
+
+            // 빌드 폴더 비우기
+            string fullPath = Path.Combine(Directory.GetCurrentDirectory(), BuildFolder);
+            if (Directory.Exists(fullPath))
+            {
+                Directory.Delete(fullPath, true);
+            }
+            Directory.CreateDirectory(fullPath);
+
+            var options = new BuildPlayerOptions
+            {
+                scenes = scenes,
+                locationPathName = Path.Combine(BuildFolder, ExeName),
+                target = BuildTarget.StandaloneWindows64,
+                options = BuildOptions.None
+            };
+
+            Debug.Log("[Build] Windows 빌드 시작... 2~5분 소요");
+            BuildReport report = BuildPipeline.BuildPlayer(options);
+            BuildSummary summary = report.summary;
+
+            if (summary.result == BuildResult.Succeeded)
+            {
+                long sizeMb = (long)summary.totalSize / (1024 * 1024);
+                Debug.Log($"[Build] ✓ 성공 — {BuildFolder}/{ExeName} ({sizeMb} MB, {summary.totalTime})");
+                EditorUtility.RevealInFinder(Path.Combine(fullPath, ExeName));
+                EditorUtility.DisplayDialog(
+                    "빌드 완료",
+                    $"경로: {BuildFolder}/{ExeName}\n크기: {sizeMb} MB\n\n" +
+                    "이 폴더를 통째로 압축해서 USB·구글드라이브로 옮기세요.\n" +
+                    "학교 컴퓨터에서 압축 풀고 .exe 더블클릭하면 끝.",
+                    "확인");
+            }
+            else
+            {
+                Debug.LogError($"[Build] ✗ 실패: {summary.result} ({summary.totalErrors} 오류)");
+                EditorUtility.DisplayDialog("빌드 실패",
+                    $"Console 창에서 오류 메시지를 확인하세요.\n결과: {summary.result}",
+                    "확인");
+            }
+        }
+
+        [MenuItem("For The Company/Open Build Folder", priority = 2)]
+        public static void OpenBuildFolder()
+        {
+            string fullPath = Path.Combine(Directory.GetCurrentDirectory(), BuildFolder);
+            if (Directory.Exists(fullPath))
+            {
+                EditorUtility.RevealInFinder(fullPath);
+            }
+            else
+            {
+                EditorUtility.DisplayDialog("폴더 없음",
+                    "아직 빌드한 적이 없습니다. 'Build Windows (One Click)' 먼저 실행하세요.",
+                    "확인");
+            }
+        }
+    }
+}
