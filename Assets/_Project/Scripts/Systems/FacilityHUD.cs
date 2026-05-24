@@ -355,9 +355,36 @@ namespace ForTheCompany.Systems
             ("전력실",    18f,  -11f, 8f,  8f, () => UITheme.NeonYellow),
         };
 
+        /// <summary>레이싱 WebView / 풀스크린 모달이 떠 있으면 HUD 패널 숨김</summary>
+        private bool ShouldHideTopHud()
+        {
+            // 보안 레이싱 WebView (가장 큰 이유 — Unity OnGUI 위 또는 아래에 별도 렌더링)
+            var bridge = RacingWebViewBridge.Instance;
+            if (bridge != null && bridge.IsShowing) return true;
+
+            // 풀스크린 모달들
+            var sqc = SecurityQuizController.Instance;
+            if (sqc != null && sqc.IsOpen) return true;
+
+            var rmc = RacingMissionController.Instance;
+            if (rmc != null && rmc.IsOpen) return true;
+
+            var console = FindConsole();
+            if (console != null && console.IsMenuOpen) return true;
+
+            if (IsInventoryOpen) return true;
+
+            var s = GameSession.Instance;
+            if (s != null && s.Outcome != RunOutcome.Ongoing) return true;
+
+            return false;
+        }
+
         /// <summary>좌상단 미니맵 — 시설 평면도 + 실시간 플레이어 위치</summary>
         private void DrawMiniMap()
         {
+            if (ShouldHideTopHud()) return;
+
             float panelW = 300f, panelH = 240f;
             float panelX = 16f, panelY = 16f;
             var panel = new Rect(panelX, panelY, panelW, panelH);
@@ -489,6 +516,8 @@ namespace ForTheCompany.Systems
         /// <summary>우상단 통합 패널 — 수사 진행 + 단서·시간 + 현재 목표</summary>
         private void DrawInfoPanel()
         {
+            if (ShouldHideTopHud()) return;
+
             var s = GameSession.Instance;
             var quest = QuestManager.Instance;
 
@@ -789,32 +818,34 @@ namespace ForTheCompany.Systems
 
         private void DrawRacingEmbeddedClose(RacingMissionController rmc)
         {
-            float w = 340, h = 60;
-            float x = Screen.width - w - 20;
-            float y = 20;
+            // 중앙 상단 — 우상단 InfoPanel과 겹치지 않도록
+            float w = 360, h = 38;
+            float x = (Screen.width - w) * 0.5f;
+            float y = 12;
 
             var rect = new Rect(x, y, w, h);
-            UITheme.DrawRect(rect, UITheme.Bg2);
+            UITheme.DrawRect(rect, new Color(UITheme.Bg1.r, UITheme.Bg1.g, UITheme.Bg1.b, 0.92f));
             UITheme.DrawBorder(rect, UITheme.NeonCyan, 1f);
-            UITheme.DrawRect(new Rect(x, y, 3f, h), UITheme.NeonCyan);
 
-            UITheme.DrawPulseDot(new Vector2(x + 18, y + 18), UITheme.NeonCyan, 3f);
+            UITheme.DrawPulseDot(new Vector2(x + 14, y + h * 0.5f), UITheme.NeonCyan, 3f);
 
             var tagSt = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 10, fontStyle = FontStyle.Bold,
+                fontSize = 11, fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleLeft,
                 normal = { textColor = UITheme.NeonCyan }
             };
-            GUI.Label(new Rect(x + 32, y + 10, w - 50, 14),
-                "▸ SECURITY RACE // RUNNING", tagSt);
+            GUI.Label(new Rect(x + 28, y, 180, h),
+                "▸ 보안 레이싱 진행 중", tagSt);
 
             var hintSt = new GUIStyle(GUI.skin.label)
             {
                 fontSize = 11,
+                alignment = TextAnchor.MiddleRight,
                 normal = { textColor = UITheme.InkDim }
             };
-            GUI.Label(new Rect(x + 16, y + 30, w - 32, 24),
-                "[ESC] 강제 종료 (보상 없음)", hintSt);
+            GUI.Label(new Rect(x + 200, y, w - 216, h),
+                "[ESC] 강제 종료", hintSt);
         }
 
         private void DrawRankInputModal(RacingMissionController rmc, float x, float y, float w, float h)
@@ -1449,6 +1480,10 @@ namespace ForTheCompany.Systems
 
         private void DrawHint()
         {
+            // 레이싱 WebView 진행 중엔 하단 안내도 숨김 (WebView 위로 떠 보이지 않게)
+            var bridge = RacingWebViewBridge.Instance;
+            if (bridge != null && bridge.IsShowing) return;
+
             float h = 22;
             var bgRect = new Rect(0, Screen.height - h, Screen.width, h);
             UITheme.DrawRect(bgRect, new Color(UITheme.Bg0.r, UITheme.Bg0.g, UITheme.Bg0.b, 0.85f));
