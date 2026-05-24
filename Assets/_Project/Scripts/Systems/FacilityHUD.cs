@@ -380,7 +380,7 @@ namespace ForTheCompany.Systems
                 normal = { textColor = UITheme.NeonMagenta }
             };
             GUI.Label(new Rect(x, y, w - 60, 28),
-                $"▸ OBJECTIVE // STEP {step:D2}", headerSt);
+                $"▸ 현재 목표 // 단계 {step:D2}", headerSt);
 
             // 우측 진행 ratio
             var ratioSt = new GUIStyle(GUI.skin.label)
@@ -978,7 +978,7 @@ namespace ForTheCompany.Systems
                 padding = new RectOffset(14, 0, 0, 0),
                 normal = { textColor = UITheme.NeonGreen }
             };
-            GUI.Label(new Rect(x, y, w - 30, 28), "▸ INVESTIGATION // ACTIVE", headerSt);
+            GUI.Label(new Rect(x, y, w - 30, 28), "▸ 수사 진행 중", headerSt);
             UITheme.DrawPulseDot(new Vector2(x + w - 18, y + 14), UITheme.NeonGreen, 4f);
 
             // 단서 라벨 + 값
@@ -995,7 +995,7 @@ namespace ForTheCompany.Systems
                 padding = new RectOffset(0, 16, 0, 0),
                 normal = { textColor = UITheme.Ink }
             };
-            GUI.Label(new Rect(x, y + 36, w, 18), "CLUES COLLECTED", labelSt);
+            GUI.Label(new Rect(x, y + 36, w, 18), "수집한 단서", labelSt);
             GUI.Label(new Rect(x, y + 36, w, 28), clues.ToString("D2"), valueSt);
 
             // 구분선
@@ -1009,7 +1009,7 @@ namespace ForTheCompany.Systems
                 : timeLeft <= 60f ? UITheme.NeonYellow
                 : UITheme.NeonCyan;
             var timeValSt = new GUIStyle(valueSt) { normal = { textColor = timeCol } };
-            GUI.Label(new Rect(x, y + 90, w, 18), "TIME REMAINING", labelSt);
+            GUI.Label(new Rect(x, y + 90, w, 18), "남은 시간", labelSt);
             GUI.Label(new Rect(x, y + 90, w, 28), $"{mm:D2}:{ss:D2}", timeValSt);
         }
 
@@ -1290,7 +1290,7 @@ namespace ForTheCompany.Systems
                 normal = { textColor = UITheme.InkFaint }
             };
             GUI.Label(new Rect(14, Screen.height - h, Screen.width - 28, h),
-                "// [WASD] MOVE  ·  [SHIFT] SPRINT  ·  [WHEEL] ZOOM  ·  [SPACE] INTERACT  ·  [I] INVENTORY  ·  [ESC] CLOSE  ·  [R] RESTART  ·  [M] MENU",
+                "// [WASD] 이동  ·  [SHIFT] 달리기  ·  [휠] 줌  ·  [SPACE] 상호작용  ·  [I] 인벤토리  ·  [ESC] 닫기  ·  [R] 재시작  ·  [M] 메인메뉴",
                 st);
         }
 

@@ -155,11 +155,11 @@ namespace ForTheCompany.Systems
             float btnX = x + (w - btnW) * 0.5f;
 
             if (UITheme.NeonButton(new Rect(btnX, btnY, btnW, btnH),
-                "▶ INITIATE INVESTIGATION  [ENTER]", UITheme.NeonGreen))
+                "▶ 수사 시작  [엔터]", UITheme.NeonGreen))
                 BeginIntro();
 
             if (UITheme.GhostButton(new Rect(btnX, btnY + 68, btnW, btnH - 8),
-                "▣ TERMINATE  [ESC]"))
+                "▣ 나가기  [ESC]"))
                 QuitGame();
 
             // 하단 푸터 — 시스템 정보
