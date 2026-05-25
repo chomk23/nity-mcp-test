@@ -147,13 +147,13 @@ namespace ForTheCompany.Player
             // 다른 모달이 떠 있으면 중단
             if (IsAnyBlockingModalOpen()) yield break;
 
-            string transitionLine = GetTransitionLine(Actor != null && Actor.isSpy);
+            string[] transitionLines = GetTransitionLines(Actor != null && Actor.isSpy);
             var ds = DialogueSystem.Instance;
 
             if (ds != null)
             {
-                // 트랜지션 라인 1줄짜리 짧은 대화 시작 → 끝나면 모달 오픈 콜백
-                ds.StartDialogue(DisplayName, transitionLine, transform,
+                // 트랜지션 라인 (보안교육 안내 + 다음 행동 안내 2줄) → 끝나면 모달 오픈
+                ds.StartDialogue(DisplayName, transitionLines, transform,
                     () => StartCoroutine(OpenQuizAfterShortDelay(clueId)));
             }
             else
@@ -194,33 +194,58 @@ namespace ForTheCompany.Player
             return false;
         }
 
-        /// <summary>NPC 직업별 트랜지션 안내 멘트 — 대화 → 퀴즈 흐름을 자연스럽게.
+        /// <summary>NPC 직업별 트랜지션 안내 멘트 (2줄: 보안교육 + 다음 행동 안내) — 대화 → 퀴즈 → 다음 단계 흐름을 자연스럽게.
         /// 스파이는 회피적 톤, 무고한 NPC는 협조적 톤.</summary>
-        private string GetTransitionLine(bool selfIsSpy)
+        private string[] GetTransitionLines(bool selfIsSpy)
         {
             if (Actor == null || Actor.data == null)
-                return "잠시만요, 같이 봐주실 게 있어요.";
+                return new[] { "잠시만요, 같이 봐주실 게 있어요." };
 
             int role = (int)Actor.data.role;
+            string transition, nextHint;
+
             if (selfIsSpy)
             {
-                // 스파이 — 회피·모호한 톤이지만 결국 자료는 띄워줌 (의심 회피용)
+                // 스파이 — 회피·모호한 톤
                 switch (role)
                 {
-                    case 1: return "보안 교육 자료에도 비슷한 케이스 있긴 한데... 굳이 보시려면 띄워드릴게요.";
-                    case 2: return "음... 보안 교육 모듈에도 있긴 합니다. 형식적인 거지만 보시려면...";
-                    case 3: return "보안 교육 자료요? 굳이 안 보셔도 되는데... 그래도 띄워는 드릴게요.";
-                    default: return "잠시만요... 자료 띄워드릴게요.";
+                    case 1: // 연구원 스파이
+                        transition = "보안 교육 자료에도 비슷한 케이스 있긴 한데... 굳이 보시려면 띄워드릴게요.";
+                        nextHint = "끝나시면 중앙복도의 경비원에게 가셔서 다음 안내 받으시면 될 겁니다.";
+                        break;
+                    case 2: // 네트워크관리자 스파이
+                        transition = "음... 보안 교육 모듈에도 있긴 합니다. 형식적인 거지만 보시려면...";
+                        nextHint = "그 다음엔 전력실의 시설관리자에게 가시면 됩니다. 카드키 발급 권한이 거기 있으니까요.";
+                        break;
+                    case 3: // 시설관리자 스파이
+                        transition = "보안 교육 자료요? 굳이 안 보셔도 되는데... 그래도 띄워는 드릴게요.";
+                        nextHint = "끝나시면 보안통제실 빨간 콘솔로 가시면 됩니다. 거기서 지목하시면 끝나는 거죠.";
+                        break;
+                    default:
+                        return new[] { "잠시만요... 자료 띄워드릴게요." };
                 }
+                return new[] { transition, nextHint };
             }
+
             // 무고한 NPC — 협조적, 적극적
             switch (role)
             {
-                case 1: return "잠깐, 보안 교육 모듈에 케이스로 등록돼 있어요. 같이 한번 풀어보시죠.";
-                case 2: return "이 사례는 보안 교육에도 들어가 있어요. 모니터에 띄워드릴게요.";
-                case 3: return "출입 기록 분석은 보안 교육 자료로 같이 보시는 게 좋아요. 띄워드릴게요.";
-                default: return "잠시만요, 같이 봐주실 자료가 있어요.";
+                case 1: // 연구원
+                    transition = "잠깐, 보안 교육 모듈에 케이스로 등록돼 있어요. 같이 한번 풀어보시죠.";
+                    nextHint = "끝나시면 중앙복도의 경비원에게 돌아가서 중간 보고하세요. 다음 단계를 안내해주실 겁니다.";
+                    break;
+                case 2: // 네트워크관리자
+                    transition = "이 사례는 보안 교육에도 들어가 있어요. 모니터에 띄워드릴게요.";
+                    nextHint = "끝나시면 전력실의 시설관리자에게 가보세요. 카드키 발급 기록을 확인해야 합니다.";
+                    break;
+                case 3: // 시설관리자
+                    transition = "출입 기록 분석은 보안 교육 자료로 같이 보시는 게 좋아요. 띄워드릴게요.";
+                    nextHint = "끝나시면 보안통제실의 빨간 콘솔에서 산업스파이를 지목하세요. 마지막 단계입니다.";
+                    break;
+                default:
+                    return new[] { "잠시만요, 같이 봐주실 자료가 있어요." };
             }
+            return new[] { transition, nextHint };
         }
 
         /// <summary>NPC 직업별로 자동 트리거할 환경 단서 ID 매핑</summary>
