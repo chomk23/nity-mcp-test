@@ -73,6 +73,9 @@ namespace ForTheCompany.Systems
 
         private bool IsAnyOtherModalOpen()
         {
+            // 오프닝 컷씬 중에는 ESC 가로채지 않음
+            if (IntroMonologue.IsCutsceneActive) return true;
+
             var ds = DialogueSystem.Instance;
             if (ds != null && ds.IsActive) return true;
             var sqc = SecurityQuizController.Instance;

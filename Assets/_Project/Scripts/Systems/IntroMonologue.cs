@@ -2,18 +2,34 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using ForTheCompany.Core;
+using ForTheCompany.Player;
 
 namespace ForTheCompany.Systems
 {
     /// <summary>
-    /// FacilityScene 첫 진입 시 보안조사관(플레이어)의 속마음 대화를 자동 트리거.
-    /// 대화창은 기존 DialogueSystem 그대로 사용 (speaker = "나").
-    /// 경비원과의 첫 대화 전에 상황 몰입을 만들기 위한 짧은 인트로.
-    /// GameSession.hasShownIntroMonologue 플래그로 한 런(StartNewRun)당 1회만 트리거.
+    /// FacilityScene 첫 진입 시 오프닝 컷씬:
+    /// 1) 검은 화면에서 페이드 인 (1.5초)
+    /// 2) 플레이어가 시작 위치 뒤에서 시작 위치까지 자연스럽게 워크 (3.5초)
+    /// 3) 동시에 보안조사관 1인칭 속마음 대화창 자동 시작
+    /// 4) 컷씬 중 모든 인풋 차단 (RealtimePlayerController 비활성)
+    /// 5) 대화 종료 시 인풋 정상화
+    ///
+    /// 한 런당 1회 (GameSession.hasShownIntroMonologue 플래그).
     /// </summary>
     public class IntroMonologue : MonoBehaviour
     {
         public static IntroMonologue Instance { get; private set; }
+
+        // 컷씬 동안 다른 시스템이 활동 차단 여부 확인할 수 있게 정적 플래그
+        public static bool IsCutsceneActive { get; private set; }
+
+        private const float FadeDuration = 1.5f;
+        private const float WalkDuration = 3.5f;
+        private const float WalkBackDistance = 3f; // 뒤로 3m 이동 후 거기서 워크 시작
+        private const float DialogueStartDelay = 0.4f; // 페이드 시작 후 대화 등장 시점
+
+        private float fadeAlpha = 0f;
+        private bool monologueEnded = false;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Bootstrap()
@@ -42,21 +58,87 @@ namespace ForTheCompany.Systems
         private void Start()
         {
             var s = GameSession.Instance;
-            // 이미 이번 런에서 봤으면 스킵
             if (s != null && s.hasShownIntroMonologue) return;
-
-            StartCoroutine(StartMonologueAfterDelay());
+            StartCoroutine(RunCutscene());
         }
 
-        private IEnumerator StartMonologueAfterDelay()
+        private IEnumerator RunCutscene()
         {
-            // 씬 안정화 대기 (Camera 초기화, NPC 스폰 등)
-            yield return new WaitForSeconds(0.8f);
+            // PlayerInteractor가 spawn될 때까지 대기 (최대 1초)
+            float waitT = 0f;
+            while (PlayerInteractor.Instance == null && waitT < 1f)
+            {
+                waitT += Time.deltaTime;
+                yield return null;
+            }
 
+            var pi = PlayerInteractor.Instance;
+            if (pi == null) yield break;
+
+            var playerT = pi.transform;
+            var cc = pi.GetComponent<CharacterController>();
+            var rtpc = pi.GetComponent<RealtimePlayerController>();
+            if (cc == null || rtpc == null) yield break;
+
+            // ── 1) 컷씬 시작: 인풋 차단, 페이드 검정으로 시작 ──
+            IsCutsceneActive = true;
+            fadeAlpha = 1f;
+            rtpc.enabled = false;
+
+            // 시작 위치 백업, 플레이어를 뒤(-Z)로 이동 + +Z 바라보게 회전
+            Vector3 startPos = playerT.position;
+            Vector3 backPos = startPos + new Vector3(0f, 0f, -WalkBackDistance);
+
+            cc.enabled = false;
+            playerT.position = backPos;
+            playerT.rotation = Quaternion.LookRotation(Vector3.forward);
+            cc.enabled = true;
+
+            // GameSession 플래그 set (재진입 방지)
+            var s = GameSession.Instance;
+            if (s != null) s.hasShownIntroMonologue = true;
+
+            // ── 2) 페이드 인 시작 (동시에 진행) ──
+            StartCoroutine(FadeInRoutine());
+
+            // 살짝 대기 후 대화창 + 워크 동시 시작
+            yield return new WaitForSeconds(DialogueStartDelay);
+
+            // ── 3) 속마음 대화 시작 ──
+            StartMonologueDialogue();
+
+            // ── 4) 플레이어 워크 (뒤 → 시작 위치) ──
+            float t = 0f;
+            while (t < WalkDuration)
+            {
+                t += Time.deltaTime;
+                float pct = Mathf.Clamp01(t / WalkDuration);
+                // smoothstep — 천천히 가속/감속
+                float eased = pct * pct * (3f - 2f * pct);
+                Vector3 targetPos = Vector3.Lerp(backPos, startPos, eased);
+                Vector3 move = targetPos - playerT.position;
+                cc.Move(move);
+                yield return null;
+            }
+
+            // 워크 완료 — 위치 정확히 보정
+            cc.enabled = false;
+            playerT.position = startPos;
+            cc.enabled = true;
+
+            // ── 5) 대화 종료 대기 ──
+            while (!monologueEnded) yield return null;
+
+            // 컷씬 종료 — 인풋 정상화
+            IsCutsceneActive = false;
+            rtpc.enabled = true;
+            Debug.Log("[IntroMonologue] 컷씬 종료 — 플레이어 조작 활성화");
+        }
+
+        private void StartMonologueDialogue()
+        {
             var ds = DialogueSystem.Instance;
-            if (ds == null) yield break;
-            // 다른 대화가 이미 떠있으면 무리 안 함
-            if (ds.IsActive) yield break;
+            if (ds == null) { monologueEnded = true; return; }
 
             var lines = new[]
             {
@@ -66,17 +148,28 @@ namespace ForTheCompany.Systems
                 "내부에 누군가가 있다. 셋 중 한 명일 거야.",
                 "일단 중앙복도의 경비원에게 가서 자세한 브리핑부터 받아봐야겠어."
             };
-
-            // speaker = "나" (보안조사관 1인칭 속마음)
-            ds.StartDialogue("나", lines, null, OnMonologueEnded);
-
-            var s = GameSession.Instance;
-            if (s != null) s.hasShownIntroMonologue = true;
+            ds.StartDialogue("나", lines, null, () => monologueEnded = true);
         }
 
-        private void OnMonologueEnded()
+        private IEnumerator FadeInRoutine()
         {
-            Debug.Log("[IntroMonologue] 인트로 속마음 종료 — 플레이어가 경비원에게 갈 차례");
+            float t = 0f;
+            while (t < FadeDuration)
+            {
+                t += Time.unscaledDeltaTime;
+                fadeAlpha = Mathf.Lerp(1f, 0f, t / FadeDuration);
+                yield return null;
+            }
+            fadeAlpha = 0f;
+        }
+
+        // 가장 위에 그려지도록 GUI.depth 매우 음수
+        private void OnGUI()
+        {
+            if (fadeAlpha < 0.01f) return;
+            GUI.depth = -10000;
+            var c = new Color(0f, 0f, 0f, fadeAlpha);
+            UITheme.DrawRect(new Rect(0, 0, Screen.width, Screen.height), c);
         }
     }
 }
