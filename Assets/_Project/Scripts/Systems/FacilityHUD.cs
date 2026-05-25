@@ -954,8 +954,6 @@ namespace ForTheCompany.Systems
             var bridge = RacingWebViewBridge.Instance;
             if (bridge != null && bridge.IsShowing) return;
 
-            var roster = NPCRoster.Instance;
-            if (roster == null) return;
             var cam = Camera.main;
             if (cam == null) return;
 
@@ -966,45 +964,63 @@ namespace ForTheCompany.Systems
                 normal = { textColor = UITheme.Ink }
             };
 
-            foreach (var npc in roster.npcs)
+            // 용의자 NPC 3명 — 의심도 추적
+            var roster = NPCRoster.Instance;
+            if (roster != null)
             {
-                if (npc == null) continue;
-                Vector3 worldHead = npc.transform.position + Vector3.up * 2.4f;
-                Vector3 screen = cam.WorldToScreenPoint(worldHead);
-                if (screen.z < 0) continue;
-
-                float guiY = Screen.height - screen.y;
-                string name = npc.DisplayName;
-                float w = 160f, h = 24f;
-                var rect = new Rect(screen.x - w * 0.5f, guiY - h * 0.5f, w, h);
-
-                // 의심도에 따른 보더 색
-                int sus = npc.suspicion;
-                Color borderColor = sus >= 7 ? UITheme.Danger
-                    : sus >= 4 ? UITheme.NeonYellow
-                    : UITheme.Line;
-
-                UITheme.DrawRect(rect, new Color(UITheme.Bg1.r, UITheme.Bg1.g, UITheme.Bg1.b, 0.92f));
-                UITheme.DrawBorder(rect, borderColor, 1f);
-
-                GUI.Label(rect, name, nameSt);
-
-                // 의심도 막대 (이름표 바로 아래)
-                if (sus > 0)
+                foreach (var npc in roster.npcs)
                 {
-                    const float MaxSuspicion = 10f;
-                    float barW = 130f, barH = 4f;
-                    float barX = screen.x - barW * 0.5f;
-                    float barY = guiY + h * 0.5f + 3f;
-
-                    UITheme.DrawRect(new Rect(barX, barY, barW, barH), UITheme.Bg3);
-
-                    float pct = Mathf.Clamp01(sus / MaxSuspicion);
-                    Color susColor = sus >= 7 ? UITheme.Danger
-                        : sus >= 4 ? UITheme.NeonYellow
-                        : UITheme.InkDim;
-                    UITheme.DrawRect(new Rect(barX, barY, barW * pct, barH), susColor);
+                    if (npc == null) continue;
+                    DrawSingleNameplate(cam, nameSt, npc.transform, npc.DisplayName,
+                        npc.suspicion, fixedBorder: null);
                 }
+            }
+
+            // 경비원 — 의심도 없음, NeonCyan 보더로 구분 (보안 직군)
+            var guard = GuardNPC.Instance;
+            if (guard != null)
+            {
+                DrawSingleNameplate(cam, nameSt, guard.transform, guard.displayName,
+                    suspicion: 0, fixedBorder: UITheme.NeonCyan);
+            }
+        }
+
+        /// <summary>이름표 한 개 그리기 — NPC 머리 가까이 (Y +1.7), 의심도 막대 옵션</summary>
+        private static void DrawSingleNameplate(Camera cam, GUIStyle nameSt,
+            Transform t, string name, int suspicion, Color? fixedBorder)
+        {
+            // 머리 위 1.7 단위 (기존 2.4 → 1.7, 캐릭터에 더 가깝게)
+            Vector3 worldHead = t.position + Vector3.up * 1.7f;
+            Vector3 screen = cam.WorldToScreenPoint(worldHead);
+            if (screen.z < 0) return;
+
+            float guiY = Screen.height - screen.y;
+            float w = 160f, h = 24f;
+            var rect = new Rect(screen.x - w * 0.5f, guiY - h * 0.5f, w, h);
+
+            Color borderColor = fixedBorder
+                ?? (suspicion >= 7 ? UITheme.Danger
+                    : suspicion >= 4 ? UITheme.NeonYellow
+                    : UITheme.Line);
+
+            UITheme.DrawRect(rect, new Color(UITheme.Bg1.r, UITheme.Bg1.g, UITheme.Bg1.b, 0.92f));
+            UITheme.DrawBorder(rect, borderColor, 1f);
+            GUI.Label(rect, name, nameSt);
+
+            // 의심도 막대 (이름표 바로 아래) — 의심도 0이면 안 그림
+            if (suspicion > 0)
+            {
+                const float MaxSuspicion = 10f;
+                float barW = 130f, barH = 4f;
+                float barX = screen.x - barW * 0.5f;
+                float barY = guiY + h * 0.5f + 3f;
+
+                UITheme.DrawRect(new Rect(barX, barY, barW, barH), UITheme.Bg3);
+                float pct = Mathf.Clamp01(suspicion / MaxSuspicion);
+                Color susColor = suspicion >= 7 ? UITheme.Danger
+                    : suspicion >= 4 ? UITheme.NeonYellow
+                    : UITheme.InkDim;
+                UITheme.DrawRect(new Rect(barX, barY, barW * pct, barH), susColor);
             }
         }
 
