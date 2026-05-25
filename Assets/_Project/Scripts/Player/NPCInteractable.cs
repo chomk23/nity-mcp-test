@@ -64,18 +64,10 @@ namespace ForTheCompany.Player
             int spy = ResolveSpyRole();
             bool selfIsSpy = Actor != null && Actor.isSpy;
 
-            string[] baseLines = BuildFirstTalkLines(my, spy, selfIsSpy);
+            string[] lines = BuildFirstTalkLines(my, spy, selfIsSpy);
             DialogueChoice[] choices = BuildFirstTalkChoices(my, spy, selfIsSpy);
-
-            // 환경 단서가 매핑된 NPC면 대화 마지막에 트랜지션 멘트 한 줄 추가
-            // (스파이/무고한 NPC 모두 추가하되 톤만 다르게)
-            string[] lines = baseLines;
-            if (!string.IsNullOrEmpty(GetRelatedClueId()))
-            {
-                lines = new string[baseLines.Length + 1];
-                System.Array.Copy(baseLines, lines, baseLines.Length);
-                lines[baseLines.Length] = GetTransitionLine(selfIsSpy);
-            }
+            // 트랜지션 라인은 선택지 응답 이후에 별도 짧은 대화로 띄움
+            // (StartTransitionAndOpenQuiz 코루틴 처리)
             string inventoryText = string.Join("\n", lines);
 
             var ds = DialogueSystem.Instance;
@@ -134,30 +126,51 @@ namespace ForTheCompany.Player
             if (quest != null && Actor != null && Actor.data != null)
                 quest.TryAdvanceByRole(Actor.data.role);
 
-            // 첫 대화 종료 후 — 대화 마지막 트랜지션 라인이 자연스럽게 보안교육 모듈로 이어짐
-            // (트랜지션 멘트는 StartFirstTalk에서 lines 마지막에 이미 추가됨)
+            // 첫 대화(선택지+응답) 종료 후 → 트랜지션 라인 별도 짧은 대화 → 보안교육 모듈
             if (firstTime)
-                StartCoroutine(AutoOpenRelatedClue());
+                StartCoroutine(StartTransitionAndOpenQuiz());
         }
 
         /// <summary>
-        /// 대화 종료 후 짧은 딜레이 → 보안교육 모듈 자동 오픈.
-        /// 트랜지션 멘트는 NPC 대화의 마지막 라인으로 들어가 있어 별도 토스트 불필요.
+        /// 첫 대화(선택지 응답 포함)가 모두 끝난 후 진행되는 흐름.
+        /// 트랜지션 라인을 별도 짧은 대화로 띄우고 → 그 대화 끝나면 보안교육 모듈 오픈.
+        /// 사용자가 선택지를 고르고 응답을 들은 *후* 자연스럽게 마지막에 트랜지션 멘트가 옴.
         /// </summary>
-        private IEnumerator AutoOpenRelatedClue()
+        private IEnumerator StartTransitionAndOpenQuiz()
         {
             string clueId = GetRelatedClueId();
             if (string.IsNullOrEmpty(clueId)) yield break;
 
-            // 대화창 닫힘 → 짧은 호흡 → 모달 오픈 (너무 빨리 뜨면 어색)
-            yield return new WaitForSeconds(0.6f);
+            // 첫 대화창 완전히 닫힘 대기
+            yield return new WaitForSeconds(0.4f);
+
+            // 다른 모달이 떠 있으면 중단
+            if (IsAnyBlockingModalOpen()) yield break;
+
+            string transitionLine = GetTransitionLine(Actor != null && Actor.isSpy);
+            var ds = DialogueSystem.Instance;
+
+            if (ds != null)
+            {
+                // 트랜지션 라인 1줄짜리 짧은 대화 시작 → 끝나면 모달 오픈 콜백
+                ds.StartDialogue(DisplayName, transitionLine, transform,
+                    () => StartCoroutine(OpenQuizAfterShortDelay(clueId)));
+            }
+            else
+            {
+                // DialogueSystem 없으면 바로 모달
+                yield return OpenQuizAfterShortDelay(clueId);
+            }
+        }
+
+        private IEnumerator OpenQuizAfterShortDelay(string clueId)
+        {
+            yield return new WaitForSeconds(0.5f);
+
+            if (IsAnyBlockingModalOpen()) yield break;
 
             var sqc = SecurityQuizController.Instance;
-            if (sqc == null || sqc.IsOpen) yield break;
-            var ds = DialogueSystem.Instance;
-            if (ds != null && ds.IsActive) yield break;
-            var rmc = RacingMissionController.Instance;
-            if (rmc != null && rmc.IsOpen) yield break;
+            if (sqc == null) yield break;
 
             var allClues = FindObjectsByType<ClueObject>(FindObjectsSortMode.None);
             foreach (var c in allClues)
@@ -167,9 +180,18 @@ namespace ForTheCompany.Player
                 if (c.Resolved) yield break;
                 if (!c.IsUnlocked) yield break;
                 sqc.Open(c);
-                Debug.Log($"[Interact] {DisplayName} 대화 종료 → '{c.data.objectLabel}' 보안 교육 모듈 오픈");
+                Debug.Log($"[Interact] {DisplayName} 트랜지션 종료 → '{c.data.objectLabel}' 보안 교육 모듈 오픈");
                 yield break;
             }
+        }
+
+        private bool IsAnyBlockingModalOpen()
+        {
+            var sqc = SecurityQuizController.Instance;
+            if (sqc != null && sqc.IsOpen) return true;
+            var rmc = RacingMissionController.Instance;
+            if (rmc != null && rmc.IsOpen) return true;
+            return false;
         }
 
         /// <summary>NPC 직업별 트랜지션 안내 멘트 — 대화 → 퀴즈 흐름을 자연스럽게.
