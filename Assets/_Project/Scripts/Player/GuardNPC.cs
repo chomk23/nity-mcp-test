@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using ForTheCompany.Core;
+using ForTheCompany.Managers;
 using ForTheCompany.Systems;
 
 namespace ForTheCompany.Player
@@ -79,6 +80,14 @@ namespace ForTheCompany.Player
             var quest = QuestManager.Instance;
             var ds = DialogueSystem.Instance;
 
+            // GuardCheckIn 단계 — 연구원 정보 기반 중간 브리핑 + 보안 레이싱 안내
+            if (ds != null && quest != null && quest.CurrentStage == QuestManager.Stage.GuardCheckIn)
+            {
+                LastResult = "";
+                StartGuardCheckInDialogue(ds, quest);
+                return;
+            }
+
             // Briefing 단계 — 다중 라인 + 선택지 표시
             if (ds != null && quest != null && quest.CurrentStage == QuestManager.Stage.Briefing)
             {
@@ -135,6 +144,71 @@ namespace ForTheCompany.Player
             }
         }
 
+        /// <summary>연구원 대화·보안 미션 후 경비원 중간 브리핑 — 진짜 스파이를 향한 약한 힌트 + 레이싱 안내</summary>
+        private void StartGuardCheckInDialogue(DialogueSystem ds, QuestManager quest)
+        {
+            // 연구원이 누구를 의심하라고 했는지에 따라 힌트 분기
+            var spy = NPCRoster.Instance != null ? NPCRoster.Instance.Spy : null;
+            int spyRole = spy != null && spy.data != null ? (int)spy.data.role : -1;
+
+            string hintLine;
+            switch (spyRole)
+            {
+                case 2: // 스파이=네트워크관리자
+                    hintLine = "음... 네트워크관리자 쪽 정황이 좀 걸리시는군요. " +
+                               "어제 서버실 출입 기록도 평소와 다르긴 했습니다. 더 파보시는 게 좋겠습니다.";
+                    break;
+                case 3: // 스파이=시설관리자
+                    hintLine = "시설관리자의 CCTV 점검 시간이 길었다는 건 저도 들었습니다. " +
+                               "그 부분은 카드키 발급 권한과도 연관이 있어서 신중히 보셔야 합니다.";
+                    break;
+                case 1: // 스파이=연구원 자신 (연구원이 회피로 답한 경우)
+                    hintLine = "연구원이 평소답지 않게 회피적이었다는 거군요. " +
+                               "본인이 의심을 받지 않으려 일부러 모호하게 답한 걸 수도 있습니다. 더 파보시죠.";
+                    break;
+                default:
+                    hintLine = "연구원의 증언, 잘 메모해두셨군요. 단서 하나하나가 다 의미가 있습니다.";
+                    break;
+            }
+
+            var lines = new[]
+            {
+                "조사관님, 돌아오셨군요. 연구원과 보안 교육 모듈은 잘 마치셨습니까?",
+                "수집하신 단서는 인벤토리(I 키)에 다 기록돼 있을 겁니다. 지금 한번 정리해두시는 게 좋습니다.",
+                hintLine,
+                "그리고 다음 단계 — 휴게실에 보안 의식 평가용 '보안 레이싱' 단말이 있습니다. " +
+                "직원들 보안 의식을 평가하는 시뮬레이션인데, 1등으로 통과하면 추가 단서를 얻을 수 있습니다.",
+                "긴장하지 마시고 차분히 도전해보세요. 결승선까지 다른 차들을 제치고 들어가시면 됩니다."
+            };
+
+            var choices = new List<DialogueChoice>
+            {
+                new DialogueChoice(
+                    "지금 바로 휴게실로 가보겠습니다.",
+                    "좋습니다. 휴게실은 남쪽 초록 방, 시안색 캐비닛입니다. 행운을 빕니다."),
+                new DialogueChoice(
+                    "보안 레이싱은 어떤 게임인가요?",
+                    "8-bit 스타일 종스크롤 레이싱입니다. 60초 안에 보안 문제를 풀면서 다른 차를 제치세요. " +
+                    "1등은 +5 단서, 그 외엔 보상 없이 재도전 가능합니다."),
+                new DialogueChoice(
+                    "다른 NPC들도 먼저 만나봐도 됩니까?",
+                    "물론입니다. 다만 보안 레이싱부터 먼저 끝내야 다음 단계로 진행됩니다. " +
+                    "환경 단서는 어디서든 모으실 수 있으니 자유롭게 둘러보셔도 좋습니다.")
+            };
+
+            ds.StartDialogue(displayName, lines, transform,
+                () =>
+                {
+                    quest.TryAdvance(QuestManager.Stage.GuardCheckIn);
+                    GameSession.Instance?.AddClue(
+                        "경비원 중간 브리핑",
+                        "연구원 정보 정리 + 보안 레이싱 단말 안내. " + hintLine,
+                        ClueSource.NPC);
+                },
+                choices);
+            Debug.Log("[Guard] GuardCheckIn 중간 브리핑 시작");
+        }
+
         private void FacePlayer()
         {
             var p = PlayerInteractor.Instance;
@@ -164,6 +238,8 @@ namespace ForTheCompany.Player
                         "단서는 미니게임과 환경 조사로 추가 확보할 수 있습니다.";
                 case QuestManager.Stage.MeetResearcher:
                     return "연구실의 연구원에게 먼저 가보세요. 서북쪽 파란 방입니다.";
+                case QuestManager.Stage.GuardCheckIn:
+                    return "연구원 만나셨군요. 잠시 보고 받고 싶으니 말씀해주세요. (※ 다시 [Space])";
                 case QuestManager.Stage.RacingMission:
                     return "휴게실의 보안 레이싱 게임에서 1등을 노리세요. 남쪽 초록 방입니다.";
                 case QuestManager.Stage.MeetNetworkAdmin:

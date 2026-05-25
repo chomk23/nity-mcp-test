@@ -19,6 +19,7 @@ namespace ForTheCompany.Systems
         {
             Briefing,            // 경비원 브리핑 받기
             MeetResearcher,      // 연구실의 연구원과 대화
+            GuardCheckIn,        // 경비원에게 돌아가 중간 보고 + 다음 안내 받기
             RacingMission,       // 휴게실 보안 레이싱 클리어
             MeetNetworkAdmin,    // 서버실의 네트워크관리자와 대화
             MeetFacilityManager, // 전력실의 시설관리자와 대화
@@ -99,12 +100,16 @@ namespace ForTheCompany.Systems
             }
         }
 
-        /// <summary>NPC 역할에 따라 단계 진행 — NPCInteractable에서 호출</summary>
+        /// <summary>NPC 역할에 따라 단계 진행 — NPCInteractable에서 호출.
+        /// Security(경비원)는 Briefing/GuardCheckIn 둘 다 처리.</summary>
         public bool TryAdvanceByRole(RoleType role)
         {
             switch (role)
             {
-                case RoleType.Security:        return TryAdvance(Stage.Briefing);
+                case RoleType.Security:
+                    if (CurrentStage == Stage.Briefing)    return TryAdvance(Stage.Briefing);
+                    if (CurrentStage == Stage.GuardCheckIn) return TryAdvance(Stage.GuardCheckIn);
+                    return false;
                 case RoleType.Researcher:      return TryAdvance(Stage.MeetResearcher);
                 case RoleType.NetworkAdmin:    return TryAdvance(Stage.MeetNetworkAdmin);
                 case RoleType.FacilityManager: return TryAdvance(Stage.MeetFacilityManager);
@@ -121,6 +126,7 @@ namespace ForTheCompany.Systems
             {
                 case Stage.Briefing:            return "중앙복도의 경비원에게 브리핑 받기";
                 case Stage.MeetResearcher:      return "연구실의 연구원과 대화하기";
+                case Stage.GuardCheckIn:        return "중앙복도의 경비원에게 돌아가 중간 보고하기";
                 case Stage.RacingMission:       return "휴게실 보안 레이싱 게임에서 1등 하기";
                 case Stage.MeetNetworkAdmin:    return "서버실의 네트워크관리자와 대화하기";
                 case Stage.MeetFacilityManager: return "전력실의 시설관리자와 대화하기";
@@ -136,6 +142,7 @@ namespace ForTheCompany.Systems
             {
                 case Stage.Briefing:            return "장소: 중앙복도 (시작 지점)";
                 case Stage.MeetResearcher:      return "장소: 연구실 (서북쪽 파랑 방)";
+                case Stage.GuardCheckIn:        return "장소: 중앙복도 (경비원, 시작 지점 근처)";
                 case Stage.RacingMission:       return "장소: 휴게실 (남쪽 초록 방, 시안색 캐비닛)";
                 case Stage.MeetNetworkAdmin:    return "장소: 서버실 (북쪽 빨강 방)";
                 case Stage.MeetFacilityManager: return "장소: 전력실 (동쪽 노랑 방)";
@@ -152,6 +159,7 @@ namespace ForTheCompany.Systems
             {
                 case Stage.Briefing:            return role == RoleType.Security;
                 case Stage.MeetResearcher:      return role == RoleType.Researcher;
+                case Stage.GuardCheckIn:        return role == RoleType.Security;
                 case Stage.MeetNetworkAdmin:    return role == RoleType.NetworkAdmin;
                 case Stage.MeetFacilityManager: return role == RoleType.FacilityManager;
                 default: return false;
