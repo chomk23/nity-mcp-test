@@ -257,20 +257,9 @@ namespace ForTheCompany.Systems
 
             float boxW = 420f;
             float boxX = Screen.width - boxW - 30f;
-            float startY = Screen.height * 0.28f;
             float gap = 10f;
 
-            // 헤더
-            var headerSt = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 10, fontStyle = FontStyle.Bold,
-                alignment = TextAnchor.MiddleLeft,
-                padding = new RectOffset(8, 0, 0, 0),
-                normal = { textColor = UITheme.NeonCyan }
-            };
-            GUI.Label(new Rect(boxX, startY - 24, boxW, 20),
-                "▸ RESPONSE OPTIONS // SELECT ONE", headerSt);
-
+            // 라벨 스타일
             var labelStyle = new GUIStyle(GUI.skin.label)
             {
                 fontSize = 15, wordWrap = true,
@@ -279,11 +268,35 @@ namespace ForTheCompany.Systems
             };
             var numStyle = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 18, fontStyle = FontStyle.Bold,
-                alignment = TextAnchor.MiddleLeft,
-                padding = new RectOffset(20, 0, 0, 0),
+                fontSize = 20, fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleCenter,
                 normal = { textColor = UITheme.NeonGreen }
             };
+
+            // 전체 높이 미리 계산 → 화면 세로 중앙에 정렬
+            float totalH = 0f;
+            var heights = new float[choices.Count];
+            for (int i = 0; i < choices.Count; i++)
+            {
+                float labelH = labelStyle.CalcHeight(new GUIContent(choices[i].Label), boxW - 80);
+                heights[i] = Mathf.Max(54f, labelH + 10f);
+                totalH += heights[i];
+            }
+            totalH += gap * (choices.Count - 1);
+            // 헤더(24px) 포함해서 중앙 정렬
+            float headerH = 24f;
+            float startY = (Screen.height - (totalH + headerH)) * 0.5f + headerH;
+
+            // ── 헤더 ──
+            var headerSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 10, fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleLeft,
+                padding = new RectOffset(8, 0, 0, 0),
+                normal = { textColor = UITheme.NeonCyan }
+            };
+            GUI.Label(new Rect(boxX, startY - headerH, boxW, 20),
+                "▸ RESPONSE OPTIONS // SELECT ONE", headerSt);
 
             Vector2 mp = UITheme.GetMousePos();
             float currentY = startY;
@@ -291,10 +304,8 @@ namespace ForTheCompany.Systems
             for (int i = 0; i < choices.Count; i++)
             {
                 var c = choices[i];
-                string display = c.Label;
-                var content = new GUIContent(display);
-                float labelH = labelStyle.CalcHeight(content, boxW - 80);
-                float boxH = Mathf.Max(54f, labelH + 10f);
+                var content = new GUIContent(c.Label);
+                float boxH = heights[i];
                 var rect = new Rect(boxX, currentY, boxW, boxH);
 
                 bool hover = rect.Contains(mp);
@@ -307,12 +318,12 @@ namespace ForTheCompany.Systems
                 UITheme.DrawRect(new Rect(rect.x, rect.y, 3f, rect.height),
                     hover ? UITheme.NeonGreen : UITheme.NeonCyan);
 
-                // 번호
-                GUI.Label(new Rect(rect.x, rect.y, 40, rect.height),
-                    $"0{i + 1}", numStyle);
+                // 번호 (1, 2, 3 — 0 prefix 제거, 가운데 정렬)
+                GUI.Label(new Rect(rect.x + 4, rect.y, 36, rect.height),
+                    $"{i + 1}", numStyle);
 
-                // 텍스트
-                labelStyle.normal.textColor = hover ? UITheme.Ink : UITheme.InkDim;
+                // 텍스트 — 항상 흰색 (가독성)
+                labelStyle.normal.textColor = Color.white;
                 GUI.Label(rect, content, labelStyle);
 
                 // 투명 버튼 — 클릭 감지
@@ -323,17 +334,7 @@ namespace ForTheCompany.Systems
 
                 currentY += boxH + gap;
             }
-
-            // 하단 힌트
-            var hintStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 10, fontStyle = FontStyle.Bold,
-                alignment = TextAnchor.MiddleRight,
-                padding = new RectOffset(0, 8, 0, 0),
-                normal = { textColor = UITheme.InkFaint }
-            };
-            GUI.Label(new Rect(boxX, currentY + 6, boxW, 18),
-                "// [CLICK] OR [1·2·3] TO SELECT", hintStyle);
+            // 하단 힌트는 제거 (사용자 요청)
         }
 
         // ═══════════════════ 미니맵 (좌상단) ═══════════════════
