@@ -21,6 +21,11 @@ namespace ForTheCompany.Systems
         private AudioClip clipCorrect;
         private AudioClip clipWrong;
         private AudioClip clipModalOpen;
+        private AudioClip[] clipsTypewriter; // 음정 다른 4종 — 매 글자마다 랜덤
+
+        // 매 글자마다 호출되지만 최소 간격으로 제한 (너무 잦으면 시끄러움)
+        private float typewriterCooldownUntil = -1f;
+        private const float TypewriterMinInterval = 0.045f; // 45ms 이상 간격
 
         private const int SampleRate = 22050;
         private enum WaveType { Square, Sine, Triangle }
@@ -70,6 +75,16 @@ namespace ForTheCompany.Systems
                 new[] { 196f, 165f },
                 new[] { 0.10f, 0.18f },
                 0.28f, WaveType.Square);
+
+            // Typewriter — Undertale 스타일 "뾱뾱뾱" 4종 (음정 미세 차이)
+            // 매우 짧고(15ms) 작아서(0.07) 빠르게 연속 재생해도 거슬리지 않음
+            clipsTypewriter = new[]
+            {
+                MakeBeep(620f, 0.015f, 0.10f, WaveType.Square),
+                MakeBeep(680f, 0.015f, 0.10f, WaveType.Square),
+                MakeBeep(740f, 0.015f, 0.10f, WaveType.Square),
+                MakeBeep(800f, 0.015f, 0.10f, WaveType.Square),
+            };
         }
 
         // ═══════════════════ PUBLIC API ═══════════════════
@@ -81,6 +96,20 @@ namespace ForTheCompany.Systems
         public static void PlayCorrect()      => Instance?.Play(Instance.clipCorrect);
         public static void PlayWrong()        => Instance?.Play(Instance.clipWrong);
         public static void PlayModalOpen()    => Instance?.Play(Instance.clipModalOpen);
+
+        /// <summary>Undertale 스타일 타이핑 비프 — DialogueSystem이 글자 한 칸씩 늘릴 때 호출.
+        /// 음정 4종 랜덤 + 최소 간격(45ms) 쿨다운으로 자연스러운 변주.</summary>
+        public static void PlayTypewriter()
+        {
+            if (Instance == null || Instance.clipsTypewriter == null) return;
+            if (Instance.source == null) return;
+            // 쿨다운 — 너무 빠른 연속 재생 방지
+            if (Time.unscaledTime < Instance.typewriterCooldownUntil) return;
+            Instance.typewriterCooldownUntil = Time.unscaledTime + TypewriterMinInterval;
+
+            int i = Random.Range(0, Instance.clipsTypewriter.Length);
+            Instance.source.PlayOneShot(Instance.clipsTypewriter[i]);
+        }
 
         private void Play(AudioClip clip)
         {

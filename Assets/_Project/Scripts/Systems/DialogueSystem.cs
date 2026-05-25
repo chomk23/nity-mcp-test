@@ -163,9 +163,19 @@ namespace ForTheCompany.Systems
             // 타이프라이터 진행
             if (!LineComplete)
             {
+                int prevVisible = CurrentVisibleLine != null ? CurrentVisibleLine.Length : 0;
                 charProgress += Time.deltaTime * charsPerSecond;
                 int visible = Mathf.Min(CurrentFullLine.Length, Mathf.FloorToInt(charProgress));
                 CurrentVisibleLine = CurrentFullLine.Substring(0, visible);
+
+                // 글자가 새로 추가됐고, 공백/줄바꿈이 아니면 타이핑 비프 재생
+                if (visible > prevVisible && visible > 0)
+                {
+                    char newChar = CurrentFullLine[visible - 1];
+                    if (!char.IsWhiteSpace(newChar))
+                        SfxManager.PlayTypewriter();
+                }
+
                 if (visible >= CurrentFullLine.Length)
                 {
                     LineComplete = true;
