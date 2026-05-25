@@ -105,31 +105,54 @@ namespace ForTheCompany.Systems
             GUI.Label(new Rect(x + 32, topY + 44, w - 64, 16),
                 "> classified briefing loaded. clearance level: omega", codeStyle);
 
-            // ── 타이틀 (hover 시 글리치 흔들림 강화 + 색 강조) ──
+            // ── 타이틀 (네온사인 깜빡임 + hover 시 글리치 강화) ──
             var titleRect = new Rect(x, y + 130, w, 70);
             bool hoverTitle = titleRect.Contains(mp);
-            // hover 시 떨림: 시간 기반 jitter + 더 큰 오프셋
-            float jitter = hoverTitle ? Mathf.Sin(Time.unscaledTime * 22f) * 1.2f : 0f;
-            float glitchOffset = hoverTitle ? 5f : 2f;
-            float glitchAlpha = hoverTitle ? 0.9f : 0.5f;
 
+            // 네온 깜빡임: 기본은 부드러운 호흡 + 가끔 빠른 dropout (실제 형광등 시뮬)
+            float t = Time.unscaledTime;
+            float baseBreath = 0.82f + 0.18f * Mathf.Sin(t * 1.6f);      // 0.82~1.0 부드러운 호흡
+            float noiseSeed = Mathf.PerlinNoise(t * 6f, 3.7f);
+            float quickFlicker = noiseSeed < 0.18f ? 0.45f : 1f;          // 18% 확률 짧은 dropout
+            float fastSpark = Mathf.Sin(t * 38f) > 0.96f ? 0.6f : 1f;     // 가끔 빠른 깜빡
+            float neonBright = Mathf.Clamp01(baseBreath * quickFlicker * fastSpark);
+
+            // hover 시 떨림 + 더 큰 글리치
+            float jitter = hoverTitle ? Mathf.Sin(t * 22f) * 1.2f : 0f;
+            float glitchOffset = hoverTitle ? 5f : 2f;
+            // 글리치(시안/마젠타) — 깜빡임 따라가지만 살짝 다른 위상으로 더 어수선한 느낌
+            float glitchPulse = 0.5f + 0.5f * Mathf.Sin(t * 2.3f + 1.1f);
+            float glitchAlpha = hoverTitle
+                ? (0.7f + 0.3f * glitchPulse)
+                : (0.35f + 0.25f * glitchPulse);
+
+            // 메인 텍스트 — 깜빡임이 적용된 흰색
             var titleStyle = new GUIStyle(GUI.skin.label)
             {
                 fontSize = 56,
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleCenter,
-                normal = { textColor = UITheme.Ink }
+                normal = { textColor = new Color(UITheme.Ink.r, UITheme.Ink.g, UITheme.Ink.b, neonBright) }
             };
             var titleGlitchC = new GUIStyle(titleStyle)
             {
                 normal = { textColor = new Color(UITheme.NeonCyan.r, UITheme.NeonCyan.g,
-                    UITheme.NeonCyan.b, glitchAlpha) }
+                    UITheme.NeonCyan.b, glitchAlpha * neonBright) }
             };
             var titleGlitchM = new GUIStyle(titleStyle)
             {
                 normal = { textColor = new Color(UITheme.NeonMagenta.r, UITheme.NeonMagenta.g,
-                    UITheme.NeonMagenta.b, glitchAlpha) }
+                    UITheme.NeonMagenta.b, glitchAlpha * neonBright) }
             };
+
+            // 외곽 글로우 — 깜빡임이 강할수록 강한 글로우
+            if (neonBright > 0.6f)
+            {
+                float glowAlpha = (neonBright - 0.6f) * 0.4f;
+                UITheme.DrawRect(new Rect(titleRect.x, titleRect.y + 18, titleRect.width, 34),
+                    new Color(UITheme.NeonCyan.r, UITheme.NeonCyan.g, UITheme.NeonCyan.b, glowAlpha * 0.12f));
+            }
+
             GUI.Label(new Rect(titleRect.x - glitchOffset + jitter, titleRect.y,
                 titleRect.width, titleRect.height), "FOR THE COMPANY", titleGlitchC);
             GUI.Label(new Rect(titleRect.x + glitchOffset - jitter, titleRect.y,
@@ -264,10 +287,11 @@ namespace ForTheCompany.Systems
             UITheme.DrawPulseDot(new Vector2(x + 136, topY + 10), UITheme.NeonCyan,
                 hoverChapter ? 6f : 4f);
 
-            // ── 헤더 (hover 시 크기 + 흰색으로 강조 + 떨림) ──
+            // ── 헤더 (hover 시 크기 + 흰색으로 강조 + 미세 떨림) ──
             var headerRect = new Rect(x, y + 100, w, 50);
             bool hoverHeader = headerRect.Contains(mp);
-            float headerJitter = hoverHeader ? Mathf.Sin(Time.unscaledTime * 18f) * 1.5f : 0f;
+            // 진폭 1.5→0.4, 속도 18→9 (눈에 거슬리지 않는 미묘한 떨림)
+            float headerJitter = hoverHeader ? Mathf.Sin(Time.unscaledTime * 9f) * 0.4f : 0f;
             var headerStyle = new GUIStyle(GUI.skin.label)
             {
                 fontSize = hoverHeader ? 30 : 28,
