@@ -98,28 +98,19 @@ namespace ForTheCompany.Systems
             }
         }
 
+        /// <summary>
+        /// 환경 단서 — 시각적 큐브는 안 만들고 invisible GameObject로만 등록.
+        /// NPC 대화 → 자동 트리거 흐름으로 보안 교육 모듈이 뜨므로 환경에 큐브가 떠있을 필요 없음.
+        /// ClueObject 인스턴스는 유지해야 NPCInteractable이 FindObjectsByType으로 찾아서 sqc.Open() 호출 가능.
+        /// </summary>
         private void SpawnDefaultClues()
         {
             var allClues = GetDefaultClues();
             foreach (var data in allClues)
             {
-                var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                go.name = "Clue_" + data.id;
+                var go = new GameObject("Clue_" + data.id);
                 go.transform.position = data.worldPos;
-                go.transform.localScale = new Vector3(0.6f, 0.6f, 0.6f);
-
-                // Remove collider so player can walk through
-                var bc = go.GetComponent<BoxCollider>();
-                if (bc != null) Destroy(bc);
-
-                var mr = go.GetComponent<MeshRenderer>();
-                if (mr != null)
-                {
-                    var mpb = new MaterialPropertyBlock();
-                    mpb.SetColor("_BaseColor", data.color);
-                    mr.SetPropertyBlock(mpb);
-                }
-
+                // MeshRenderer/Collider 없음 — 보이지도, 막히지도 않음
                 var co = go.AddComponent<ClueObject>();
                 co.data = data;
             }

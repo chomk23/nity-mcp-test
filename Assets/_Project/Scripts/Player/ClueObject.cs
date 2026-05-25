@@ -56,13 +56,9 @@ namespace ForTheCompany.Player
         {
             get
             {
-                if (Resolved) return false;
-                if (!IsUnlocked) return false;
-                var s = GameSession.Instance;
-                if (s != null && s.Outcome != RunOutcome.Ongoing) return false;
-                var quiz = ForTheCompany.Systems.SecurityQuizController.Instance;
-                if (quiz != null && quiz.IsOpen) return false;
-                return true;
+                // 환경 단서는 더 이상 큐브로 배치 안 함 — NPC 대화 → 자동 트리거 흐름으로만 접근.
+                // PlayerInteractor가 직접 잡지 못하도록 항상 false 반환 (자동 트리거는 sqc.Open() 직접 호출).
+                return false;
             }
         }
 
