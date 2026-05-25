@@ -18,6 +18,14 @@ namespace ForTheCompany.Systems
         public float LastResultTime { get; private set; }
         public bool LastWasCorrect { get; private set; }
 
+        // ── 연속 3문제 세션 진행 ──
+        private List<QuizPool.QuizVariant> sessionQuizzes;
+        private int sessionCorrectCount;
+        public int SessionIndex { get; private set; }       // 0-based 현재 문제
+        public int SessionTotal => sessionQuizzes?.Count ?? 0;
+        public int SessionCurrent => SessionIndex + 1;      // 1-based 표시용
+        public const int QuestionsPerSession = 3;
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Bootstrap()
         {
@@ -53,15 +61,28 @@ namespace ForTheCompany.Systems
         public void Open(ClueObject clue)
         {
             if (clue == null || clue.Resolved) return;
-            // 풀에서 랜덤 퀴즈 1개 선택해서 clue.data에 덮어쓰기 (각 모달 진입 시 다른 문제 가능)
-            QuizPool.ApplyRandomTo(clue.data);
+
+            // 풀에서 중복 없이 3개 랜덤 선택 → 첫 문제 적용
+            sessionQuizzes = QuizPool.GetRandomBatch(clue.data.id, QuestionsPerSession);
+            sessionCorrectCount = 0;
+            SessionIndex = 0;
+
+            if (sessionQuizzes.Count > 0)
+                QuizPool.ApplyTo(clue.data, sessionQuizzes[0]);
+            else
+                QuizPool.ApplyRandomTo(clue.data); // 풀 없으면 fallback (기존 단일 quiz)
+
             ActiveClue = clue;
             SfxManager.PlayModalOpen();
-            Debug.Log($"[Quiz] {clue.data.id} 풀에서 랜덤 출제 (풀 크기 {QuizPool.GetPoolSize(clue.data.id)})");
+            Debug.Log($"[Quiz] {clue.data.id} 세션 시작 ({sessionQuizzes.Count}문제 출제, 풀 {QuizPool.GetPoolSize(clue.data.id)})");
         }
 
         /// <summary>내부 전용 — 외부에서는 호출 금지. Answer 정답 시에만 사용.</summary>
-        public void Close() => ActiveClue = null;
+        public void Close()
+        {
+            ActiveClue = null;
+            sessionQuizzes = null;
+        }
 
         public void Answer(int index)
         {
@@ -71,33 +92,54 @@ namespace ForTheCompany.Systems
             LastWasCorrect = correct;
             LastResultTime = Time.time;
 
-            if (correct)
+            if (!correct)
             {
-                if (GameSession.Instance != null)
-                {
-                    GameSession.Instance.totalClues += data.clueReward;
-                    GameSession.Instance.LastEncounterRewardClues = data.clueReward;
-                    // 인벤토리에 단서 추가 (출처: 환경)
-                    GameSession.Instance.AddClue(
-                        $"[{data.roomName}] {data.objectLabel}",
-                        data.successClue,
-                        ClueSource.Environment);
-                }
-                // 환경 단서 정답 → 진짜 스파이의 의심도 +2
-                var realSpy = NPCRoster.Instance != null ? NPCRoster.Instance.Spy : null;
-                if (realSpy != null) realSpy.AddSuspicion(2);
+                // 오답 — 같은 문제 재시도
+                LastResultText = "✗ 오답. 다시 시도하세요.";
+                SfxManager.PlayWrong();
+                Debug.Log($"[Quiz] {data.id} #{SessionCurrent}/{SessionTotal} 오답");
+                return;
+            }
 
-                LastResultText = $"✓ 정답!\n{data.successClue}\n+{data.clueReward} 단서 획득";
-                ActiveClue.MarkResolved();
-                SfxManager.PlayCorrect();
-                Debug.Log($"[Quiz] {data.id} 정답 — '{data.successClue}' (+{data.clueReward} 단서)");
-                ActiveClue = null;
+            // ── 정답 처리 ──
+            sessionCorrectCount++;
+            SfxManager.PlayCorrect();
+
+            // 보상 + 인벤토리 단서 추가 (각 문제별)
+            if (GameSession.Instance != null)
+            {
+                GameSession.Instance.totalClues += data.clueReward;
+                GameSession.Instance.LastEncounterRewardClues = data.clueReward;
+                string clueTitle = SessionTotal > 1
+                    ? $"[{data.roomName}] {data.objectLabel} ({SessionCurrent}/{SessionTotal})"
+                    : $"[{data.roomName}] {data.objectLabel}";
+                GameSession.Instance.AddClue(clueTitle, data.successClue, ClueSource.Environment);
+            }
+            // 환경 단서 정답 → 진짜 스파이 의심도 +2 (문제마다 누적)
+            var realSpy = NPCRoster.Instance != null ? NPCRoster.Instance.Spy : null;
+            if (realSpy != null) realSpy.AddSuspicion(2);
+
+            Debug.Log($"[Quiz] {data.id} #{SessionCurrent}/{SessionTotal} 정답 — '{data.successClue}'");
+
+            // 다음 문제 또는 세션 종료
+            SessionIndex++;
+            bool hasNext = sessionQuizzes != null && SessionIndex < sessionQuizzes.Count;
+
+            if (hasNext)
+            {
+                // 다음 문제로 전환 — 모달 유지, quiz 내용만 바뀜
+                QuizPool.ApplyTo(data, sessionQuizzes[SessionIndex]);
+                LastResultText = $"✓ 정답! 다음 문제로 ({SessionCurrent}/{SessionTotal})";
             }
             else
             {
-                LastResultText = "✗ 오답. 보안교육 자료 학습 후 다시 시도.";
-                SfxManager.PlayWrong();
-                Debug.Log($"[Quiz] {data.id} 오답");
+                // 세션 완료 — 모달 닫기
+                int totalReward = data.clueReward * sessionCorrectCount;
+                LastResultText = $"✓ 보안 교육 완료! {sessionCorrectCount}/{SessionTotal} 정답\n+{totalReward} 단서 획득";
+                ActiveClue.MarkResolved();
+                ActiveClue = null;
+                sessionQuizzes = null;
+                Debug.Log($"[Quiz] {data.id} 세션 완료 ({sessionCorrectCount}/{QuestionsPerSession} 정답, +{totalReward} 단서)");
             }
         }
 

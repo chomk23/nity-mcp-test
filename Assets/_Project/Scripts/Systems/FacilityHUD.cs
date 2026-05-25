@@ -1070,6 +1070,20 @@ namespace ForTheCompany.Systems
             GUI.Label(new Rect(x + 44, headerY + 2, w - 100, 14),
                 "▸ SECURITY TRAINING // MODULE", tagSt);
 
+            // 진행률 표시 (1/3, 2/3, 3/3) — 우측 상단
+            if (ctrl.SessionTotal > 1)
+            {
+                var progressSt = new GUIStyle(GUI.skin.label)
+                {
+                    fontSize = 11, fontStyle = FontStyle.Bold,
+                    alignment = TextAnchor.MiddleRight,
+                    padding = new RectOffset(0, 16, 0, 0),
+                    normal = { textColor = UITheme.NeonGreen }
+                };
+                GUI.Label(new Rect(x, headerY + 4, w, 14),
+                    $"▸ 문제 {ctrl.SessionCurrent} / {ctrl.SessionTotal}", progressSt);
+            }
+
             var titleSt = new GUIStyle(GUI.skin.label)
             {
                 fontSize = 22, fontStyle = FontStyle.Bold,

@@ -284,9 +284,31 @@ namespace ForTheCompany.Systems
         }
 
         /// <summary>
-        /// 주어진 ClueData의 quiz 필드를 풀에서 랜덤 1개로 덮어쓰기.
-        /// 풀에 ID 없으면 무시 (기존 단일 quiz 그대로).
+        /// 풀에서 중복 없이 N개 랜덤 선택 (Fisher-Yates 부분 셔플).
+        /// 풀이 N보다 작으면 풀 전체 반환.
+        /// SecurityQuizController가 한 세션(연속 3문제)에서 사용.
         /// </summary>
+        public static List<QuizVariant> GetRandomBatch(string id, int count)
+        {
+            EnsureInit();
+            if (!pools.TryGetValue(id, out var pool) || pool.Count == 0)
+                return new List<QuizVariant>();
+
+            int n = Mathf.Min(count, pool.Count);
+            var indices = new List<int>(pool.Count);
+            for (int i = 0; i < pool.Count; i++) indices.Add(i);
+
+            var result = new List<QuizVariant>(n);
+            for (int i = 0; i < n; i++)
+            {
+                int swap = Random.Range(i, indices.Count);
+                (indices[i], indices[swap]) = (indices[swap], indices[i]);
+                result.Add(pool[indices[i]]);
+            }
+            return result;
+        }
+
+        /// <summary>풀에서 랜덤 1개를 ClueData에 덮어쓰기 (단발 호환용).</summary>
         public static void ApplyRandomTo(ClueData data)
         {
             EnsureInit();
@@ -295,11 +317,18 @@ namespace ForTheCompany.Systems
             if (pool == null || pool.Count == 0) return;
 
             var picked = pool[Random.Range(0, pool.Count)];
-            data.quizQuestion = picked.question;
-            data.quizOptions = picked.options;
-            data.correctIndex = picked.correctIndex;
-            data.successClue = picked.successClue;
-            data.clueReward = picked.clueReward;
+            ApplyTo(data, picked);
+        }
+
+        /// <summary>주어진 QuizVariant를 ClueData의 quiz 필드에 적용.</summary>
+        public static void ApplyTo(ClueData data, QuizVariant q)
+        {
+            if (data == null || q == null) return;
+            data.quizQuestion = q.question;
+            data.quizOptions = q.options;
+            data.correctIndex = q.correctIndex;
+            data.successClue = q.successClue;
+            data.clueReward = q.clueReward;
         }
 
         /// <summary>디버그용 — 풀 전체 개수 (NPC ID별)</summary>
