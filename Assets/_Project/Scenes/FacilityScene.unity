@@ -22048,9 +22048,9 @@ MonoBehaviour:
   minZoom: 0.5
   maxZoom: 1.2
   zoomLerp: 10
-  dialogueSideDistance: 2.14
-  dialogueForwardOffset: 1.26
-  dialogueHeight: 1.43
+  dialogueSideDistance: 3.06
+  dialogueForwardOffset: 1.8
+  dialogueHeight: 2.04
   dialogueFocusLerp: 0.5
   dialogueTransitionLerp: 4
 --- !u!81 &1583960570
