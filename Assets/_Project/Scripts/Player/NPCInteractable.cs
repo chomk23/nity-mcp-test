@@ -64,8 +64,18 @@ namespace ForTheCompany.Player
             int spy = ResolveSpyRole();
             bool selfIsSpy = Actor != null && Actor.isSpy;
 
-            string[] lines = BuildFirstTalkLines(my, spy, selfIsSpy);
+            string[] baseLines = BuildFirstTalkLines(my, spy, selfIsSpy);
             DialogueChoice[] choices = BuildFirstTalkChoices(my, spy, selfIsSpy);
+
+            // 환경 단서가 매핑된 NPC라면 대화 마지막에 트랜지션 멘트 한 줄 추가
+            // (이 줄이 끝나면 보안교육 모듈로 자연스럽게 이어짐)
+            string[] lines = baseLines;
+            if (!selfIsSpy && !string.IsNullOrEmpty(GetRelatedClueId()))
+            {
+                lines = new string[baseLines.Length + 1];
+                System.Array.Copy(baseLines, lines, baseLines.Length);
+                lines[baseLines.Length] = GetTransitionLine();
+            }
             string inventoryText = string.Join("\n", lines);
 
             var ds = DialogueSystem.Instance;
@@ -124,24 +134,24 @@ namespace ForTheCompany.Player
             if (quest != null && Actor != null && Actor.data != null)
                 quest.TryAdvanceByRole(Actor.data.role);
 
-            // 첫 대화 종료 후 — NPC 방 관련 환경 단서 퀴즈를 자연스러운 트랜지션과 함께 자동으로 띄움
+            // 첫 대화 종료 후 — 대화 마지막 트랜지션 라인이 자연스럽게 보안교육 모듈로 이어짐
+            // (트랜지션 멘트는 StartFirstTalk에서 lines 마지막에 이미 추가됨)
             if (firstTime)
-                StartCoroutine(AutoOpenRelatedClueWithTransition());
+                StartCoroutine(AutoOpenRelatedClue());
         }
 
         /// <summary>
-        /// 대화 종료 → 트랜지션 멘트 토스트 → 보안교육 모듈 자동 오픈.
-        /// "쾅 갑자기 퀴즈 모달이 뜬다" 문제 해결 — NPC가 자료를 같이 보여주는 흐름.
+        /// 대화 종료 후 짧은 딜레이 → 보안교육 모듈 자동 오픈.
+        /// 트랜지션 멘트는 NPC 대화의 마지막 라인으로 들어가 있어 별도 토스트 불필요.
         /// </summary>
-        private IEnumerator AutoOpenRelatedClueWithTransition()
+        private IEnumerator AutoOpenRelatedClue()
         {
             string clueId = GetRelatedClueId();
             if (string.IsNullOrEmpty(clueId)) yield break;
 
-            // 대화 종료 직후 잠깐 대기 (대화창 닫힘 자연스럽게)
-            yield return new WaitForSeconds(0.5f);
+            // 대화창 닫힘 → 짧은 호흡 → 모달 오픈 (너무 빨리 뜨면 어색)
+            yield return new WaitForSeconds(0.6f);
 
-            // 다른 모달이 떠 있으면 자동 오픈 안 함
             var sqc = SecurityQuizController.Instance;
             if (sqc == null || sqc.IsOpen) yield break;
             var ds = DialogueSystem.Instance;
@@ -149,8 +159,6 @@ namespace ForTheCompany.Player
             var rmc = RacingMissionController.Instance;
             if (rmc != null && rmc.IsOpen) yield break;
 
-            // 관련 단서 찾기
-            ClueObject targetClue = null;
             var allClues = FindObjectsByType<ClueObject>(FindObjectsSortMode.None);
             foreach (var c in allClues)
             {
@@ -158,39 +166,10 @@ namespace ForTheCompany.Player
                 if (c.data.id != clueId) continue;
                 if (c.Resolved) yield break;
                 if (!c.IsUnlocked) yield break;
-                targetClue = c;
-                break;
+                sqc.Open(c);
+                Debug.Log($"[Interact] {DisplayName} 대화 종료 → '{c.data.objectLabel}' 보안 교육 모듈 오픈");
+                yield break;
             }
-            if (targetClue == null) yield break;
-
-            // ── 트랜지션 토스트 1: NPC의 안내 멘트 ──
-            string transitionLine = GetTransitionLine();
-            var pi = PlayerInteractor.Instance;
-            if (pi != null)
-                pi.ShowToast($"{DisplayName}: {transitionLine}");
-
-            yield return new WaitForSeconds(2.2f);
-
-            // 중간에 다른 모달이 떠버렸으면 중단
-            if (sqc.IsOpen) yield break;
-            if (ds != null && ds.IsActive) yield break;
-            if (rmc != null && rmc.IsOpen) yield break;
-
-            // ── 트랜지션 토스트 2: 시스템 안내 ──
-            if (pi != null)
-                pi.ShowToast($"▸ 보안 교육 모듈 로딩 중...  // [{targetClue.data.roomName}] {targetClue.data.objectLabel}");
-
-            yield return new WaitForSeconds(1.2f);
-
-            // 한번 더 안전 체크
-            if (sqc.IsOpen) yield break;
-            if (ds != null && ds.IsActive) yield break;
-            if (rmc != null && rmc.IsOpen) yield break;
-            if (targetClue.Resolved) yield break;
-
-            // ── 실제 보안 교육 모듈 오픈 ──
-            sqc.Open(targetClue);
-            Debug.Log($"[Interact] {DisplayName} 대화 → 트랜지션 → '{targetClue.data.objectLabel}' 보안 교육 모듈 오픈");
         }
 
         /// <summary>NPC 직업별 트랜지션 안내 멘트 — 대화 → 퀴즈 흐름을 자연스럽게</summary>
