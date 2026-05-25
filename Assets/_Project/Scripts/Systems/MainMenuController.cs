@@ -48,6 +48,12 @@ namespace ForTheCompany.Systems
                 var go = new GameObject("GameSession");
                 go.AddComponent<GameSession>();
             }
+
+            // 빌드본에서 OnGUI 매 프레임 갱신 보장 (펄스 dot, hover jitter 등 애니메이션)
+            Application.targetFrameRate = 60;
+            Application.runInBackground = true;
+            Cursor.visible = true;
+            Cursor.lockState = CursorLockMode.None;
         }
 
         private void OnGUI()
@@ -66,6 +72,8 @@ namespace ForTheCompany.Systems
 
         private void DrawMenu()
         {
+            Vector2 mp = UITheme.GetMousePos();
+
             float w = Mathf.Min(880, Screen.width - 80);
             float h = 620;
             float x = (Screen.width - w) * 0.5f;
@@ -76,23 +84,35 @@ namespace ForTheCompany.Systems
             UITheme.DrawRect(new Rect(x, y + 36, w, h - 36), UITheme.Bg1);
             UITheme.DrawBorder(new Rect(x, y, w, h), UITheme.LineStrong);
 
-            // 상단 태그 + dot
+            // ── 상단 태그 + dot (hover 시 펄스 강화) ──
             float topY = y + 60;
-            UITheme.DrawTag(new Rect(x + 32, topY, 110, 20), "// SYSTEM ONLINE", UITheme.NeonGreen);
-            UITheme.DrawPulseDot(new Vector2(x + 156, topY + 10), UITheme.NeonGreen, 4f);
+            var tagRect = new Rect(x + 32, topY, 110, 20);
+            bool hoverTag = tagRect.Contains(mp);
+            UITheme.DrawTag(tagRect, "// SYSTEM ONLINE", UITheme.NeonGreen);
+            UITheme.DrawPulseDot(new Vector2(x + 156, topY + 10), UITheme.NeonGreen,
+                hoverTag ? 6f : 4f);
 
-            // ASCII / 게임 코드명
+            // ── ASCII 코드 라인 (hover 시 형광 그린으로 강조) ──
+            var codeArea = new Rect(x + 32, topY + 28, w - 64, 32);
+            bool hoverCode = codeArea.Contains(mp);
             var codeStyle = new GUIStyle(GUI.skin.label)
             {
                 fontSize = 11,
-                normal = { textColor = UITheme.InkFaint }
+                normal = { textColor = hoverCode ? UITheme.NeonGreen : UITheme.InkFaint }
             };
             GUI.Label(new Rect(x + 32, topY + 28, w - 64, 16),
                 "> initializing secure-sense v0.1...", codeStyle);
             GUI.Label(new Rect(x + 32, topY + 44, w - 64, 16),
                 "> classified briefing loaded. clearance level: omega", codeStyle);
 
-            // 타이틀 (글리치 느낌으로 두 번 — 색 살짝 다르게)
+            // ── 타이틀 (hover 시 글리치 흔들림 강화 + 색 강조) ──
+            var titleRect = new Rect(x, y + 130, w, 70);
+            bool hoverTitle = titleRect.Contains(mp);
+            // hover 시 떨림: 시간 기반 jitter + 더 큰 오프셋
+            float jitter = hoverTitle ? Mathf.Sin(Time.unscaledTime * 22f) * 1.2f : 0f;
+            float glitchOffset = hoverTitle ? 5f : 2f;
+            float glitchAlpha = hoverTitle ? 0.9f : 0.5f;
+
             var titleStyle = new GUIStyle(GUI.skin.label)
             {
                 fontSize = 56,
@@ -100,33 +120,55 @@ namespace ForTheCompany.Systems
                 alignment = TextAnchor.MiddleCenter,
                 normal = { textColor = UITheme.Ink }
             };
-            var titleRect = new Rect(x, y + 130, w, 70);
-            // 글리치 효과 — 시안/마젠타 살짝 오프셋
-            var titleGlitchC = new GUIStyle(titleStyle) { normal = { textColor = new Color(UITheme.NeonCyan.r, UITheme.NeonCyan.g, UITheme.NeonCyan.b, 0.5f) } };
-            var titleGlitchM = new GUIStyle(titleStyle) { normal = { textColor = new Color(UITheme.NeonMagenta.r, UITheme.NeonMagenta.g, UITheme.NeonMagenta.b, 0.5f) } };
-            GUI.Label(new Rect(titleRect.x - 2, titleRect.y, titleRect.width, titleRect.height), "FOR THE COMPANY", titleGlitchC);
-            GUI.Label(new Rect(titleRect.x + 2, titleRect.y, titleRect.width, titleRect.height), "FOR THE COMPANY", titleGlitchM);
+            var titleGlitchC = new GUIStyle(titleStyle)
+            {
+                normal = { textColor = new Color(UITheme.NeonCyan.r, UITheme.NeonCyan.g,
+                    UITheme.NeonCyan.b, glitchAlpha) }
+            };
+            var titleGlitchM = new GUIStyle(titleStyle)
+            {
+                normal = { textColor = new Color(UITheme.NeonMagenta.r, UITheme.NeonMagenta.g,
+                    UITheme.NeonMagenta.b, glitchAlpha) }
+            };
+            GUI.Label(new Rect(titleRect.x - glitchOffset + jitter, titleRect.y,
+                titleRect.width, titleRect.height), "FOR THE COMPANY", titleGlitchC);
+            GUI.Label(new Rect(titleRect.x + glitchOffset - jitter, titleRect.y,
+                titleRect.width, titleRect.height), "FOR THE COMPANY", titleGlitchM);
             GUI.Label(titleRect, "FOR THE COMPANY", titleStyle);
 
-            // 서브타이틀
+            // ── 서브타이틀 (hover 시 더 굵어지고 흰색으로) ──
+            var subRect = new Rect(x, y + 205, w, 24);
+            bool hoverSub = subRect.Contains(mp);
             var subStyle = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 14,
+                fontSize = hoverSub ? 15 : 14,
+                fontStyle = hoverSub ? FontStyle.Bold : FontStyle.Normal,
                 alignment = TextAnchor.MiddleCenter,
-                normal = { textColor = UITheme.NeonGreen }
+                normal = { textColor = hoverSub ? Color.white : UITheme.NeonGreen }
             };
-            GUI.Label(new Rect(x, y + 205, w, 24), "// SECURITY INVESTIGATION // CLASSIFIED", subStyle);
+            GUI.Label(subRect, "// SECURITY INVESTIGATION // CLASSIFIED", subStyle);
 
-            // 인트로 박스 (Dossier 카드)
+            // ── 인트로 카드 (hover 시 보더 강조 + 본문 흰색) ──
             float cardY = y + 250;
             float cardH = 150;
-            UITheme.DrawCard(new Rect(x + 60, cardY, w - 120, cardH), UITheme.NeonGreen * new Color(1, 1, 1, 0.3f));
+            var cardRect = new Rect(x + 60, cardY, w - 120, cardH);
+            bool hoverCard = cardRect.Contains(mp);
+            UITheme.DrawCard(cardRect, hoverCard
+                ? UITheme.NeonGreen
+                : UITheme.NeonGreen * new Color(1, 1, 1, 0.3f));
+            if (hoverCard)
+            {
+                // 외곽 글로우 시뮬레이션
+                UITheme.DrawBorder(new Rect(cardRect.x - 1, cardRect.y - 1,
+                    cardRect.width + 2, cardRect.height + 2), UITheme.NeonGreen, 2f);
+            }
 
             // 카드 헤더
-            UITheme.DrawRect(new Rect(x + 60, cardY, w - 120, 28), UITheme.Bg3);
+            UITheme.DrawRect(new Rect(x + 60, cardY, w - 120, 28),
+                hoverCard ? UITheme.Bg4 : UITheme.Bg3);
             var cardHeaderStyle = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 11,
+                fontSize = hoverCard ? 12 : 11,
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleLeft,
                 padding = new RectOffset(16, 0, 0, 0),
@@ -142,7 +184,7 @@ namespace ForTheCompany.Systems
                 wordWrap = true,
                 alignment = TextAnchor.UpperLeft,
                 padding = new RectOffset(20, 20, 14, 14),
-                normal = { textColor = UITheme.Ink }
+                normal = { textColor = hoverCard ? Color.white : UITheme.Ink }
             };
             GUI.Label(new Rect(x + 60, cardY + 28, w - 120, cardH - 28),
                 "대기업 연구시설에 산업스파이가 잠입했다.\n" +
@@ -162,24 +204,34 @@ namespace ForTheCompany.Systems
                 "▣ 나가기  [ESC]"))
                 QuitGame();
 
-            // 하단 푸터 — 시스템 정보
+            // ── 하단 푸터 — 좌우 hover 시 시안 강조 ──
             float footerY = y + h - 36;
             UITheme.DrawRect(new Rect(x, footerY, w, 1), UITheme.Line);
+
+            var footerLRect = new Rect(x, footerY, w / 2, 36);
+            var footerRRect = new Rect(x + w / 2, footerY, w / 2, 36);
+            bool hoverFL = footerLRect.Contains(mp);
+            bool hoverFR = footerRRect.Contains(mp);
+
             var footerStyle = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 10,
+                fontSize = hoverFL ? 11 : 10,
                 alignment = TextAnchor.MiddleLeft,
                 padding = new RectOffset(20, 0, 0, 0),
-                normal = { textColor = UITheme.InkFaint }
+                normal = { textColor = hoverFL ? UITheme.NeonCyan : UITheme.InkFaint }
             };
-            GUI.Label(new Rect(x, footerY, w / 2, 36),
+            GUI.Label(footerLRect,
                 "// v0.1 MVP · for the company · build " + Application.version, footerStyle);
-            var footerRStyle = new GUIStyle(footerStyle)
+
+            var footerRStyle = new GUIStyle(GUI.skin.label)
             {
+                fontSize = hoverFR ? 11 : 10,
+                fontStyle = hoverFR ? FontStyle.Bold : FontStyle.Normal,
                 alignment = TextAnchor.MiddleRight,
-                padding = new RectOffset(0, 20, 0, 0)
+                padding = new RectOffset(0, 20, 0, 0),
+                normal = { textColor = hoverFR ? UITheme.NeonGreen : UITheme.InkFaint }
             };
-            GUI.Label(new Rect(x + w / 2, footerY, w / 2, 36),
+            GUI.Label(footerRRect,
                 "STATUS: STANDBY ●", footerRStyle);
         }
 
@@ -189,6 +241,8 @@ namespace ForTheCompany.Systems
         {
             if (introIndex < 0 || introIndex >= introSlides.Length) return;
             var slide = introSlides[introIndex];
+
+            Vector2 mp = UITheme.GetMousePos();
 
             float w = Mathf.Min(920, Screen.width - 80);
             float h = 600;
@@ -201,38 +255,53 @@ namespace ForTheCompany.Systems
             UITheme.DrawRect(new Rect(x, y + 36, w, h - 36), UITheme.Bg1);
             UITheme.DrawBorder(new Rect(x, y, w, h), UITheme.LineStrong);
 
-            // 상단 챕터 표시 + dot
+            // ── 상단 챕터 태그 + dot (hover 시 펄스 강화) ──
             float topY = y + 60;
-            UITheme.DrawTag(new Rect(x + 32, topY, 90, 20),
+            var chapterTagRect = new Rect(x + 32, topY, 90, 20);
+            bool hoverChapter = chapterTagRect.Contains(mp);
+            UITheme.DrawTag(chapterTagRect,
                 $"{introIndex + 1:D2} / {introSlides.Length:D2}", UITheme.NeonCyan);
-            UITheme.DrawPulseDot(new Vector2(x + 136, topY + 10), UITheme.NeonCyan, 4f);
+            UITheme.DrawPulseDot(new Vector2(x + 136, topY + 10), UITheme.NeonCyan,
+                hoverChapter ? 6f : 4f);
 
-            // 헤더 — 큰 타이틀 (네온 마젠타)
+            // ── 헤더 (hover 시 크기 + 흰색으로 강조 + 떨림) ──
+            var headerRect = new Rect(x, y + 100, w, 50);
+            bool hoverHeader = headerRect.Contains(mp);
+            float headerJitter = hoverHeader ? Mathf.Sin(Time.unscaledTime * 18f) * 1.5f : 0f;
             var headerStyle = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 28,
+                fontSize = hoverHeader ? 30 : 28,
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleLeft,
                 padding = new RectOffset(32, 32, 0, 0),
-                normal = { textColor = UITheme.NeonMagenta }
+                normal = { textColor = hoverHeader ? Color.white : UITheme.NeonMagenta }
             };
-            GUI.Label(new Rect(x, y + 100, w, 50), slide.title, headerStyle);
+            GUI.Label(new Rect(x + headerJitter, y + 100, w, 50), slide.title, headerStyle);
 
             // 헤더 아래 구분선
-            UITheme.DrawRect(new Rect(x + 32, y + 158, w - 64, 1), UITheme.Line);
+            UITheme.DrawRect(new Rect(x + 32, y + 158, w - 64,
+                hoverHeader ? 2 : 1),
+                hoverHeader ? UITheme.NeonMagenta : UITheme.Line);
 
-            // 본문 카드
+            // ── 본문 카드 (hover 시 보더 시안 + 본문 흰색) ──
             float bodyY = y + 180;
             float bodyH = h - 320;
-            UITheme.DrawCard(new Rect(x + 32, bodyY, w - 64, bodyH));
+            var bodyCardRect = new Rect(x + 32, bodyY, w - 64, bodyH);
+            bool hoverBody = bodyCardRect.Contains(mp);
+            UITheme.DrawCard(bodyCardRect, hoverBody ? UITheme.NeonCyan : null);
+            if (hoverBody)
+            {
+                UITheme.DrawBorder(new Rect(bodyCardRect.x - 1, bodyCardRect.y - 1,
+                    bodyCardRect.width + 2, bodyCardRect.height + 2), UITheme.NeonCyan, 2f);
+            }
 
             var bodyStyle = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 17,
+                fontSize = hoverBody ? 18 : 17,
                 wordWrap = true,
                 alignment = TextAnchor.UpperLeft,
                 padding = new RectOffset(28, 28, 24, 24),
-                normal = { textColor = UITheme.Ink }
+                normal = { textColor = hoverBody ? Color.white : UITheme.Ink }
             };
             GUI.Label(new Rect(x + 32, bodyY, w - 64, bodyH), slide.body, bodyStyle);
 
