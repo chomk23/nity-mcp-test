@@ -91,6 +91,47 @@ namespace ForTheCompany.Systems
             DrawBorder(r, accent, 1f);
         }
 
+        /// <summary>
+        /// SecureSense 네온 커서 — 작은 십자선 + 중앙 점.
+        /// 시스템 커서를 숨기고 OnGUI 위에 그림. 마우스 따라가는 네온 그린 십자.
+        /// </summary>
+        public static void DrawNeonCursor(Vector2 mp)
+        {
+            float size = 12f;        // 십자선 한쪽 길이
+            float gap = 3f;          // 중앙 빈 공간
+            Color c = NeonGreen;
+            Color glow = new Color(c.r, c.g, c.b, 0.25f);
+
+            // ── 외곽 글로우 (약간 두꺼운 십자) ──
+            DrawRect(new Rect(mp.x - size - 1, mp.y - 1, 2 * (size + 1), 2), glow);
+            DrawRect(new Rect(mp.x - 1, mp.y - size - 1, 2, 2 * (size + 1)), glow);
+
+            // ── 메인 십자선 (가운데 gap) ──
+            DrawRect(new Rect(mp.x - size, mp.y - 0.5f, size - gap, 1), c);          // 왼쪽
+            DrawRect(new Rect(mp.x + gap, mp.y - 0.5f, size - gap, 1), c);           // 오른쪽
+            DrawRect(new Rect(mp.x - 0.5f, mp.y - size, 1, size - gap), c);          // 위
+            DrawRect(new Rect(mp.x - 0.5f, mp.y + gap, 1, size - gap), c);           // 아래
+
+            // ── 중앙 작은 점 ──
+            DrawRect(new Rect(mp.x - 1, mp.y - 1, 2, 2), c);
+
+            // ── 네 모서리 코너 brackets (살짝 사이버 느낌) ──
+            float corner = 4f;
+            float cornerOff = size + 2f;
+            // 좌상
+            DrawRect(new Rect(mp.x - cornerOff, mp.y - cornerOff, corner, 1), c);
+            DrawRect(new Rect(mp.x - cornerOff, mp.y - cornerOff, 1, corner), c);
+            // 우상
+            DrawRect(new Rect(mp.x + cornerOff - corner, mp.y - cornerOff, corner, 1), c);
+            DrawRect(new Rect(mp.x + cornerOff - 1, mp.y - cornerOff, 1, corner), c);
+            // 좌하
+            DrawRect(new Rect(mp.x - cornerOff, mp.y + cornerOff - 1, corner, 1), c);
+            DrawRect(new Rect(mp.x - cornerOff, mp.y + cornerOff - corner, 1, corner), c);
+            // 우하
+            DrawRect(new Rect(mp.x + cornerOff - corner, mp.y + cornerOff - 1, corner, 1), c);
+            DrawRect(new Rect(mp.x + cornerOff - 1, mp.y + cornerOff - corner, 1, corner), c);
+        }
+
         /// <summary>펄스 dot — 살아있는 신호 (좌표는 점의 중심)</summary>
         public static void DrawPulseDot(Vector2 center, Color color, float radius = 4f)
         {

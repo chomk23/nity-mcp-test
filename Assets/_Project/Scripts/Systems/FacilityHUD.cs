@@ -1404,25 +1404,41 @@ namespace ForTheCompany.Systems
             bool win = s.Outcome == RunOutcome.Win;
             Color accent = win ? UITheme.NeonGreen : UITheme.Danger;
 
-            // 풀스크린 어둠 + 스캔라인
+            // ── 통계 계산 ──
+            float elapsedSec = Mathf.Max(0f, s.totalTime - s.TimeRemaining);
+            int em = Mathf.FloorToInt(elapsedSec / 60f);
+            int es = Mathf.FloorToInt(elapsedSec % 60f);
+            int total = s.totalClues;
+            int envCnt = 0, npcCnt = 0, miniCnt = 0;
+            foreach (var c in s.CollectedClues)
+            {
+                switch (c.source)
+                {
+                    case ClueSource.Environment: envCnt++; break;
+                    case ClueSource.NPC: npcCnt++; break;
+                    case ClueSource.Minigame: miniCnt++; break;
+                }
+            }
+            string spyName = NPCRoster.Instance != null && NPCRoster.Instance.Spy != null
+                ? NPCRoster.Instance.Spy.DisplayName
+                : "?";
+
+            // ── 풀스크린 어둠 + 스캔라인 ──
             UITheme.DrawRect(new Rect(0, 0, Screen.width, Screen.height),
                 new Color(UITheme.Bg0.r, UITheme.Bg0.g, UITheme.Bg0.b, 0.92f));
             UITheme.DrawScanlines(new Rect(0, 0, Screen.width, Screen.height), 0.06f);
 
-            float w = Mathf.Min(760, Screen.width - 80);
-            float h = 360;
+            float w = Mathf.Min(780, Screen.width - 80);
+            float h = 560;  // 통계 추가로 높이 확장 (360 → 560)
             float x = (Screen.width - w) * 0.5f;
             float y = (Screen.height - h) * 0.5f;
             var rect = new Rect(x, y, w, h);
 
-            // 패널
             UITheme.DrawRect(rect, UITheme.Bg1);
             UITheme.DrawBorder(rect, accent, 1f);
-
-            // 윈도우 헤더
             UITheme.DrawWinBar(new Rect(x, y, w, 32), "mission-result.dossier");
 
-            // 상태 태그 (좌측 상단)
+            // ── 상태 태그 ──
             float headerY = y + 50;
             UITheme.DrawPulseDot(new Vector2(x + 28, headerY + 14), accent, 5f);
 
@@ -1435,39 +1451,75 @@ namespace ForTheCompany.Systems
                 win ? "▸ MISSION SUCCESS // SUSPECT IDENTIFIED"
                     : "▸ MISSION FAILED // INVESTIGATION COMPROMISED", tagSt);
 
-            // 메인 결과 라벨
+            // ── 메인 결과 라벨 (좀 작게) ──
             var bigSt = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 56, fontStyle = FontStyle.Bold,
+                fontSize = 48, fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleCenter,
                 normal = { textColor = accent }
             };
-            GUI.Label(new Rect(x, y + 90, w, 80), win ? "VICTORY" : "DEFEAT", bigSt);
+            GUI.Label(new Rect(x, y + 80, w, 64), win ? "VICTORY" : "DEFEAT", bigSt);
 
             // 부제 한국어
             var subKoSt = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 16, fontStyle = FontStyle.Bold,
+                fontSize = 14, fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleCenter,
                 normal = { textColor = UITheme.InkDim }
             };
-            GUI.Label(new Rect(x, y + 156, w, 26), win ? "사건 해결" : "조사 실패", subKoSt);
+            GUI.Label(new Rect(x, y + 140, w, 22), win ? "사건 해결" : "조사 실패", subKoSt);
 
-            // 본문 메시지
+            // ── 통계 패널 ──
+            float statsY = y + 178;
+            float statsH = 180;
+            var statsRect = new Rect(x + 30, statsY, w - 60, statsH);
+            UITheme.DrawRect(statsRect, UITheme.Bg2);
+            UITheme.DrawBorder(statsRect, UITheme.Line, 1f);
+
+            // 통계 헤더
+            var statTagSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 10, fontStyle = FontStyle.Bold,
+                normal = { textColor = UITheme.NeonCyan }
+            };
+            GUI.Label(new Rect(statsRect.x + 14, statsRect.y + 8, statsRect.width - 28, 14),
+                "▸ MISSION DEBRIEF // STATS", statTagSt);
+
+            // 통계 행들 (좌측 라벨, 우측 값)
+            DrawStatRow(statsRect, 0, "▸ 사용 시간", $"{em:D2}:{es:D2}", UITheme.NeonCyan);
+            DrawStatRow(statsRect, 1, "▸ 단서 총 수집", $"{total}개", UITheme.NeonGreen);
+            DrawStatRow(statsRect, 2, "▸ NPC 증언", $"{npcCnt}개",
+                npcCnt > 0 ? UITheme.NeonCyan : UITheme.InkFaint);
+            DrawStatRow(statsRect, 3, "▸ 보안 교육 모듈", $"{envCnt}개",
+                envCnt > 0 ? UITheme.NeonYellow : UITheme.InkFaint);
+            DrawStatRow(statsRect, 4, "▸ 미니게임 (레이싱)", $"{miniCnt}개",
+                miniCnt > 0 ? UITheme.NeonMagenta : UITheme.InkFaint);
+
+            // ── 진짜 스파이 공개 + 결과 메시지 ──
+            float msgY = statsY + statsH + 12;
+            var revealSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 13, fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleCenter,
+                normal = { textColor = accent }
+            };
+            GUI.Label(new Rect(x + 30, msgY, w - 60, 20),
+                $"▸ 진짜 산업스파이: {spyName}", revealSt);
+
             var bodySt = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 14, wordWrap = true,
+                fontSize = 12, wordWrap = true,
                 alignment = TextAnchor.UpperCenter,
                 normal = { textColor = UITheme.Ink }
             };
-            GUI.Label(new Rect(x + 40, y + 192, w - 80, 60),
+            GUI.Label(new Rect(x + 40, msgY + 22, w - 80, 40),
                 s.OutcomeMessage, bodySt);
 
-            // 버튼 영역
-            float btnW = 230, btnH = 46, gap = 14;
+            // ── 버튼 영역 ──
+            float btnW = 230, btnH = 42, gap = 14;
             float twoW = btnW * 2 + gap;
             float bx = x + (w - twoW) * 0.5f;
-            float by = y + h - 70;
+            float by = y + h - 60;
 
             if (UITheme.NeonButton(new Rect(bx, by, btnW, btnH),
                 "▸ RESTART  [R]", win ? UITheme.NeonGreen : UITheme.NeonCyan))
@@ -1476,6 +1528,31 @@ namespace ForTheCompany.Systems
             if (UITheme.GhostButton(new Rect(bx + btnW + gap, by, btnW, btnH),
                 "▸ MAIN MENU  [M]"))
                 ReturnToMenu();
+        }
+
+        /// <summary>DrawEndScreen용 통계 한 줄 (좌측 라벨, 우측 값)</summary>
+        private static void DrawStatRow(Rect container, int rowIndex, string label, string value, Color accent)
+        {
+            float rowH = 28;
+            float startY = container.y + 30;
+            float y = startY + rowIndex * rowH;
+
+            var labelSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 13, fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleLeft,
+                padding = new RectOffset(20, 0, 0, 0),
+                normal = { textColor = UITheme.InkDim }
+            };
+            var valueSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 16, fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleRight,
+                padding = new RectOffset(0, 20, 0, 0),
+                normal = { textColor = accent }
+            };
+            GUI.Label(new Rect(container.x, y, container.width, rowH), label, labelSt);
+            GUI.Label(new Rect(container.x, y, container.width, rowH), value, valueSt);
         }
 
         private void DrawHint()

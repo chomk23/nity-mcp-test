@@ -95,7 +95,7 @@ namespace ForTheCompany.Systems
             CurrentPage = Page.Main;
             pausedTimeScale = Time.timeScale;
             Time.timeScale = 0f; // 게임 일시정지
-            Cursor.visible = true;
+            // 커서는 NeonCursorController가 항상 false로 유지 (네온 커서 사용)
             Cursor.lockState = CursorLockMode.None;
         }
 

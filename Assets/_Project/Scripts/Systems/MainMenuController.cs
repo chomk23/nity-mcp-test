@@ -52,7 +52,7 @@ namespace ForTheCompany.Systems
             // 빌드본에서 OnGUI 매 프레임 갱신 보장 (펄스 dot, hover jitter 등 애니메이션)
             Application.targetFrameRate = 60;
             Application.runInBackground = true;
-            Cursor.visible = true;
+            // 커서는 NeonCursorController가 항상 false로 유지 (네온 커서 사용)
             Cursor.lockState = CursorLockMode.None;
         }
 
