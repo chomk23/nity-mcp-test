@@ -79,6 +79,7 @@ namespace ForTheCompany.Systems
 
             LastAdvanceText = $"✓ {ObjectiveOf(prev)}\n→ 다음: {ObjectiveOf(CurrentStage)}";
             LastAdvanceTime = Time.time;
+            SfxManager.PlayStageAdvance();
             Debug.Log($"[Quest] {prev} → {CurrentStage}");
             return true;
         }

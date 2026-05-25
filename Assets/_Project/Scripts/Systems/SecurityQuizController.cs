@@ -54,6 +54,7 @@ namespace ForTheCompany.Systems
         {
             if (clue == null || clue.Resolved) return;
             ActiveClue = clue;
+            SfxManager.PlayModalOpen();
         }
 
         /// <summary>내부 전용 — 외부에서는 호출 금지. Answer 정답 시에만 사용.</summary>
@@ -85,12 +86,14 @@ namespace ForTheCompany.Systems
 
                 LastResultText = $"✓ 정답!\n{data.successClue}\n+{data.clueReward} 단서 획득";
                 ActiveClue.MarkResolved();
+                SfxManager.PlayCorrect();
                 Debug.Log($"[Quiz] {data.id} 정답 — '{data.successClue}' (+{data.clueReward} 단서)");
                 ActiveClue = null;
             }
             else
             {
                 LastResultText = "✗ 오답. 보안교육 자료 학습 후 다시 시도.";
+                SfxManager.PlayWrong();
                 Debug.Log($"[Quiz] {data.id} 오답");
             }
         }

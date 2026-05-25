@@ -217,6 +217,7 @@ namespace ForTheCompany.Systems
                 else
                 {
                     StartLine();
+                    SfxManager.PlayDialogue();
                 }
             }
         }

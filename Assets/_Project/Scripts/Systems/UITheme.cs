@@ -268,10 +268,25 @@ namespace ForTheCompany.Systems
             return Vector2.zero;
         }
 
+        // hover-enter 감지용 캐시 (rect+text 기준)
+        private static readonly System.Collections.Generic.Dictionary<int, bool> _hoverCache
+            = new System.Collections.Generic.Dictionary<int, bool>();
+
+        private static bool TrackHoverEnter(Rect rect, string text)
+        {
+            bool hover = rect.Contains(GetMousePos());
+            int key = (text != null ? text.GetHashCode() : 0)
+                ^ Mathf.RoundToInt(rect.x * 31 + rect.y);
+            _hoverCache.TryGetValue(key, out bool prev);
+            if (hover && !prev) SfxManager.PlayHover();
+            _hoverCache[key] = hover;
+            return hover;
+        }
+
         /// <summary>네온 버튼 — 직접 그리기 (border + hover 효과)</summary>
         public static bool NeonButton(Rect rect, string text, Color accent)
         {
-            bool hover = rect.Contains(GetMousePos());
+            bool hover = TrackHoverEnter(rect, text);
             DrawRect(rect, hover ? new Color(accent.r, accent.g, accent.b, 0.12f) : Bg2);
             DrawBorder(rect, accent, hover ? 2f : 1f);
 
@@ -284,13 +299,15 @@ namespace ForTheCompany.Systems
             };
             GUI.Label(rect, text.ToUpper(), style);
 
-            return GUI.Button(rect, GUIContent.none, GUIStyle.none);
+            bool clicked = GUI.Button(rect, GUIContent.none, GUIStyle.none);
+            if (clicked) SfxManager.PlayClick();
+            return clicked;
         }
 
         /// <summary>일반 버튼 — 어두운 배경 + 흰 텍스트</summary>
         public static bool GhostButton(Rect rect, string text)
         {
-            bool hover = rect.Contains(GetMousePos());
+            bool hover = TrackHoverEnter(rect, text);
             DrawRect(rect, hover ? Bg3 : Bg2);
             DrawBorder(rect, hover ? LineStrong : Line, 1f);
 
@@ -302,7 +319,9 @@ namespace ForTheCompany.Systems
             };
             GUI.Label(rect, text.ToUpper(), style);
 
-            return GUI.Button(rect, GUIContent.none, GUIStyle.none);
+            bool clicked = GUI.Button(rect, GUIContent.none, GUIStyle.none);
+            if (clicked) SfxManager.PlayClick();
+            return clicked;
         }
 
         /// <summary>태그 chip — 작은 라벨 (TAG, BADGE)</summary>
