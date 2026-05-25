@@ -1426,9 +1426,15 @@ namespace ForTheCompany.Systems
                     case ClueSource.Minigame: miniCnt++; break;
                 }
             }
-            string spyName = NPCRoster.Instance != null && NPCRoster.Instance.Spy != null
-                ? NPCRoster.Instance.Spy.DisplayName
-                : "?";
+            string spyName = "?";
+            int spyRole = -1;
+            if (NPCRoster.Instance != null && NPCRoster.Instance.Spy != null)
+            {
+                spyName = NPCRoster.Instance.Spy.DisplayName;
+                if (NPCRoster.Instance.Spy.data != null)
+                    spyRole = (int)NPCRoster.Instance.Spy.data.role;
+            }
+            string motiveText = GetSpyMotive(spyRole);
 
             // ── 풀스크린 어둠 + 스캔라인 ──
             UITheme.DrawRect(new Rect(0, 0, Screen.width, Screen.height),
@@ -1436,7 +1442,7 @@ namespace ForTheCompany.Systems
             UITheme.DrawScanlines(new Rect(0, 0, Screen.width, Screen.height), 0.06f);
 
             float w = Mathf.Min(780, Screen.width - 80);
-            float h = 560;  // 통계 추가로 높이 확장 (360 → 560)
+            float h = 700;  // 모티브 박스 추가로 높이 확장 (560 → 700)
             float x = (Screen.width - w) * 0.5f;
             float y = (Screen.height - h) * 0.5f;
             var rect = new Rect(x, y, w, h);
@@ -1502,24 +1508,51 @@ namespace ForTheCompany.Systems
             DrawStatRow(statsRect, 4, "▸ 미니게임 (레이싱)", $"{miniCnt}개",
                 miniCnt > 0 ? UITheme.NeonMagenta : UITheme.InkFaint);
 
-            // ── 진짜 스파이 공개 + 결과 메시지 ──
-            float msgY = statsY + statsH + 12;
+            // ── 진짜 스파이 공개 ──
+            float msgY = statsY + statsH + 10;
             var revealSt = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 13, fontStyle = FontStyle.Bold,
+                fontSize = 14, fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleCenter,
                 normal = { textColor = accent }
             };
-            GUI.Label(new Rect(x + 30, msgY, w - 60, 20),
+            GUI.Label(new Rect(x + 30, msgY, w - 60, 22),
                 $"▸ 진짜 산업스파이: {spyName}", revealSt);
 
-            var bodySt = new GUIStyle(GUI.skin.label)
+            // ── 모티브 박스 (서사적 동기) ──
+            float motiveY = msgY + 28;
+            float motiveH = 110;
+            var motiveRect = new Rect(x + 30, motiveY, w - 60, motiveH);
+            UITheme.DrawRect(motiveRect, UITheme.Bg2);
+            UITheme.DrawBorder(motiveRect, accent, 1f);
+            // 좌측 강조 띠
+            UITheme.DrawRect(new Rect(motiveRect.x, motiveRect.y, 3f, motiveH), accent);
+
+            var motiveTagSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 10, fontStyle = FontStyle.Bold,
+                normal = { textColor = accent }
+            };
+            GUI.Label(new Rect(motiveRect.x + 14, motiveRect.y + 8, motiveRect.width - 28, 14),
+                "▸ MOTIVE // 유출 동기", motiveTagSt);
+
+            var motiveBodySt = new GUIStyle(GUI.skin.label)
             {
                 fontSize = 12, wordWrap = true,
-                alignment = TextAnchor.UpperCenter,
+                alignment = TextAnchor.UpperLeft,
                 normal = { textColor = UITheme.Ink }
             };
-            GUI.Label(new Rect(x + 40, msgY + 22, w - 80, 40),
+            GUI.Label(new Rect(motiveRect.x + 16, motiveRect.y + 26, motiveRect.width - 32, motiveH - 32),
+                motiveText, motiveBodySt);
+
+            // ── 결과 메시지 (간단히) ──
+            var bodySt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 11, wordWrap = true,
+                alignment = TextAnchor.UpperCenter,
+                normal = { textColor = UITheme.InkDim }
+            };
+            GUI.Label(new Rect(x + 40, motiveY + motiveH + 6, w - 80, 28),
                 s.OutcomeMessage, bodySt);
 
             // ── 버튼 영역 ──
@@ -1535,6 +1568,29 @@ namespace ForTheCompany.Systems
             if (UITheme.GhostButton(new Rect(bx + btnW + gap, by, btnW, btnH),
                 "▸ MAIN MENU  [M]"))
                 ReturnToMenu();
+        }
+
+        /// <summary>진짜 스파이의 직업(role)에 따른 정보 유출 동기 — 게임 마무리 서사</summary>
+        private static string GetSpyMotive(int role)
+        {
+            // RoleType: 1=Researcher, 2=NetworkAdmin, 3=FacilityManager
+            switch (role)
+            {
+                case 1: return
+                    "3년간 핵심 연구를 주도했지만 회사는 그의 이름을 특허에서 제외했다.\n" +
+                    "해외 경쟁사가 그의 가치를 알아봤고, 2억원의 이적 제안을 보내왔다.\n" +
+                    "설계도를 빼돌리면 스타트업 창업과 새로운 인생이 가능했다.";
+                case 2: return
+                    "암호화폐 투자 손실로 빚이 눈덩이처럼 불어났다.\n" +
+                    "다크웹의 누군가가 기업 보안 데이터에 거액을 제시했고,\n" +
+                    "관리자 권한을 가진 그는 새벽 시간 외부 IP로 자료를 흘려보냈다.";
+                case 3: return
+                    "어머니의 긴급 수술비가 필요했지만 회사 대출은 거절됐다.\n" +
+                    "외부 침입자는 단 한 번 — 카드키 사본과 30분간의 CCTV 정전을 요구했다.\n" +
+                    "양심의 가책은 컸지만 다른 선택지가 없었다.";
+                default:
+                    return "동기는 끝까지 밝혀지지 않았다.";
+            }
         }
 
         /// <summary>DrawEndScreen용 통계 한 줄 (좌측 라벨, 우측 값)</summary>
