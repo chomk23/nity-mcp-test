@@ -1672,179 +1672,517 @@ namespace ForTheCompany.Systems
         }
 
         /// <summary>I키로 토글되는 인벤토리 — SecureSense Dossier 스타일 단서 아카이브</summary>
+        // ─── 인벤토리 상태 — 선택된 용의자 (좌측 하단 카드 클릭) ───
+        // -1 = 미선택, 1=연구원, 2=네트워크관리자, 3=시설관리자
+        private int selectedSuspectRole = -1;
+        // 단서 보드 카드 캐싱된 위치 (카드 그리고 점선 연결할 때 사용)
+        private readonly List<Rect> boardCardRects = new List<Rect>();
+
         private void DrawInventoryPanel()
         {
             if (!IsInventoryOpen) return;
             var s = GameSession.Instance;
             if (s == null) return;
 
-            // ── 전체 어둠 오버레이 ──
+            // ── 풀스크린 어둠 + 스캔라인 ──
             UITheme.DrawRect(new Rect(0, 0, Screen.width, Screen.height),
-                new Color(UITheme.Bg0.r, UITheme.Bg0.g, UITheme.Bg0.b, 0.88f));
+                new Color(UITheme.Bg0.r, UITheme.Bg0.g, UITheme.Bg0.b, 0.92f));
             UITheme.DrawScanlines(new Rect(0, 0, Screen.width, Screen.height), 0.04f);
 
-            float w = Mathf.Min(900, Screen.width - 60);
-            float h = Mathf.Min(700, Screen.height - 80);
+            // ── 메인 패널 (1240×720 권장) ──
+            float w = Mathf.Min(1280, Screen.width - 40);
+            float h = Mathf.Min(760, Screen.height - 40);
             float x = (Screen.width - w) * 0.5f;
             float y = (Screen.height - h) * 0.5f;
 
             var panelRect = new Rect(x, y, w, h);
-
-            // ── 패널 (윈도우 chrome + 보더) ──
             UITheme.DrawRect(panelRect, UITheme.Bg1);
             UITheme.DrawBorder(panelRect, UITheme.LineStrong, 1f);
+            UITheme.DrawWinBar(new Rect(x, y, w, 32),
+                "securesense · investigation board · case#IR-2026-0524");
 
-            // 윈도우 헤더 바
-            var winBarRect = new Rect(x, y, w, 32);
-            UITheme.DrawWinBar(winBarRect, "evidence-archive.dossier");
-
-            // ── 헤더 섹션 ──
+            // ── 상단 헤더 ──
             float headerY = y + 44;
-            // 좌측 펄스 dot
-            UITheme.DrawPulseDot(new Vector2(x + 22, headerY + 14), UITheme.NeonGreen, 4f);
+            UITheme.DrawPulseDot(new Vector2(x + 24, headerY + 14), UITheme.Danger, 4f);
 
-            var sectionTitle = new GUIStyle(GUI.skin.label)
+            var headerTagSt = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 18, fontStyle = FontStyle.Bold,
-                alignment = TextAnchor.MiddleLeft,
-                normal = { textColor = UITheme.NeonGreen }
+                fontSize = 11, fontStyle = FontStyle.Bold,
+                normal = { textColor = UITheme.Danger }
             };
-            GUI.Label(new Rect(x + 36, headerY, w - 200, 28),
-                "▸ EVIDENCE COLLECTED", sectionTitle);
+            GUI.Label(new Rect(x + 40, headerY + 4, w - 80, 14),
+                "▸ 진행 중인 사건 // ACTIVE INCIDENT", headerTagSt);
 
-            // 우측 카운트 태그
-            int count = s.CollectedClues.Count;
-            string countLabel = $"{count:D2} / ∞ ITEMS";
-            float tagW = 120;
-            UITheme.DrawTag(new Rect(x + w - tagW - 24, headerY + 2, tagW, 22),
-                countLabel, UITheme.NeonCyan);
-
-            // 닫기 안내
-            var hintStyle = new GUIStyle(GUI.skin.label)
+            var titleSt = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 11,
+                fontSize = 20, fontStyle = FontStyle.Bold,
+                normal = { textColor = UITheme.Ink }
+            };
+            GUI.Label(new Rect(x + 40, headerY + 18, w - 80, 28),
+                "차세대 보안 칩 설계도 유출 — 산업스파이 조사", titleSt);
+
+            var hintSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 10, fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleRight,
+                padding = new RectOffset(0, 24, 0, 0),
                 normal = { textColor = UITheme.InkFaint }
             };
-            GUI.Label(new Rect(x + 24, headerY + 28, w - 48, 16),
-                "// PRESS [I] OR [ESC] TO CLOSE", hintStyle);
+            GUI.Label(new Rect(x, headerY + 6, w, 14),
+                "// [I] 또는 [ESC] 닫기", hintSt);
 
-            // 헤더 하단 구분선
-            UITheme.DrawRect(new Rect(x + 20, headerY + 50, w - 40, 1), UITheme.Line);
+            UITheme.DrawRect(new Rect(x + 24, headerY + 52, w - 48, 1), UITheme.Line);
 
-            // ── 비어있을 때 ──
-            if (count == 0)
+            // ── 본문 — 좌우 분할 (보드 + 용의자카드 / 우측 SUSPECT FILE) ──
+            float bodyY = headerY + 64;
+            float bodyH = h - (bodyY - y) - 16;
+
+            float leftW = w * 0.65f;
+            float rightW = w * 0.35f - 12;
+
+            DrawInvestigationBoardSection(s, new Rect(x + 14, bodyY, leftW - 14, bodyH));
+            DrawSuspectFileSection(s, new Rect(x + leftW + 4, bodyY, rightW, bodyH));
+        }
+
+        // ═════════════ 좌측: Investigation Board + 용의자 3 카드 ═════════════
+        private void DrawInvestigationBoardSection(GameSession s, Rect area)
+        {
+            // 영역 분할 — 위쪽 EVIDENCE BOARD (75%) + 아래쪽 SUSPECTS 3 (25%)
+            float boardH = area.height * 0.72f;
+            float suspectsH = area.height - boardH - 10;
+            var boardRect = new Rect(area.x, area.y, area.width, boardH);
+            var suspectsRect = new Rect(area.x, area.y + boardH + 10, area.width, suspectsH);
+
+            // ── 보드 패널 ──
+            UITheme.DrawRect(boardRect, UITheme.Bg2);
+            UITheme.DrawBorder(boardRect, UITheme.Line, 1f);
+
+            // 보드 헤더
+            var labelSt = new GUIStyle(GUI.skin.label)
             {
-                var emptyTitle = new GUIStyle(GUI.skin.label)
-                {
-                    fontSize = 16, fontStyle = FontStyle.Bold,
-                    alignment = TextAnchor.MiddleCenter,
-                    normal = { textColor = UITheme.InkDim }
-                };
-                GUI.Label(new Rect(x + 40, y + h * 0.42f, w - 80, 28),
-                    "// NO ENTRIES IN ARCHIVE", emptyTitle);
+                fontSize = 11, fontStyle = FontStyle.Bold,
+                normal = { textColor = UITheme.NeonGreen }
+            };
+            int total = s.CollectedClues.Count;
+            GUI.Label(new Rect(boardRect.x + 14, boardRect.y + 8, 300, 16),
+                $"▸ 증거 보드 // EVIDENCE BOARD · {total:D2}", labelSt);
 
-                var emptyBody = new GUIStyle(GUI.skin.label)
+            var subTag = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 10,
+                alignment = TextAnchor.MiddleRight,
+                padding = new RectOffset(0, 14, 0, 0),
+                normal = { textColor = UITheme.InkFaint }
+            };
+            GUI.Label(new Rect(boardRect.x, boardRect.y + 8, boardRect.width, 16),
+                selectedSuspectRole < 0
+                    ? "// 용의자 카드를 클릭하면 관련 단서가 점선으로 연결됩니다"
+                    : $"// 선택됨: {GetRoleName(selectedSuspectRole)} — 관련 단서 강조",
+                subTag);
+
+            UITheme.DrawRect(new Rect(boardRect.x + 14, boardRect.y + 28, boardRect.width - 28, 1),
+                UITheme.Line);
+
+            // 단서 카드들 자동 그리드 배치
+            DrawEvidenceCards(s, new Rect(boardRect.x + 14, boardRect.y + 36,
+                boardRect.width - 28, boardRect.height - 50));
+
+            // ── 좌하단 용의자 3 카드 ──
+            DrawSuspectsRow(suspectsRect);
+
+            // ── 선택된 용의자 → 단서 점선 연결 ──
+            if (selectedSuspectRole >= 0)
+                DrawDottedConnections(s, suspectsRect);
+        }
+
+        private void DrawEvidenceCards(GameSession s, Rect area)
+        {
+            boardCardRects.Clear();
+            int n = s.CollectedClues.Count;
+            if (n == 0)
+            {
+                var emptySt = new GUIStyle(GUI.skin.label)
                 {
-                    fontSize = 13, wordWrap = true,
+                    fontSize = 13, fontStyle = FontStyle.Bold,
                     alignment = TextAnchor.MiddleCenter,
                     normal = { textColor = UITheme.InkFaint }
                 };
-                GUI.Label(new Rect(x + 40, y + h * 0.48f, w - 80, 60),
-                    "NPC와 대화하거나 환경 단서를 조사하면\n수집한 정보가 자동으로 기록됩니다.",
-                    emptyBody);
+                GUI.Label(area, "// 아직 수집된 단서가 없습니다", emptySt);
                 return;
             }
 
-            // ── 카드 리스트 (스크롤뷰) ──
-            float listY = headerY + 60;
-            float listH = h - (listY - y) - 20;
-            var viewRect = new Rect(x + 20, listY, w - 40, listH);
+            // 그리드 — 3열 자동 (단서 많아지면 행 추가)
+            int cols = 3;
+            int rows = Mathf.CeilToInt(n / (float)cols);
+            float gap = 8f;
+            float cardW = (area.width - gap * (cols - 1)) / cols;
+            float cardH = 88f;
+            float totalH = rows * cardH + (rows - 1) * gap;
 
-            float cardW = viewRect.width - 24;
-            float gap = 8;
+            var viewRect = new Rect(area.x, area.y, area.width, area.height);
+            var contentRect = new Rect(0, 0, area.width - 12, totalH);
 
-            // 카드 본문 텍스트 스타일
-            var cardBodySt = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 13, wordWrap = true,
-                normal = { textColor = UITheme.Ink }
-            };
-
-            // 콘텐츠 높이 계산
-            var heights = new List<float>(count);
-            float total = 0;
-            foreach (var c in s.CollectedClues)
-            {
-                float bodyH = cardBodySt.CalcHeight(new GUIContent(c.text), cardW - 60);
-                float cardH = bodyH + 60;
-                heights.Add(cardH);
-                total += cardH + gap;
-            }
-
-            var contentRect = new Rect(0, 0, cardW, total);
             inventoryScroll = GUI.BeginScrollView(viewRect, inventoryScroll, contentRect);
 
-            float cy = 0;
-            for (int i = 0; i < count; i++)
+            var titleSt = new GUIStyle(GUI.skin.label)
             {
-                var c = s.CollectedClues[i];
-                float cardH = heights[i];
-                var cardRect = new Rect(0, cy, cardW, cardH);
+                fontSize = 12, fontStyle = FontStyle.Bold, wordWrap = true,
+                normal = { textColor = Color.white }
+            };
+            var bodySt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 10, wordWrap = true,
+                normal = { textColor = UITheme.InkDim }
+            };
 
-                // 출처별 색깔 (SecureSense 네온 매핑)
-                Color srcColor;
-                string srcLabel;
-                switch (c.source)
+            for (int i = 0; i < n; i++)
+            {
+                int r = i / cols, c = i % cols;
+                float cx = c * (cardW + gap);
+                float cy = r * (cardH + gap);
+                var cardR = new Rect(cx, cy, cardW, cardH);
+
+                var clue = s.CollectedClues[i];
+                Color accent = GetSourceColor(clue.source);
+                bool isLinkedToSelected = selectedSuspectRole >= 0
+                    && clue.relatedRole == selectedSuspectRole;
+                bool dim = selectedSuspectRole >= 0 && !isLinkedToSelected;
+
+                Color cardBg = dim ? new Color(UITheme.Bg3.r, UITheme.Bg3.g, UITheme.Bg3.b, 0.5f)
+                                   : UITheme.Bg3;
+                UITheme.DrawRect(cardR, cardBg);
+                UITheme.DrawBorder(cardR, isLinkedToSelected ? accent : UITheme.Line,
+                    isLinkedToSelected ? 2f : 1f);
+
+                // 좌측 띠 (출처 색)
+                UITheme.DrawRect(new Rect(cardR.x, cardR.y, 3f, cardR.height),
+                    dim ? new Color(accent.r, accent.g, accent.b, 0.3f) : accent);
+
+                // 상단: 태그 + 번호
+                if (!string.IsNullOrEmpty(clue.tag))
                 {
-                    case ClueSource.Environment:
-                        srcColor = UITheme.NeonYellow; srcLabel = "ENV·LOG"; break;
-                    case ClueSource.NPC:
-                        srcColor = UITheme.NeonCyan; srcLabel = "TESTIMONY"; break;
-                    case ClueSource.Minigame:
-                        srcColor = UITheme.NeonGreen; srcLabel = "MISSION"; break;
-                    default:
-                        srcColor = UITheme.NeonViolet; srcLabel = "MISC"; break;
+                    UITheme.DrawTag(new Rect(cardR.x + 8, cardR.y + 6, 60, 14),
+                        clue.tag, accent);
                 }
-
-                // 카드 배경 + 보더
-                UITheme.DrawRect(cardRect, UITheme.Bg2);
-                UITheme.DrawBorder(cardRect, UITheme.Line, 1f);
-
-                // 좌측 강조선 (출처 색)
-                UITheme.DrawRect(new Rect(cardRect.x, cardRect.y, 3f, cardH), srcColor);
-
-                // 카드 번호 (왼쪽 상단)
-                var idxStyle = new GUIStyle(GUI.skin.label)
+                var numSt = new GUIStyle(GUI.skin.label)
                 {
-                    fontSize = 10,
+                    fontSize = 9, alignment = TextAnchor.MiddleRight,
+                    padding = new RectOffset(0, 8, 0, 0),
                     normal = { textColor = UITheme.InkFaint }
                 };
-                GUI.Label(new Rect(cardRect.x + 14, cardRect.y + 8, 40, 14),
-                    $"#{(i + 1):D3}", idxStyle);
+                GUI.Label(new Rect(cardR.x, cardR.y + 4, cardR.width, 14),
+                    $"#{i + 1:D2}", numSt);
 
                 // 제목
-                var titleSt = new GUIStyle(GUI.skin.label)
-                {
-                    fontSize = 15, fontStyle = FontStyle.Bold,
-                    normal = { textColor = UITheme.Ink }
-                };
-                GUI.Label(new Rect(cardRect.x + 50, cardRect.y + 6, cardW - 200, 22),
-                    c.title, titleSt);
+                GUI.Label(new Rect(cardR.x + 8, cardR.y + 22, cardR.width - 16, 32),
+                    clue.title, titleSt);
 
-                // 출처 태그 (우측 상단)
-                float tagWidth = 100;
-                UITheme.DrawTag(new Rect(cardRect.x + cardW - tagWidth - 14, cardRect.y + 8,
-                    tagWidth, 18), srcLabel, srcColor);
+                // 본문 일부 (잘림)
+                GUI.Label(new Rect(cardR.x + 8, cardR.y + 52, cardR.width - 16, cardR.height - 56),
+                    clue.text, bodySt);
 
-                // 본문
-                GUI.Label(new Rect(cardRect.x + 18, cardRect.y + 34, cardW - 36, cardH - 42),
-                    c.text, cardBodySt);
-
-                cy += cardH + gap;
+                // 화면 좌표로 변환해서 점선 연결용 캐싱
+                // (스크롤 보정: viewRect.x + cardR.x - scroll)
+                Rect screenRect = new Rect(
+                    viewRect.x + cardR.x - inventoryScroll.x,
+                    viewRect.y + cardR.y - inventoryScroll.y,
+                    cardR.width, cardR.height);
+                boardCardRects.Add(screenRect);
             }
 
             GUI.EndScrollView();
         }
+
+        private void DrawSuspectsRow(Rect area)
+        {
+            UITheme.DrawRect(area, UITheme.Bg2);
+            UITheme.DrawBorder(area, UITheme.Line, 1f);
+
+            var headerSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 11, fontStyle = FontStyle.Bold,
+                normal = { textColor = UITheme.NeonMagenta }
+            };
+            GUI.Label(new Rect(area.x + 12, area.y + 6, 300, 14),
+                "▸ 용의자 3 // SUSPECTS — 클릭으로 단서 연결", headerSt);
+
+            // 3개 용의자 카드 가로 배치
+            float cardY = area.y + 26;
+            float cardH = area.height - 34;
+            float gap = 8f;
+            float cardW = (area.width - 24 - gap * 2) / 3;
+
+            DrawSingleSuspectCard(new Rect(area.x + 12, cardY, cardW, cardH), 1, "연구원", "R&D");
+            DrawSingleSuspectCard(new Rect(area.x + 12 + (cardW + gap), cardY, cardW, cardH),
+                2, "네트워크관리자", "IT INFRA");
+            DrawSingleSuspectCard(new Rect(area.x + 12 + (cardW + gap) * 2, cardY, cardW, cardH),
+                3, "시설관리자", "OPS");
+        }
+
+        private void DrawSingleSuspectCard(Rect rect, int role, string name, string subTitle)
+        {
+            bool isSelected = selectedSuspectRole == role;
+            bool hover = rect.Contains(UITheme.GetMousePos());
+
+            // NPC 의심도 가져오기
+            int suspicion = 0;
+            var roster = NPCRoster.Instance;
+            if (roster != null)
+            {
+                foreach (var npc in roster.npcs)
+                {
+                    if (npc != null && npc.data != null && (int)npc.data.role == role)
+                    {
+                        suspicion = npc.suspicion;
+                        break;
+                    }
+                }
+            }
+
+            Color susColor = suspicion >= 7 ? UITheme.Danger
+                : suspicion >= 4 ? UITheme.NeonYellow
+                : UITheme.NeonCyan;
+            Color borderC = isSelected ? UITheme.NeonGreen
+                : hover ? susColor
+                : UITheme.Line;
+
+            UITheme.DrawRect(rect, isSelected
+                ? new Color(UITheme.NeonGreen.r, UITheme.NeonGreen.g, UITheme.NeonGreen.b, 0.10f)
+                : UITheme.Bg3);
+            UITheme.DrawBorder(rect, borderC, isSelected ? 2f : 1f);
+
+            // 좌측 띠 (의심도 색)
+            UITheme.DrawRect(new Rect(rect.x, rect.y, 3f, rect.height), susColor);
+
+            // 이름
+            var nameSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 13, fontStyle = FontStyle.Bold,
+                normal = { textColor = isSelected ? UITheme.NeonGreen : Color.white }
+            };
+            GUI.Label(new Rect(rect.x + 12, rect.y + 6, rect.width - 24, 18), name, nameSt);
+
+            // 부직군
+            var subSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 9, fontStyle = FontStyle.Bold,
+                normal = { textColor = UITheme.InkFaint }
+            };
+            GUI.Label(new Rect(rect.x + 12, rect.y + 22, rect.width - 24, 12), subTitle, subSt);
+
+            // 의심도 막대
+            float barY = rect.y + 38;
+            float barW = rect.width - 24;
+            UITheme.DrawRect(new Rect(rect.x + 12, barY, barW, 4), UITheme.Bg4);
+            float pct = Mathf.Clamp01(suspicion / 10f);
+            if (pct > 0f)
+                UITheme.DrawRect(new Rect(rect.x + 12, barY, barW * pct, 4), susColor);
+
+            // 의심도 숫자
+            var susLabelSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 9, fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleRight,
+                normal = { textColor = susColor }
+            };
+            GUI.Label(new Rect(rect.x, barY + 6, rect.width - 12, 12),
+                $"의심도 {suspicion}/10", susLabelSt);
+
+            // 클릭
+            if (GUI.Button(rect, GUIContent.none, GUIStyle.none))
+            {
+                selectedSuspectRole = (selectedSuspectRole == role) ? -1 : role; // 토글
+                SfxManager.PlayClick();
+            }
+        }
+
+        private void DrawDottedConnections(GameSession s, Rect suspectsArea)
+        {
+            // 선택된 용의자 카드 위치 (좌하단 영역에서 role 인덱스 기반)
+            int selIdx = selectedSuspectRole - 1; // 1→0, 2→1, 3→2
+            if (selIdx < 0 || selIdx > 2) return;
+
+            float gap = 8f;
+            float cardW = (suspectsArea.width - 24 - gap * 2) / 3;
+            float cardH = suspectsArea.height - 34;
+            float cardX = suspectsArea.x + 12 + selIdx * (cardW + gap);
+            float cardY = suspectsArea.y + 26;
+            // 용의자 카드 상단 중앙 = 점선 시작점
+            Vector2 suspectAnchor = new Vector2(cardX + cardW * 0.5f, cardY);
+
+            // 단서 카드 중에서 연결된 것들 → 점선
+            int cardIdx = 0;
+            foreach (var clue in s.CollectedClues)
+            {
+                if (cardIdx >= boardCardRects.Count) break;
+                Rect cardR = boardCardRects[cardIdx];
+                cardIdx++;
+
+                if (clue.relatedRole != selectedSuspectRole) continue;
+                // 보드 밖으로 스크롤된 카드는 점선 안 그림 (대충 좌표 체크)
+                if (cardR.yMax < suspectsArea.y - 200 || cardR.y > suspectsArea.y - 4) continue;
+
+                Vector2 clueAnchor = new Vector2(cardR.center.x, cardR.yMax);
+                UITheme.DrawDottedLine(suspectAnchor, clueAnchor, UITheme.NeonGreen, 2.5f, 4f);
+            }
+        }
+
+        // ═════════════ 우측: SUSPECT FILE (선택된 용의자 상세) ═════════════
+        private void DrawSuspectFileSection(GameSession s, Rect area)
+        {
+            UITheme.DrawRect(area, UITheme.Bg2);
+            UITheme.DrawBorder(area, UITheme.Line, 1f);
+
+            // 헤더
+            var labelSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 11, fontStyle = FontStyle.Bold,
+                normal = { textColor = UITheme.NeonCyan }
+            };
+            GUI.Label(new Rect(area.x + 14, area.y + 8, area.width - 28, 16),
+                "▸ 용의자 파일 // SUSPECT FILE", labelSt);
+
+            UITheme.DrawRect(new Rect(area.x + 14, area.y + 28, area.width - 28, 1), UITheme.Line);
+
+            if (selectedSuspectRole < 0)
+            {
+                var emptySt = new GUIStyle(GUI.skin.label)
+                {
+                    fontSize = 12, wordWrap = true,
+                    alignment = TextAnchor.MiddleCenter,
+                    normal = { textColor = UITheme.InkFaint }
+                };
+                GUI.Label(new Rect(area.x + 20, area.y + area.height * 0.4f, area.width - 40, 80),
+                    "용의자를 선택해주세요.\n\n좌측 하단 3개 카드 중 하나를\n클릭하면 상세 정보가 표시됩니다.", emptySt);
+                return;
+            }
+
+            // 선택된 NPC 찾기
+            NPCActor selected = null;
+            var roster = NPCRoster.Instance;
+            if (roster != null)
+            {
+                foreach (var npc in roster.npcs)
+                {
+                    if (npc != null && npc.data != null && (int)npc.data.role == selectedSuspectRole)
+                    {
+                        selected = npc; break;
+                    }
+                }
+            }
+            if (selected == null) return;
+
+            float cy = area.y + 42;
+
+            // 이름 (큰)
+            var nameSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 22, fontStyle = FontStyle.Bold,
+                normal = { textColor = Color.white }
+            };
+            GUI.Label(new Rect(area.x + 16, cy, area.width - 32, 30),
+                selected.DisplayName, nameSt);
+            cy += 32;
+
+            var subSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 11, fontStyle = FontStyle.Bold,
+                normal = { textColor = UITheme.InkDim }
+            };
+            GUI.Label(new Rect(area.x + 16, cy, area.width - 32, 14),
+                GetRoleSubtitle(selectedSuspectRole), subSt);
+            cy += 24;
+
+            // 의심도 인덱스
+            UITheme.DrawRect(new Rect(area.x + 16, cy, area.width - 32, 1), UITheme.Line);
+            cy += 8;
+
+            int sus = selected.suspicion;
+            Color susColor = sus >= 7 ? UITheme.Danger
+                : sus >= 4 ? UITheme.NeonYellow
+                : UITheme.NeonCyan;
+
+            var sectionSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 10, fontStyle = FontStyle.Bold,
+                normal = { textColor = susColor }
+            };
+            GUI.Label(new Rect(area.x + 16, cy, area.width - 32, 14),
+                "▸ 의심도 // SUSPICION INDEX", sectionSt);
+            cy += 16;
+            UITheme.DrawRect(new Rect(area.x + 16, cy, area.width - 32, 8), UITheme.Bg4);
+            float pct = Mathf.Clamp01(sus / 10f);
+            UITheme.DrawRect(new Rect(area.x + 16, cy, (area.width - 32) * pct, 8), susColor);
+            var susNumSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 11, fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleRight,
+                normal = { textColor = susColor }
+            };
+            GUI.Label(new Rect(area.x, cy + 12, area.width - 16, 14),
+                $"{sus} / 10", susNumSt);
+            cy += 36;
+
+            // 연결된 단서 수
+            int linked = 0;
+            foreach (var c in s.CollectedClues)
+                if (c.relatedRole == selectedSuspectRole) linked++;
+
+            UITheme.DrawRect(new Rect(area.x + 16, cy, area.width - 32, 1), UITheme.Line);
+            cy += 8;
+
+            var linkedSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 10, fontStyle = FontStyle.Bold,
+                normal = { textColor = UITheme.NeonGreen }
+            };
+            GUI.Label(new Rect(area.x + 16, cy, area.width - 32, 14),
+                "▸ 수집된 단서 // EVIDENCE", linkedSt);
+            cy += 16;
+            var linkedNumSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 26, fontStyle = FontStyle.Bold,
+                normal = { textColor = UITheme.NeonGreen }
+            };
+            GUI.Label(new Rect(area.x + 16, cy, area.width - 32, 32),
+                $"{linked} 건", linkedNumSt);
+            cy += 38;
+
+            // 안내
+            var infoSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 11, wordWrap = true,
+                normal = { textColor = UITheme.InkDim }
+            };
+            string infoText = sus >= 7
+                ? "▸ 의심도 매우 높음. 보안통제실 콘솔에서 지목 가능.\n주의: 단 한 번만 지목할 수 있다."
+                : sus >= 4
+                ? "▸ 의심도 상승 중. 추가 단서를 모아 확신을 쌓아라."
+                : "▸ 아직 단서가 부족하다. 대화·환경 조사로 단서를 더 모아라.";
+            GUI.Label(new Rect(area.x + 16, cy, area.width - 32, 80), infoText, infoSt);
+        }
+
+        // ─── 헬퍼 ───
+        private static string GetRoleName(int role) => role switch
+        {
+            1 => "연구원",
+            2 => "네트워크관리자",
+            3 => "시설관리자",
+            _ => "?"
+        };
+        private static string GetRoleSubtitle(int role) => role switch
+        {
+            1 => "선임 연구원 · R&D",
+            2 => "네트워크 관리자 · IT INFRA",
+            3 => "시설 관리자 · OPS",
+            _ => ""
+        };
+        private static Color GetSourceColor(ClueSource src) => src switch
+        {
+            ClueSource.Environment => UITheme.NeonYellow,
+            ClueSource.NPC => UITheme.NeonCyan,
+            ClueSource.Minigame => UITheme.NeonGreen,
+            _ => UITheme.NeonViolet
+        };
     }
 }

@@ -30,6 +30,12 @@ namespace ForTheCompany.Player
         [Header("Reward")]
         public string successClue;
         public int clueReward = 2;
+
+        [Header("Investigation Board")]
+        // 관련 용의자 role (1=연구원, 2=네트워크관리자, 3=시설관리자, -1=무관)
+        public int relatedRole = -1;
+        // 카테고리 태그 (BADGE/CCTV/NET/DATA/LOG/COMMS 등)
+        public string tag = "";
     }
 
     public class ClueObject : MonoBehaviour, IInteractable

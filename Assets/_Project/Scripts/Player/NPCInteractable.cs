@@ -115,7 +115,10 @@ namespace ForTheCompany.Player
                 session.totalClues += reward;
                 session.LastEncounterRewardClues = reward;
                 if (firstTime && !string.IsNullOrEmpty(lineText))
-                    session.AddClue($"{DisplayName}의 첫 증언", lineText, ClueSource.NPC);
+                {
+                    int role = Actor != null && Actor.data != null ? (int)Actor.data.role : -1;
+                    session.AddClue($"{DisplayName}의 첫 증언", lineText, ClueSource.NPC, role, "INTERVIEW");
+                }
             }
 
             var realSpy = NPCRoster.Instance != null ? NPCRoster.Instance.Spy : null;

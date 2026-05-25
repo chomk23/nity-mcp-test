@@ -64,6 +64,23 @@ namespace ForTheCompany.Systems
             GUI.color = prev;
         }
 
+        /// <summary>점선 그리기 — Investigation Board에서 단서와 용의자 연결용</summary>
+        public static void DrawDottedLine(Vector2 from, Vector2 to, Color c,
+            float dotSize = 2.5f, float gap = 4f)
+        {
+            Vector2 delta = to - from;
+            float dist = delta.magnitude;
+            if (dist < 0.5f) return;
+            Vector2 dir = delta / dist;
+            float step = dotSize + gap;
+            int dots = Mathf.FloorToInt(dist / step);
+            for (int i = 0; i <= dots; i++)
+            {
+                Vector2 p = from + dir * (i * step);
+                DrawRect(new Rect(p.x - dotSize * 0.5f, p.y - dotSize * 0.5f, dotSize, dotSize), c);
+            }
+        }
+
         /// <summary>1px 보더 — 카드/패널 외곽</summary>
         public static void DrawBorder(Rect r, Color c, float thickness = 1f)
         {

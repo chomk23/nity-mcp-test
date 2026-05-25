@@ -123,7 +123,7 @@ namespace ForTheCompany.Player
                             "경비원 브리핑",
                             "차세대 보안 칩 설계도가 외부 유출. 용의자 셋: 연구원, 네트워크관리자, 시설관리자. " +
                             "각자의 직무 권한과 동기가 있으나 진짜 스파이는 한 명.",
-                            ClueSource.NPC);
+                            ClueSource.NPC, -1, "BRIEF");
                     },
                     choices);
                 Debug.Log("[Guard] Briefing 시작 (분기 선택지 포함)");
@@ -203,7 +203,7 @@ namespace ForTheCompany.Player
                     GameSession.Instance?.AddClue(
                         "경비원 중간 브리핑",
                         "연구원 정보 정리 + 보안 레이싱 단말 안내. " + hintLine,
-                        ClueSource.NPC);
+                        ClueSource.NPC, -1, "BRIEF");
                 },
                 choices);
             Debug.Log("[Guard] GuardCheckIn 중간 브리핑 시작");

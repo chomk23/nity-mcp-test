@@ -113,7 +113,8 @@ namespace ForTheCompany.Systems
                 string clueTitle = SessionTotal > 1
                     ? $"[{data.roomName}] {data.objectLabel} ({SessionCurrent}/{SessionTotal})"
                     : $"[{data.roomName}] {data.objectLabel}";
-                GameSession.Instance.AddClue(clueTitle, data.successClue, ClueSource.Environment);
+                GameSession.Instance.AddClue(clueTitle, data.successClue,
+                    ClueSource.Environment, data.relatedRole, data.tag);
             }
             // 환경 단서 정답 → 진짜 스파이 의심도 +2 (문제마다 누적)
             var realSpy = NPCRoster.Instance != null ? NPCRoster.Instance.Spy : null;
@@ -175,6 +176,7 @@ namespace ForTheCompany.Systems
                     objectLabel = "정체불명 USB",
                     color = new Color(0.95f, 0.85f, 0.3f),
                     promptVerb = "조사",
+                    relatedRole = 1, tag = "DATA",
                     quizQuestion = "신원 미상의 USB가 발견됐다. 가장 안전한 대응은?",
                     quizOptions = new[]
                     {
@@ -197,6 +199,7 @@ namespace ForTheCompany.Systems
                     objectLabel = "서버실 모니터",
                     color = new Color(0.95f, 0.3f, 0.3f),
                     promptVerb = "로그 확인",
+                    relatedRole = 2, tag = "NET",
                     quizQuestion = "관리자 권한으로 접근한 비정상 로그를 발견했다. 우선 조치는?",
                     quizOptions = new[]
                     {
@@ -219,6 +222,7 @@ namespace ForTheCompany.Systems
                     objectLabel = "트래픽 분석 단말",
                     color = new Color(0.3f, 0.7f, 0.85f),
                     promptVerb = "분석",
+                    relatedRole = 2, tag = "NET",
                     quizQuestion = "외부 IP로 대용량 데이터 전송이 감지되었다. 적절한 대응은?",
                     quizOptions = new[]
                     {
@@ -241,6 +245,7 @@ namespace ForTheCompany.Systems
                     objectLabel = "휘갈긴 메모",
                     color = new Color(0.95f, 0.95f, 0.95f),
                     promptVerb = "읽기",
+                    relatedRole = -1, tag = "LOG",
                     quizQuestion = "쓰레기통에서 비밀번호가 적힌 메모를 발견했다. 처리 방법?",
                     quizOptions = new[]
                     {
@@ -263,6 +268,7 @@ namespace ForTheCompany.Systems
                     objectLabel = "수상한 택배",
                     color = new Color(0.65f, 0.45f, 0.25f),
                     promptVerb = "조사",
+                    relatedRole = 3, tag = "COMMS",
                     quizQuestion = "발신자 불명의 익명 택배가 도착했다. 적절한 행동?",
                     quizOptions = new[]
                     {
@@ -285,6 +291,7 @@ namespace ForTheCompany.Systems
                     objectLabel = "카드키 발급 로그",
                     color = new Color(0.85f, 0.2f, 0.2f),
                     promptVerb = "조회",
+                    relatedRole = 3, tag = "BADGE",
                     quizQuestion = "내 카드키가 사용된 적 없는 시간대 출입 기록이 발견됐다. 우선 조치?",
                     quizOptions = new[]
                     {

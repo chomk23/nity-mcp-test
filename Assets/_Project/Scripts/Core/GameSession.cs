@@ -14,6 +14,11 @@ namespace ForTheCompany.Core
         public string text;
         public ClueSource source;
         public float acquiredTime;
+        // 관련 용의자 역할 (1=연구원, 2=네트워크관리자, 3=시설관리자, -1=무관/전체)
+        // 인벤토리에서 용의자 카드 클릭 시 점선 연결 대상 결정
+        public int relatedRole = -1;
+        // 단서 카테고리 태그 (BADGE/CCTV/NET/DATA/LOG/COMMS 등) — Board UI에서 표시
+        public string tag = "";
     }
 
     public class GameSession : MonoBehaviour
@@ -104,15 +109,23 @@ namespace ForTheCompany.Core
         /// <summary>인벤토리에 표시될 단서 항목 추가 (출처별 분류)</summary>
         public void AddClue(string title, string text, ClueSource source)
         {
+            AddClue(title, text, source, -1, "");
+        }
+
+        /// <summary>인벤토리에 단서 + 관련 용의자 role + 카테고리 태그 추가 (Investigation Board용)</summary>
+        public void AddClue(string title, string text, ClueSource source, int relatedRole, string tag)
+        {
             if (string.IsNullOrEmpty(title) || string.IsNullOrEmpty(text)) return;
             CollectedClues.Add(new ClueEntry
             {
                 title = title,
                 text = text,
                 source = source,
-                acquiredTime = Time.time
+                acquiredTime = Time.time,
+                relatedRole = relatedRole,
+                tag = tag ?? ""
             });
-            Debug.Log($"[Clue] +1 [{source}] {title}");
+            Debug.Log($"[Clue] +1 [{source}] {title} (role={relatedRole}, tag={tag})");
         }
 
         public void DeclareWin(string message)
