@@ -53,8 +53,11 @@ namespace ForTheCompany.Systems
         public void Open(ClueObject clue)
         {
             if (clue == null || clue.Resolved) return;
+            // 풀에서 랜덤 퀴즈 1개 선택해서 clue.data에 덮어쓰기 (각 모달 진입 시 다른 문제 가능)
+            QuizPool.ApplyRandomTo(clue.data);
             ActiveClue = clue;
             SfxManager.PlayModalOpen();
+            Debug.Log($"[Quiz] {clue.data.id} 풀에서 랜덤 출제 (풀 크기 {QuizPool.GetPoolSize(clue.data.id)})");
         }
 
         /// <summary>내부 전용 — 외부에서는 호출 금지. Answer 정답 시에만 사용.</summary>
