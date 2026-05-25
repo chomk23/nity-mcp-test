@@ -21,11 +21,11 @@ namespace ForTheCompany.Core
 
         [Header("Dialogue Mode")]
         [Tooltip("NPC-플레이어 측면 거리 (perpendicular) — 작을수록 줌인")]
-        public float dialogueSideDistance = 3.57f;  // 6 → 5.1 → 3.57 (누적 약 40% 줌인)
+        public float dialogueSideDistance = 2.14f;  // 6 → 5.1 → 3.57 → 2.14 (누적 약 64% 줌인)
         [Tooltip("플레이어 등 뒤로 카메라 추가 오프셋 (양수면 NPC 얼굴이 잘 보임, 음수면 NPC 등이 보임)")]
-        public float dialogueForwardOffset = 2.1f;  // 3.5 → 3.0 → 2.1
+        public float dialogueForwardOffset = 1.26f; // 3.5 → 3.0 → 2.1 → 1.26
         [Tooltip("대화 중 카메라 높이 (작을수록 캐릭터 눈높이 시점)")]
-        public float dialogueHeight = 2.38f;        // 4 → 3.4 → 2.38
+        public float dialogueHeight = 1.43f;        // 4 → 3.4 → 2.38 → 1.43
         [Tooltip("플레이어 → NPC 중간점에서 NPC 쪽으로 얼마나 치우칠지 (0=플레이어, 1=NPC)")]
         public float dialogueFocusLerp = 0.5f;
         [Tooltip("대화 모드 전환 부드러움")]
