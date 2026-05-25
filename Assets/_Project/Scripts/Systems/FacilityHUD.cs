@@ -285,7 +285,7 @@ namespace ForTheCompany.Systems
                 normal = { textColor = UITheme.NeonGreen }
             };
 
-            Vector2 mp = Event.current.mousePosition;
+            Vector2 mp = UITheme.GetMousePos();
             float currentY = startY;
 
             for (int i = 0; i < choices.Count; i++)
@@ -875,7 +875,7 @@ namespace ForTheCompany.Systems
 
         private void DrawRankButton(Rect r, string label, Color tint, System.Action onClick)
         {
-            bool hover = r.Contains(Event.current.mousePosition);
+            bool hover = r.Contains(UITheme.GetMousePos());
             UITheme.DrawRect(r, hover ? new Color(tint.r, tint.g, tint.b, 0.14f) : UITheme.Bg2);
             UITheme.DrawBorder(r, hover ? tint : UITheme.Line, hover ? 2f : 1f);
 
@@ -1092,7 +1092,7 @@ namespace ForTheCompany.Systems
                 var r = new Rect(x + 30, startY + (btnH + gap) * i, w - 60, btnH);
                 string label = $"  0{i + 1}    {data.quizOptions[i]}";
 
-                bool hover = r.Contains(Event.current.mousePosition);
+                bool hover = r.Contains(UITheme.GetMousePos());
                 Color accent = UITheme.NeonViolet;
 
                 UITheme.DrawRect(r, hover ? new Color(accent.r, accent.g, accent.b, 0.14f) : UITheme.Bg2);
@@ -1378,7 +1378,7 @@ namespace ForTheCompany.Systems
                 string label = roster.npcs[i] != null ? roster.npcs[i].DisplayName : "?";
                 string display = $"  0{i + 1}    {label}";
 
-                bool hover = r.Contains(Event.current.mousePosition);
+                bool hover = r.Contains(UITheme.GetMousePos());
                 UITheme.DrawRect(r, hover ? new Color(UITheme.NeonMagenta.r, UITheme.NeonMagenta.g,
                     UITheme.NeonMagenta.b, 0.14f) : UITheme.Bg2);
                 UITheme.DrawBorder(r, hover ? UITheme.NeonMagenta : UITheme.Line, hover ? 2f : 1f);

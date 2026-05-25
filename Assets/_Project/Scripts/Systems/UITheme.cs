@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace ForTheCompany.Systems
 {
@@ -206,10 +207,30 @@ namespace ForTheCompany.Systems
             }
         }
 
+        /// <summary>
+        /// Editor와 빌드본 모두에서 안정적으로 작동하는 OnGUI 좌표계 마우스 위치.
+        /// 빌드본의 New Input System 환경에서 Event.current.mousePosition이 갱신 안 되는 버그 대응.
+        /// Mouse.current.position을 OnGUI 좌표계(좌상단 원점, Y 반전)로 변환해 fallback.
+        /// </summary>
+        public static Vector2 GetMousePos()
+        {
+            // 1순위: Mouse.current (New Input System) — 빌드본·Editor 모두 안정적
+            var mouse = Mouse.current;
+            if (mouse != null)
+            {
+                var p = mouse.position.ReadValue();
+                return new Vector2(p.x, Screen.height - p.y);
+            }
+            // 2순위: Event.current (IMGUI 기본)
+            var ev = Event.current;
+            if (ev != null) return ev.mousePosition;
+            return Vector2.zero;
+        }
+
         /// <summary>네온 버튼 — 직접 그리기 (border + hover 효과)</summary>
         public static bool NeonButton(Rect rect, string text, Color accent)
         {
-            bool hover = rect.Contains(Event.current.mousePosition);
+            bool hover = rect.Contains(GetMousePos());
             DrawRect(rect, hover ? new Color(accent.r, accent.g, accent.b, 0.12f) : Bg2);
             DrawBorder(rect, accent, hover ? 2f : 1f);
 
@@ -228,7 +249,7 @@ namespace ForTheCompany.Systems
         /// <summary>일반 버튼 — 어두운 배경 + 흰 텍스트</summary>
         public static bool GhostButton(Rect rect, string text)
         {
-            bool hover = rect.Contains(Event.current.mousePosition);
+            bool hover = rect.Contains(GetMousePos());
             DrawRect(rect, hover ? Bg3 : Bg2);
             DrawBorder(rect, hover ? LineStrong : Line, 1f);
 
