@@ -59,15 +59,18 @@ namespace ForTheCompany.Core
             Vector3 normalOffset = offset * zoomLevel;
 
             // 포커스 타겟 + 대화 offset 계산
+            // 대화 모드일 때는 캐릭터 발이 아닌 가슴 높이를 LookAt 대상으로 → 정수리 시점 방지
+            const float ChestHeightOffset = 1.2f;
             Vector3 focusPos = target.position;
             Vector3 dialogueOff = normalOffset;
             if (ds != null && ds.CurrentNPCTransform != null)
             {
-                Vector3 npcPos = ds.CurrentNPCTransform.position;
-                Vector3 midPos = Vector3.Lerp(target.position, npcPos, dialogueFocusLerp);
+                Vector3 playerChest = target.position + Vector3.up * ChestHeightOffset;
+                Vector3 npcChest = ds.CurrentNPCTransform.position + Vector3.up * ChestHeightOffset;
+                Vector3 midPos = Vector3.Lerp(playerChest, npcChest, dialogueFocusLerp);
                 focusPos = Vector3.Lerp(target.position, midPos, dialogueBlend);
 
-                dialogueOff = ComputeDialogueOffset(target.position, npcPos, inDialogue);
+                dialogueOff = ComputeDialogueOffset(target.position, ds.CurrentNPCTransform.position, inDialogue);
             }
 
             Vector3 blendedOffset = Vector3.Lerp(normalOffset, dialogueOff, dialogueBlend);
