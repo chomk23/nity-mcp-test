@@ -21,8 +21,8 @@ namespace ForTheCompany.Systems
         // 마지막 timeScale 백업 (복귀 시 복원)
         private float pausedTimeScale;
 
-        // 소리 볼륨 (0~1)
-        private static float volume = 1f;
+        // 소리 볼륨 (0~1) — 기본 30% (효과음이 너무 크지 않게)
+        private static float volume = 0.3f;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Bootstrap()

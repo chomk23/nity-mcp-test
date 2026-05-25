@@ -50,6 +50,8 @@ namespace ForTheCompany.Systems
         public bool AwaitingChoice => IsActive && IsLastLine && LineComplete && HasChoices;
 
         private List<string> lines;
+        private List<string> lineSpeakers;   // 각 라인별 화자 — NPC 라인 vs 플레이어 응답 라인 구분
+        private string npcSpeaker;            // 원래 NPC speaker (선택지 응답 복귀용)
         private List<DialogueChoice> choices;
         private int lineIndex;
         private float charProgress;
@@ -88,10 +90,13 @@ namespace ForTheCompany.Systems
             IEnumerable<DialogueChoice> playerChoices = null)
         {
             lines = new List<string>();
+            lineSpeakers = new List<string>();
+            npcSpeaker = speaker ?? "";
             foreach (var t in textLines)
             {
                 if (string.IsNullOrEmpty(t)) continue;
                 lines.Add(t);
+                lineSpeakers.Add(npcSpeaker);  // 모든 시작 라인은 NPC speaker
             }
             if (lines.Count == 0) return;
 
@@ -104,7 +109,7 @@ namespace ForTheCompany.Systems
                 if (choices.Count == 0) choices = null;
             }
 
-            CurrentSpeaker = speaker ?? "";
+            CurrentSpeaker = npcSpeaker;
             CurrentNPCTransform = npcTransform;
             lineIndex = 0;
             this.onEnded = onEnded;
@@ -132,10 +137,13 @@ namespace ForTheCompany.Systems
             choices = null; // 선택지 닫음
 
             // 응답 라인을 다음 라인으로 추가하고 진행
+            // 플레이어 발화는 speaker="나", NPC 응답은 원래 npcSpeaker로 복귀
             if (!string.IsNullOrEmpty(choice.Response))
             {
-                lines.Add($"{CurrentSpeaker}님이 답합니다: \"{choice.Label}\"");
+                lines.Add(choice.Label);
+                lineSpeakers.Add("나");
                 lines.Add(choice.Response);
+                lineSpeakers.Add(npcSpeaker);
                 lineIndex = lines.Count - 2;
                 StartLine();
             }
@@ -151,6 +159,9 @@ namespace ForTheCompany.Systems
         private void StartLine()
         {
             CurrentFullLine = lines[lineIndex];
+            // 화자 라벨 갱신 — 플레이어 응답이면 "나", NPC 응답이면 NPC 이름
+            if (lineSpeakers != null && lineIndex < lineSpeakers.Count)
+                CurrentSpeaker = lineSpeakers[lineIndex];
             CurrentVisibleLine = "";
             charProgress = 0f;
             LineComplete = false;
@@ -236,8 +247,10 @@ namespace ForTheCompany.Systems
         {
             IsActive = false;
             lines = null;
+            lineSpeakers = null;
             choices = null;
             CurrentSpeaker = "";
+            npcSpeaker = "";
             CurrentFullLine = "";
             CurrentVisibleLine = "";
             CurrentNPCTransform = null;
@@ -251,9 +264,11 @@ namespace ForTheCompany.Systems
         {
             IsActive = false;
             lines = null;
+            lineSpeakers = null;
             choices = null;
             onEnded = null;
             CurrentSpeaker = "";
+            npcSpeaker = "";
             CurrentFullLine = "";
             CurrentVisibleLine = "";
             CurrentNPCTransform = null;

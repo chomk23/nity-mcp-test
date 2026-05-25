@@ -44,6 +44,10 @@ namespace ForTheCompany.Systems
             if (Instance != null && Instance != this) { Destroy(this); return; }
             Instance = this;
 
+            // 시작 마스터 볼륨 30% — PauseMenu 슬라이더와 동일 기본값
+            // (메인 메뉴 hover/click부터 30% 적용)
+            AudioListener.volume = 0.3f;
+
             source = gameObject.AddComponent<AudioSource>();
             source.playOnAwake = false;
             source.spatialBlend = 0f;       // 2D 사운드
