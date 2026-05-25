@@ -67,14 +67,14 @@ namespace ForTheCompany.Player
             string[] baseLines = BuildFirstTalkLines(my, spy, selfIsSpy);
             DialogueChoice[] choices = BuildFirstTalkChoices(my, spy, selfIsSpy);
 
-            // 환경 단서가 매핑된 NPC라면 대화 마지막에 트랜지션 멘트 한 줄 추가
-            // (이 줄이 끝나면 보안교육 모듈로 자연스럽게 이어짐)
+            // 환경 단서가 매핑된 NPC면 대화 마지막에 트랜지션 멘트 한 줄 추가
+            // (스파이/무고한 NPC 모두 추가하되 톤만 다르게)
             string[] lines = baseLines;
-            if (!selfIsSpy && !string.IsNullOrEmpty(GetRelatedClueId()))
+            if (!string.IsNullOrEmpty(GetRelatedClueId()))
             {
                 lines = new string[baseLines.Length + 1];
                 System.Array.Copy(baseLines, lines, baseLines.Length);
-                lines[baseLines.Length] = GetTransitionLine();
+                lines[baseLines.Length] = GetTransitionLine(selfIsSpy);
             }
             string inventoryText = string.Join("\n", lines);
 
@@ -172,20 +172,32 @@ namespace ForTheCompany.Player
             }
         }
 
-        /// <summary>NPC 직업별 트랜지션 안내 멘트 — 대화 → 퀴즈 흐름을 자연스럽게</summary>
-        private string GetTransitionLine()
+        /// <summary>NPC 직업별 트랜지션 안내 멘트 — 대화 → 퀴즈 흐름을 자연스럽게.
+        /// 스파이는 회피적 톤, 무고한 NPC는 협조적 톤.</summary>
+        private string GetTransitionLine(bool selfIsSpy)
         {
-            if (Actor == null || Actor.data == null) return "잠시만요, 같이 봐주실 게 있어요.";
-            switch ((int)Actor.data.role)
+            if (Actor == null || Actor.data == null)
+                return "잠시만요, 같이 봐주실 게 있어요.";
+
+            int role = (int)Actor.data.role;
+            if (selfIsSpy)
             {
-                case 1: // 연구원
-                    return "잠깐, 보안 교육 모듈에 케이스로 등록돼 있어요. 같이 한번 풀어보시죠.";
-                case 2: // 네트워크관리자
-                    return "이 사례는 보안 교육에도 들어가 있어요. 모니터에 띄워드릴게요.";
-                case 3: // 시설관리자
-                    return "출입 기록 분석은 보안 교육 자료로 같이 보시는 게 좋아요. 띄워드릴게요.";
-                default:
-                    return "잠시만요, 같이 봐주실 자료가 있어요.";
+                // 스파이 — 회피·모호한 톤이지만 결국 자료는 띄워줌 (의심 회피용)
+                switch (role)
+                {
+                    case 1: return "보안 교육 자료에도 비슷한 케이스 있긴 한데... 굳이 보시려면 띄워드릴게요.";
+                    case 2: return "음... 보안 교육 모듈에도 있긴 합니다. 형식적인 거지만 보시려면...";
+                    case 3: return "보안 교육 자료요? 굳이 안 보셔도 되는데... 그래도 띄워는 드릴게요.";
+                    default: return "잠시만요... 자료 띄워드릴게요.";
+                }
+            }
+            // 무고한 NPC — 협조적, 적극적
+            switch (role)
+            {
+                case 1: return "잠깐, 보안 교육 모듈에 케이스로 등록돼 있어요. 같이 한번 풀어보시죠.";
+                case 2: return "이 사례는 보안 교육에도 들어가 있어요. 모니터에 띄워드릴게요.";
+                case 3: return "출입 기록 분석은 보안 교육 자료로 같이 보시는 게 좋아요. 띄워드릴게요.";
+                default: return "잠시만요, 같이 봐주실 자료가 있어요.";
             }
         }
 
