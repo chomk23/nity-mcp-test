@@ -47,12 +47,8 @@ namespace ForTheCompany.Systems
             Instance = this;
         }
 
-        private void Update()
-        {
-            if (!IsOpen) return;
-            var kb = Keyboard.current;
-            if (kb != null && kb.escapeKey.wasPressedThisFrame) Close();
-        }
+        // 보안 교육 미션은 ESC로 취소 불가 — 무조건 정답을 맞춰야 닫힘.
+        // (Answer()에서 정답 시 ActiveClue=null로 자동 닫음)
 
         public void Open(ClueObject clue)
         {
@@ -60,6 +56,7 @@ namespace ForTheCompany.Systems
             ActiveClue = clue;
         }
 
+        /// <summary>내부 전용 — 외부에서는 호출 금지. Answer 정답 시에만 사용.</summary>
         public void Close() => ActiveClue = null;
 
         public void Answer(int index)

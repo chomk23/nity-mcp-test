@@ -1125,10 +1125,17 @@ namespace ForTheCompany.Systems
                     "▸ " + ctrl.LastResultText, feedSt);
             }
 
-            // 닫기 버튼
-            var closeRect = new Rect(x + w - 96, y + 8, 80, 24);
-            if (UITheme.GhostButton(closeRect, "[ESC]"))
-                ctrl.Close();
+            // 닫기 버튼 없음 — 보안 교육은 무조건 정답을 맞춰야 닫힘 (취소 불가)
+            // 대신 우상단에 안내 라벨
+            var lockedSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 10, fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleRight,
+                padding = new RectOffset(0, 14, 0, 0),
+                normal = { textColor = UITheme.Danger }
+            };
+            GUI.Label(new Rect(x, y + 8, w, 24),
+                "▸ 필수 미션 // 정답 시 자동 종료", lockedSt);
         }
 
         private void DrawQuizResultToast(SecurityQuizController ctrl)
