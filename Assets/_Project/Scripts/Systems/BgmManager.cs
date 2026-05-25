@@ -27,9 +27,10 @@ namespace ForTheCompany.Systems
         private const string TrackGameplay = "BGM/gameplay";
         private const string TrackEnding   = "BGM/ending";
 
-        // 기본 BGM 볼륨 (SFX보다 약간 낮게 — 효과음을 가리지 않도록)
-        // AudioListener.volume(마스터)과 곱해져 최종 출력
-        private const float BgmVolume = 0.5f;
+        // 트랙별 기본 볼륨 — AudioListener.volume(마스터)과 곱해져 최종 출력
+        // gameplay는 사용자 요청에 따라 매우 낮게(5%) — 게임 중에 BGM이 거슬리지 않게
+        private const float DefaultBgmVolume = 0.5f;
+        private const float GameplayBgmVolume = 0.05f;
         private const float FadeDuration = 1.5f;
 
         // 게임 종료 상태 감지용
@@ -124,8 +125,17 @@ namespace ForTheCompany.Systems
             fadeRoutine = StartCoroutine(CrossFadeTo(clip, trackName));
         }
 
+        /// <summary>트랙 이름별 목표 볼륨 — gameplay만 매우 낮게</summary>
+        private static float GetTargetVolumeForTrack(string trackName)
+        {
+            if (trackName == TrackGameplay) return GameplayBgmVolume;
+            return DefaultBgmVolume;
+        }
+
         private IEnumerator CrossFadeTo(AudioClip newClip, string newTrackName)
         {
+            float targetVolume = GetTargetVolumeForTrack(newTrackName);
+
             // 1) 현재 재생 중이면 페이드 아웃
             if (source.isPlaying && source.volume > 0.01f)
             {
@@ -147,17 +157,17 @@ namespace ForTheCompany.Systems
             source.volume = 0f;
             source.Play();
 
-            // 3) 페이드 인
+            // 3) 페이드 인 (트랙별 목표 볼륨까지)
             float t2 = 0f;
             while (t2 < FadeDuration)
             {
                 t2 += Time.unscaledDeltaTime;
-                source.volume = Mathf.Lerp(0f, BgmVolume, t2 / FadeDuration);
+                source.volume = Mathf.Lerp(0f, targetVolume, t2 / FadeDuration);
                 yield return null;
             }
-            source.volume = BgmVolume;
+            source.volume = targetVolume;
             fadeRoutine = null;
-            Debug.Log($"[BGM] '{newTrackName}' 재생 중");
+            Debug.Log($"[BGM] '{newTrackName}' 재생 중 (volume {targetVolume:F2})");
         }
 
         /// <summary>BGM 즉시 정지 (페이드 X)</summary>
