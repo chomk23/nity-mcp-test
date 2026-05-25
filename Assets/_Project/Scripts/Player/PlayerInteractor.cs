@@ -15,6 +15,13 @@ namespace ForTheCompany.Player
         public string LastInteractionResult { get; private set; }
         public float LastInteractionTime { get; private set; }
 
+        /// <summary>외부 시스템(NPC, Quest 등)에서 짧은 토스트 메시지를 띄울 때 사용</summary>
+        public void ShowToast(string message)
+        {
+            LastInteractionResult = message;
+            LastInteractionTime = Time.time;
+        }
+
         private readonly List<IInteractable> cache = new List<IInteractable>();
         private float refreshTimer;
 

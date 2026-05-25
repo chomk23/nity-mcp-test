@@ -1484,19 +1484,19 @@ namespace ForTheCompany.Systems
             var bridge = RacingWebViewBridge.Instance;
             if (bridge != null && bridge.IsShowing) return;
 
-            float h = 22;
+            float h = 26;
             var bgRect = new Rect(0, Screen.height - h, Screen.width, h);
-            UITheme.DrawRect(bgRect, new Color(UITheme.Bg0.r, UITheme.Bg0.g, UITheme.Bg0.b, 0.85f));
-            UITheme.DrawRect(new Rect(0, Screen.height - h, Screen.width, 1), UITheme.Line);
+            UITheme.DrawRect(bgRect, new Color(UITheme.Bg0.r, UITheme.Bg0.g, UITheme.Bg0.b, 0.9f));
+            UITheme.DrawRect(new Rect(0, Screen.height - h, Screen.width, 1), UITheme.LineStrong);
 
             var st = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 10, fontStyle = FontStyle.Bold,
+                fontSize = 12, fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleLeft,
-                normal = { textColor = UITheme.InkFaint }
+                normal = { textColor = Color.white }
             };
-            GUI.Label(new Rect(14, Screen.height - h, Screen.width - 28, h),
-                "// [WASD] 이동  ·  [SHIFT] 달리기  ·  [휠] 줌  ·  [SPACE] 상호작용  ·  [I] 인벤토리  ·  [ESC] 닫기  ·  [R] 재시작  ·  [M] 메인메뉴",
+            GUI.Label(new Rect(16, Screen.height - h, Screen.width - 32, h),
+                "// [WASD] 이동  ·  [SHIFT] 달리기  ·  [휠] 줌  ·  [SPACE] 상호작용  ·  [I] 인벤토리  ·  [ESC] 메뉴  ·  [R] 재시작  ·  [M] 메인메뉴",
                 st);
         }
 

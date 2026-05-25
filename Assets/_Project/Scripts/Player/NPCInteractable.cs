@@ -124,20 +124,24 @@ namespace ForTheCompany.Player
             if (quest != null && Actor != null && Actor.data != null)
                 quest.TryAdvanceByRole(Actor.data.role);
 
-            // 첫 대화 종료 후 — NPC 방 관련 환경 단서 퀴즈를 자동으로 띄움 (자연스러운 흐름)
+            // 첫 대화 종료 후 — NPC 방 관련 환경 단서 퀴즈를 자연스러운 트랜지션과 함께 자동으로 띄움
             if (firstTime)
-                StartCoroutine(AutoOpenRelatedClueAfterDelay(0.7f));
+                StartCoroutine(AutoOpenRelatedClueWithTransition());
         }
 
-        /// <summary>대화 종료 후 약간의 딜레이를 두고 NPC 방의 환경 단서 퀴즈 모달 자동 오픈</summary>
-        private IEnumerator AutoOpenRelatedClueAfterDelay(float delay)
+        /// <summary>
+        /// 대화 종료 → 트랜지션 멘트 토스트 → 보안교육 모듈 자동 오픈.
+        /// "쾅 갑자기 퀴즈 모달이 뜬다" 문제 해결 — NPC가 자료를 같이 보여주는 흐름.
+        /// </summary>
+        private IEnumerator AutoOpenRelatedClueWithTransition()
         {
-            yield return new WaitForSeconds(delay);
-
             string clueId = GetRelatedClueId();
             if (string.IsNullOrEmpty(clueId)) yield break;
 
-            // 다른 모달이 떠 있으면 자동 오픈 안 함 (대화/퀴즈/레이싱/지목)
+            // 대화 종료 직후 잠깐 대기 (대화창 닫힘 자연스럽게)
+            yield return new WaitForSeconds(0.5f);
+
+            // 다른 모달이 떠 있으면 자동 오픈 안 함
             var sqc = SecurityQuizController.Instance;
             if (sqc == null || sqc.IsOpen) yield break;
             var ds = DialogueSystem.Instance;
@@ -145,16 +149,64 @@ namespace ForTheCompany.Player
             var rmc = RacingMissionController.Instance;
             if (rmc != null && rmc.IsOpen) yield break;
 
+            // 관련 단서 찾기
+            ClueObject targetClue = null;
             var allClues = FindObjectsByType<ClueObject>(FindObjectsSortMode.None);
             foreach (var c in allClues)
             {
                 if (c == null || c.data == null) continue;
                 if (c.data.id != clueId) continue;
-                if (c.Resolved) yield break;       // 이미 풀린 단서면 스킵
-                if (!c.IsUnlocked) yield break;    // 아직 잠금 상태면 스킵
-                sqc.Open(c);
-                Debug.Log($"[Interact] {DisplayName} 대화 종료 → 자동으로 '{c.data.objectLabel}' 퀴즈 열림");
-                yield break;
+                if (c.Resolved) yield break;
+                if (!c.IsUnlocked) yield break;
+                targetClue = c;
+                break;
+            }
+            if (targetClue == null) yield break;
+
+            // ── 트랜지션 토스트 1: NPC의 안내 멘트 ──
+            string transitionLine = GetTransitionLine();
+            var pi = PlayerInteractor.Instance;
+            if (pi != null)
+                pi.ShowToast($"{DisplayName}: {transitionLine}");
+
+            yield return new WaitForSeconds(2.2f);
+
+            // 중간에 다른 모달이 떠버렸으면 중단
+            if (sqc.IsOpen) yield break;
+            if (ds != null && ds.IsActive) yield break;
+            if (rmc != null && rmc.IsOpen) yield break;
+
+            // ── 트랜지션 토스트 2: 시스템 안내 ──
+            if (pi != null)
+                pi.ShowToast($"▸ 보안 교육 모듈 로딩 중...  // [{targetClue.data.roomName}] {targetClue.data.objectLabel}");
+
+            yield return new WaitForSeconds(1.2f);
+
+            // 한번 더 안전 체크
+            if (sqc.IsOpen) yield break;
+            if (ds != null && ds.IsActive) yield break;
+            if (rmc != null && rmc.IsOpen) yield break;
+            if (targetClue.Resolved) yield break;
+
+            // ── 실제 보안 교육 모듈 오픈 ──
+            sqc.Open(targetClue);
+            Debug.Log($"[Interact] {DisplayName} 대화 → 트랜지션 → '{targetClue.data.objectLabel}' 보안 교육 모듈 오픈");
+        }
+
+        /// <summary>NPC 직업별 트랜지션 안내 멘트 — 대화 → 퀴즈 흐름을 자연스럽게</summary>
+        private string GetTransitionLine()
+        {
+            if (Actor == null || Actor.data == null) return "잠시만요, 같이 봐주실 게 있어요.";
+            switch ((int)Actor.data.role)
+            {
+                case 1: // 연구원
+                    return "잠깐, 보안 교육 모듈에 케이스로 등록돼 있어요. 같이 한번 풀어보시죠.";
+                case 2: // 네트워크관리자
+                    return "이 사례는 보안 교육에도 들어가 있어요. 모니터에 띄워드릴게요.";
+                case 3: // 시설관리자
+                    return "출입 기록 분석은 보안 교육 자료로 같이 보시는 게 좋아요. 띄워드릴게요.";
+                default:
+                    return "잠시만요, 같이 봐주실 자료가 있어요.";
             }
         }
 
