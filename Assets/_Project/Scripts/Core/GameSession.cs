@@ -47,6 +47,9 @@ namespace ForTheCompany.Core
         [Header("Cardkey")]
         public bool hasFacilityCardkey; // 단계 4(NetworkAdmin) 완료 시 발급 — 전력실 잠금 해제
 
+        [Header("Intro")]
+        public bool hasShownIntroMonologue; // FacilityScene 진입 시 속마음 인트로 표시 여부 (한 런당 1회)
+
         public static readonly string[] SpyRoleNames = { "연구원", "네트워크관리자", "시설관리자" };
 
         private void Awake()
@@ -71,6 +74,7 @@ namespace ForTheCompany.Core
             LastEncounterRewardClues = 0;
             CollectedClues.Clear();
             hasFacilityCardkey = false;
+            hasShownIntroMonologue = false; // 새 런마다 속마음 인트로 다시 보임
             TimeRemaining = totalTime;
             TimerActive = true;
 #if UNITY_EDITOR
