@@ -70,6 +70,9 @@ namespace ForTheCompany.Core
 
         public void StartNewRun()
         {
+            // 매 새 런마다 다른 Random 시퀀스 보장 (퀴즈 풀에서 매번 다른 문제 선택되도록)
+            Random.InitState(System.Environment.TickCount);
+
             currentNodeId = -1;
             clearedNodeIds.Clear();
             totalClues = 0;

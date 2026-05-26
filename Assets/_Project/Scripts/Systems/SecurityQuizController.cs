@@ -21,6 +21,7 @@ namespace ForTheCompany.Systems
         // ── 연속 3문제 세션 진행 ──
         private List<QuizPool.QuizVariant> sessionQuizzes;
         private int sessionCorrectCount;
+        private readonly List<string> sessionSuccessClues = new List<string>();
         public int SessionIndex { get; private set; }       // 0-based 현재 문제
         public int SessionTotal => sessionQuizzes?.Count ?? 0;
         public int SessionCurrent => SessionIndex + 1;      // 1-based 표시용
@@ -65,6 +66,7 @@ namespace ForTheCompany.Systems
             // 풀에서 중복 없이 3개 랜덤 선택 → 첫 문제 적용
             sessionQuizzes = QuizPool.GetRandomBatch(clue.data.id, QuestionsPerSession);
             sessionCorrectCount = 0;
+            sessionSuccessClues.Clear();
             SessionIndex = 0;
 
             if (sessionQuizzes.Count > 0)
@@ -103,18 +105,14 @@ namespace ForTheCompany.Systems
 
             // ── 정답 처리 ──
             sessionCorrectCount++;
+            sessionSuccessClues.Add(data.successClue);  // 통합 단서용 모음
             SfxManager.PlayCorrect();
 
-            // 보상 + 인벤토리 단서 추가 (각 문제별)
+            // 보상 카운트만 누적 (인벤토리 단서는 세션 완료 시 1개로 통합 추가)
             if (GameSession.Instance != null)
             {
                 GameSession.Instance.totalClues += data.clueReward;
                 GameSession.Instance.LastEncounterRewardClues = data.clueReward;
-                string clueTitle = SessionTotal > 1
-                    ? $"[{data.roomName}] {data.objectLabel} ({SessionCurrent}/{SessionTotal})"
-                    : $"[{data.roomName}] {data.objectLabel}";
-                GameSession.Instance.AddClue(clueTitle, data.successClue,
-                    ClueSource.Environment, data.relatedRole, data.tag);
             }
             // 환경 단서 정답 → 진짜 스파이 의심도 +2 (문제마다 누적)
             var realSpy = NPCRoster.Instance != null ? NPCRoster.Instance.Spy : null;
@@ -134,12 +132,20 @@ namespace ForTheCompany.Systems
             }
             else
             {
-                // 세션 완료 — 모달 닫기
+                // 세션 완료 — 통합 단서 1개로 인벤토리에 추가 + 모달 닫기
                 int totalReward = data.clueReward * sessionCorrectCount;
+                if (GameSession.Instance != null && sessionSuccessClues.Count > 0)
+                {
+                    string combinedText = string.Join("\n\n", sessionSuccessClues);
+                    string clueTitle = $"[{data.roomName}] {data.objectLabel}";
+                    GameSession.Instance.AddClue(clueTitle, combinedText,
+                        ClueSource.Environment, data.relatedRole, data.tag);
+                }
                 LastResultText = $"✓ 보안 교육 완료! {sessionCorrectCount}/{SessionTotal} 정답\n+{totalReward} 단서 획득";
                 ActiveClue.MarkResolved();
                 ActiveClue = null;
                 sessionQuizzes = null;
+                sessionSuccessClues.Clear();
                 Debug.Log($"[Quiz] {data.id} 세션 완료 ({sessionCorrectCount}/{QuestionsPerSession} 정답, +{totalReward} 단서)");
             }
         }

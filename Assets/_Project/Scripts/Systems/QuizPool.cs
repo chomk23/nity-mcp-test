@@ -320,13 +320,30 @@ namespace ForTheCompany.Systems
             ApplyTo(data, picked);
         }
 
-        /// <summary>주어진 QuizVariant를 ClueData의 quiz 필드에 적용.</summary>
+        /// <summary>주어진 QuizVariant를 ClueData의 quiz 필드에 적용.
+        /// 옵션 순서는 Fisher-Yates 셔플 — 같은 문제도 매번 정답 위치가 다르게.</summary>
         public static void ApplyTo(ClueData data, QuizVariant q)
         {
             if (data == null || q == null) return;
             data.quizQuestion = q.question;
-            data.quizOptions = q.options;
-            data.correctIndex = q.correctIndex;
+
+            // 옵션 셔플 + correctIndex 재계산
+            int n = q.options.Length;
+            var shuffled = new string[n];
+            var origIdx = new int[n];
+            for (int i = 0; i < n; i++) { shuffled[i] = q.options[i]; origIdx[i] = i; }
+            for (int i = 0; i < n - 1; i++)
+            {
+                int swap = Random.Range(i, n);
+                (shuffled[i], shuffled[swap]) = (shuffled[swap], shuffled[i]);
+                (origIdx[i], origIdx[swap]) = (origIdx[swap], origIdx[i]);
+            }
+            int newCorrect = 0;
+            for (int i = 0; i < n; i++)
+                if (origIdx[i] == q.correctIndex) { newCorrect = i; break; }
+
+            data.quizOptions = shuffled;
+            data.correctIndex = newCorrect;
             data.successClue = q.successClue;
             data.clueReward = q.clueReward;
         }

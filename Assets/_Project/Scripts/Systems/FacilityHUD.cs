@@ -1677,6 +1677,8 @@ namespace ForTheCompany.Systems
         private int selectedSuspectRole = -1;
         // 단서 보드 카드 캐싱된 위치 (카드 그리고 점선 연결할 때 사용)
         private readonly List<Rect> boardCardRects = new List<Rect>();
+        // 현재 마우스 hover된 단서 인덱스 (-1 = 없음) → 인벤토리 마지막에 툴팁 표시
+        private int hoveredClueIndex = -1;
 
         private void DrawInventoryPanel()
         {
@@ -1740,8 +1742,15 @@ namespace ForTheCompany.Systems
             float leftW = w * 0.65f;
             float rightW = w * 0.35f - 12;
 
+            // 매 프레임 hover 체크 초기화
+            hoveredClueIndex = -1;
+
             DrawInvestigationBoardSection(s, new Rect(x + 14, bodyY, leftW - 14, bodyH));
             DrawSuspectFileSection(s, new Rect(x + leftW + 4, bodyY, rightW, bodyH));
+
+            // 단서 hover 툴팁 — 가장 위에 그려지도록 마지막 호출
+            if (hoveredClueIndex >= 0 && hoveredClueIndex < s.CollectedClues.Count)
+                DrawClueTooltip(s.CollectedClues[hoveredClueIndex]);
         }
 
         // ═════════════ 좌측: Investigation Board + 용의자 3 카드 ═════════════
@@ -1835,6 +1844,8 @@ namespace ForTheCompany.Systems
                 normal = { textColor = UITheme.InkDim }
             };
 
+            Vector2 mp = UITheme.GetMousePos();
+
             for (int i = 0; i < n; i++)
             {
                 int r = i / cols, c = i % cols;
@@ -1848,11 +1859,22 @@ namespace ForTheCompany.Systems
                     && clue.relatedRole == selectedSuspectRole;
                 bool dim = selectedSuspectRole >= 0 && !isLinkedToSelected;
 
-                Color cardBg = dim ? new Color(UITheme.Bg3.r, UITheme.Bg3.g, UITheme.Bg3.b, 0.5f)
-                                   : UITheme.Bg3;
+                // 화면 좌표 변환 + hover 체크
+                Rect screenRect = new Rect(
+                    viewRect.x + cardR.x - inventoryScroll.x,
+                    viewRect.y + cardR.y - inventoryScroll.y,
+                    cardR.width, cardR.height);
+                bool hover = screenRect.Contains(mp) && screenRect.yMin >= viewRect.y - 2
+                          && screenRect.yMax <= viewRect.yMax + 2; // ScrollView 밖은 hover 무시
+                if (hover) hoveredClueIndex = i;
+
+                Color cardBg = hover
+                    ? new Color(UITheme.Bg4.r, UITheme.Bg4.g, UITheme.Bg4.b, 1f)
+                    : (dim ? new Color(UITheme.Bg3.r, UITheme.Bg3.g, UITheme.Bg3.b, 0.5f) : UITheme.Bg3);
                 UITheme.DrawRect(cardR, cardBg);
-                UITheme.DrawBorder(cardR, isLinkedToSelected ? accent : UITheme.Line,
-                    isLinkedToSelected ? 2f : 1f);
+                UITheme.DrawBorder(cardR,
+                    hover ? UITheme.NeonCyan : (isLinkedToSelected ? accent : UITheme.Line),
+                    (hover || isLinkedToSelected) ? 2f : 1f);
 
                 // 좌측 띠 (출처 색)
                 UITheme.DrawRect(new Rect(cardR.x, cardR.y, 3f, cardR.height),
@@ -1873,25 +1895,108 @@ namespace ForTheCompany.Systems
                 GUI.Label(new Rect(cardR.x, cardR.y + 4, cardR.width, 14),
                     $"#{i + 1:D2}", numSt);
 
-                // 제목
-                GUI.Label(new Rect(cardR.x + 8, cardR.y + 22, cardR.width - 16, 32),
-                    clue.title, titleSt);
+                // 제목 (최대 1줄 — 잘림 처리)
+                string title = TruncateText(clue.title, 22);
+                GUI.Label(new Rect(cardR.x + 8, cardR.y + 22, cardR.width - 16, 24),
+                    title, titleSt);
 
-                // 본문 일부 (잘림)
-                GUI.Label(new Rect(cardR.x + 8, cardR.y + 52, cardR.width - 16, cardR.height - 56),
-                    clue.text, bodySt);
+                // 본문 일부 (잘림 + "...")
+                string preview = TruncateText(clue.text, 55);
+                GUI.Label(new Rect(cardR.x + 8, cardR.y + 48, cardR.width - 16, cardR.height - 52),
+                    preview, bodySt);
 
-                // 화면 좌표로 변환해서 점선 연결용 캐싱
-                // (스크롤 보정: viewRect.x + cardR.x - scroll)
-                Rect screenRect = new Rect(
-                    viewRect.x + cardR.x - inventoryScroll.x,
-                    viewRect.y + cardR.y - inventoryScroll.y,
-                    cardR.width, cardR.height);
                 boardCardRects.Add(screenRect);
             }
 
             GUI.EndScrollView();
         }
+
+        /// <summary>긴 텍스트를 maxChars로 자르고 끝에 "..." 추가</summary>
+        private static string TruncateText(string text, int maxChars)
+        {
+            if (string.IsNullOrEmpty(text)) return "";
+            if (text.Length <= maxChars) return text;
+            return text.Substring(0, maxChars).TrimEnd() + "...";
+        }
+
+        /// <summary>단서 hover 시 마우스 옆에 전체 내용 툴팁 표시</summary>
+        private void DrawClueTooltip(ClueEntry clue)
+        {
+            Vector2 mp = UITheme.GetMousePos();
+
+            float tipW = 380f;
+            float pad = 14f;
+
+            var titleSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 14, fontStyle = FontStyle.Bold,
+                wordWrap = true,
+                normal = { textColor = Color.white }
+            };
+            var bodySt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 12, wordWrap = true,
+                normal = { textColor = UITheme.Ink }
+            };
+            var tagSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 10, fontStyle = FontStyle.Bold,
+                normal = { textColor = UITheme.NeonCyan }
+            };
+
+            float contentW = tipW - pad * 2;
+            float titleH = titleSt.CalcHeight(new GUIContent(clue.title), contentW);
+            float bodyH = bodySt.CalcHeight(new GUIContent(clue.text), contentW);
+            float tipH = pad + 18 + 4 + titleH + 8 + bodyH + pad;
+
+            // 마우스 우측 16px에 배치, 화면 밖이면 좌측으로
+            float tx = mp.x + 16f;
+            if (tx + tipW > Screen.width - 8) tx = mp.x - tipW - 16f;
+            float ty = mp.y + 8f;
+            if (ty + tipH > Screen.height - 8) ty = Screen.height - tipH - 8f;
+            if (tx < 8) tx = 8;
+            if (ty < 8) ty = 8;
+
+            var tipR = new Rect(tx, ty, tipW, tipH);
+
+            // GUI.depth 음수로 위에 그리도록
+            float prevDepth = GUI.depth;
+            GUI.depth = -500;
+
+            UITheme.DrawRect(tipR, UITheme.Bg1);
+            UITheme.DrawBorder(tipR, UITheme.NeonCyan, 1f);
+            UITheme.DrawRect(new Rect(tipR.x, tipR.y, 3f, tipR.height), UITheme.NeonCyan);
+
+            float cy = tipR.y + pad;
+
+            // 태그 + 출처
+            string tagLine = $"▸ {clue.tag ?? ""}";
+            if (!string.IsNullOrEmpty(clue.tag)) tagLine += "  ·  ";
+            tagLine += SourceLabel(clue.source);
+            GUI.Label(new Rect(tipR.x + pad, cy, contentW, 14), tagLine, tagSt);
+            cy += 18;
+
+            // 구분선
+            UITheme.DrawRect(new Rect(tipR.x + pad, cy, contentW, 1), UITheme.Line);
+            cy += 6;
+
+            // 제목
+            GUI.Label(new Rect(tipR.x + pad, cy, contentW, titleH), clue.title, titleSt);
+            cy += titleH + 6;
+
+            // 본문 전체
+            GUI.Label(new Rect(tipR.x + pad, cy, contentW, bodyH), clue.text, bodySt);
+
+            GUI.depth = prevDepth;
+        }
+
+        private static string SourceLabel(ClueSource src) => src switch
+        {
+            ClueSource.Environment => "보안교육",
+            ClueSource.NPC => "증언",
+            ClueSource.Minigame => "미니게임",
+            _ => "기타"
+        };
 
         private void DrawSuspectsRow(Rect area)
         {
