@@ -1705,14 +1705,15 @@ namespace ForTheCompany.Systems
 
             // ── 상단 헤더 ──
             float headerY = y + 44;
-            UITheme.DrawPulseDot(new Vector2(x + 24, headerY + 14), UITheme.Danger, 4f);
+            UITheme.DrawPulseDot(new Vector2(x + 24, headerY + 18), UITheme.Danger, 4f);
 
             var headerTagSt = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 11, fontStyle = FontStyle.Bold,
+                fontSize = 12, fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleLeft,
                 normal = { textColor = UITheme.Danger }
             };
-            GUI.Label(new Rect(x + 40, headerY + 4, w - 80, 14),
+            GUI.Label(new Rect(x + 40, headerY + 4, w - 80, 22),
                 "▸ 진행 중인 사건 // ACTIVE INCIDENT", headerTagSt);
 
             var titleSt = new GUIStyle(GUI.skin.label)
@@ -1720,23 +1721,23 @@ namespace ForTheCompany.Systems
                 fontSize = 20, fontStyle = FontStyle.Bold,
                 normal = { textColor = UITheme.Ink }
             };
-            GUI.Label(new Rect(x + 40, headerY + 18, w - 80, 28),
+            GUI.Label(new Rect(x + 40, headerY + 28, w - 80, 32),
                 "차세대 보안 칩 설계도 유출 — 산업스파이 조사", titleSt);
 
             var hintSt = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 10, fontStyle = FontStyle.Bold,
+                fontSize = 11, fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleRight,
                 padding = new RectOffset(0, 24, 0, 0),
                 normal = { textColor = UITheme.InkFaint }
             };
-            GUI.Label(new Rect(x, headerY + 6, w, 14),
+            GUI.Label(new Rect(x, headerY + 6, w, 22),
                 "// [I] 또는 [ESC] 닫기", hintSt);
 
-            UITheme.DrawRect(new Rect(x + 24, headerY + 52, w - 48, 1), UITheme.Line);
+            UITheme.DrawRect(new Rect(x + 24, headerY + 66, w - 48, 1), UITheme.Line);
 
             // ── 본문 — 좌우 분할 (보드 + 용의자카드 / 우측 SUSPECT FILE) ──
-            float bodyY = headerY + 64;
+            float bodyY = headerY + 78;
             float bodyH = h - (bodyY - y) - 16;
 
             float leftW = w * 0.65f;
@@ -1769,32 +1770,33 @@ namespace ForTheCompany.Systems
             // 보드 헤더
             var labelSt = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 11, fontStyle = FontStyle.Bold,
+                fontSize = 12, fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleLeft,
                 normal = { textColor = UITheme.NeonGreen }
             };
             int total = s.CollectedClues.Count;
-            GUI.Label(new Rect(boardRect.x + 14, boardRect.y + 8, 300, 16),
+            GUI.Label(new Rect(boardRect.x + 14, boardRect.y + 8, 300, 22),
                 $"▸ 증거 보드 // EVIDENCE BOARD · {total:D2}", labelSt);
 
             var subTag = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 10,
+                fontSize = 11,
                 alignment = TextAnchor.MiddleRight,
                 padding = new RectOffset(0, 14, 0, 0),
                 normal = { textColor = UITheme.InkFaint }
             };
-            GUI.Label(new Rect(boardRect.x, boardRect.y + 8, boardRect.width, 16),
+            GUI.Label(new Rect(boardRect.x, boardRect.y + 8, boardRect.width, 22),
                 selectedSuspectRole < 0
                     ? "// 용의자 카드를 클릭하면 관련 단서가 점선으로 연결됩니다"
                     : $"// 선택됨: {GetRoleName(selectedSuspectRole)} — 관련 단서 강조",
                 subTag);
 
-            UITheme.DrawRect(new Rect(boardRect.x + 14, boardRect.y + 28, boardRect.width - 28, 1),
+            UITheme.DrawRect(new Rect(boardRect.x + 14, boardRect.y + 36, boardRect.width - 28, 1),
                 UITheme.Line);
 
             // 단서 카드들 자동 그리드 배치
-            DrawEvidenceCards(s, new Rect(boardRect.x + 14, boardRect.y + 36,
-                boardRect.width - 28, boardRect.height - 50));
+            DrawEvidenceCards(s, new Rect(boardRect.x + 14, boardRect.y + 44,
+                boardRect.width - 28, boardRect.height - 58));
 
             // ── 좌하단 용의자 3 카드 ──
             DrawSuspectsRow(suspectsRect);
@@ -2005,15 +2007,16 @@ namespace ForTheCompany.Systems
 
             var headerSt = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 11, fontStyle = FontStyle.Bold,
+                fontSize = 12, fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleLeft,
                 normal = { textColor = UITheme.NeonMagenta }
             };
-            GUI.Label(new Rect(area.x + 12, area.y + 6, 300, 14),
+            GUI.Label(new Rect(area.x + 12, area.y + 6, area.width - 24, 22),
                 "▸ 용의자 3 // SUSPECTS — 클릭으로 단서 연결", headerSt);
 
             // 3개 용의자 카드 가로 배치
-            float cardY = area.y + 26;
-            float cardH = area.height - 34;
+            float cardY = area.y + 34;
+            float cardH = area.height - 42;
             float gap = 8f;
             float cardW = (area.width - 24 - gap * 2) / 3;
 
@@ -2062,21 +2065,23 @@ namespace ForTheCompany.Systems
             // 이름
             var nameSt = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 13, fontStyle = FontStyle.Bold,
+                fontSize = 14, fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleLeft,
                 normal = { textColor = isSelected ? UITheme.NeonGreen : Color.white }
             };
-            GUI.Label(new Rect(rect.x + 12, rect.y + 6, rect.width - 24, 18), name, nameSt);
+            GUI.Label(new Rect(rect.x + 12, rect.y + 8, rect.width - 24, 22), name, nameSt);
 
             // 부직군
             var subSt = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 9, fontStyle = FontStyle.Bold,
+                fontSize = 10, fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleLeft,
                 normal = { textColor = UITheme.InkFaint }
             };
-            GUI.Label(new Rect(rect.x + 12, rect.y + 22, rect.width - 24, 12), subTitle, subSt);
+            GUI.Label(new Rect(rect.x + 12, rect.y + 30, rect.width - 24, 16), subTitle, subSt);
 
             // 의심도 막대
-            float barY = rect.y + 38;
+            float barY = rect.y + 52;
             float barW = rect.width - 24;
             UITheme.DrawRect(new Rect(rect.x + 12, barY, barW, 4), UITheme.Bg4);
             float pct = Mathf.Clamp01(suspicion / 10f);
@@ -2086,11 +2091,11 @@ namespace ForTheCompany.Systems
             // 의심도 숫자
             var susLabelSt = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 9, fontStyle = FontStyle.Bold,
+                fontSize = 11, fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleRight,
                 normal = { textColor = susColor }
             };
-            GUI.Label(new Rect(rect.x, barY + 6, rect.width - 12, 12),
+            GUI.Label(new Rect(rect.x, barY + 8, rect.width - 12, 18),
                 $"의심도 {suspicion}/10", susLabelSt);
 
             // 클릭
@@ -2109,9 +2114,9 @@ namespace ForTheCompany.Systems
 
             float gap = 8f;
             float cardW = (suspectsArea.width - 24 - gap * 2) / 3;
-            float cardH = suspectsArea.height - 34;
+            float cardH = suspectsArea.height - 42;
             float cardX = suspectsArea.x + 12 + selIdx * (cardW + gap);
-            float cardY = suspectsArea.y + 26;
+            float cardY = suspectsArea.y + 34;
             // 용의자 카드 상단 중앙 = 점선 시작점
             Vector2 suspectAnchor = new Vector2(cardX + cardW * 0.5f, cardY);
 
@@ -2141,13 +2146,14 @@ namespace ForTheCompany.Systems
             // 헤더
             var labelSt = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 11, fontStyle = FontStyle.Bold,
+                fontSize = 12, fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleLeft,
                 normal = { textColor = UITheme.NeonCyan }
             };
-            GUI.Label(new Rect(area.x + 14, area.y + 8, area.width - 28, 16),
+            GUI.Label(new Rect(area.x + 14, area.y + 8, area.width - 28, 22),
                 "▸ 용의자 파일 // SUSPECT FILE", labelSt);
 
-            UITheme.DrawRect(new Rect(area.x + 14, area.y + 28, area.width - 28, 1), UITheme.Line);
+            UITheme.DrawRect(new Rect(area.x + 14, area.y + 34, area.width - 28, 1), UITheme.Line);
 
             if (selectedSuspectRole < 0)
             {
@@ -2177,7 +2183,7 @@ namespace ForTheCompany.Systems
             }
             if (selected == null) return;
 
-            float cy = area.y + 42;
+            float cy = area.y + 48;
 
             // 이름 (큰)
             var nameSt = new GUIStyle(GUI.skin.label)
@@ -2185,22 +2191,23 @@ namespace ForTheCompany.Systems
                 fontSize = 22, fontStyle = FontStyle.Bold,
                 normal = { textColor = Color.white }
             };
-            GUI.Label(new Rect(area.x + 16, cy, area.width - 32, 30),
+            GUI.Label(new Rect(area.x + 16, cy, area.width - 32, 32),
                 selected.DisplayName, nameSt);
-            cy += 32;
+            cy += 36;
 
             var subSt = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 11, fontStyle = FontStyle.Bold,
+                fontSize = 12, fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleLeft,
                 normal = { textColor = UITheme.InkDim }
             };
-            GUI.Label(new Rect(area.x + 16, cy, area.width - 32, 14),
+            GUI.Label(new Rect(area.x + 16, cy, area.width - 32, 20),
                 GetRoleSubtitle(selectedSuspectRole), subSt);
-            cy += 24;
+            cy += 28;
 
             // 의심도 인덱스
             UITheme.DrawRect(new Rect(area.x + 16, cy, area.width - 32, 1), UITheme.Line);
-            cy += 8;
+            cy += 10;
 
             int sus = selected.suspicion;
             Color susColor = sus >= 7 ? UITheme.Danger
@@ -2209,24 +2216,25 @@ namespace ForTheCompany.Systems
 
             var sectionSt = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 10, fontStyle = FontStyle.Bold,
+                fontSize = 11, fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleLeft,
                 normal = { textColor = susColor }
             };
-            GUI.Label(new Rect(area.x + 16, cy, area.width - 32, 14),
+            GUI.Label(new Rect(area.x + 16, cy, area.width - 32, 20),
                 "▸ 의심도 // SUSPICION INDEX", sectionSt);
-            cy += 16;
+            cy += 22;
             UITheme.DrawRect(new Rect(area.x + 16, cy, area.width - 32, 8), UITheme.Bg4);
             float pct = Mathf.Clamp01(sus / 10f);
             UITheme.DrawRect(new Rect(area.x + 16, cy, (area.width - 32) * pct, 8), susColor);
             var susNumSt = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 11, fontStyle = FontStyle.Bold,
+                fontSize = 12, fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleRight,
                 normal = { textColor = susColor }
             };
-            GUI.Label(new Rect(area.x, cy + 12, area.width - 16, 14),
+            GUI.Label(new Rect(area.x, cy + 14, area.width - 16, 18),
                 $"{sus} / 10", susNumSt);
-            cy += 36;
+            cy += 42;
 
             // 연결된 단서 수
             int linked = 0;
@@ -2234,29 +2242,30 @@ namespace ForTheCompany.Systems
                 if (c.relatedRole == selectedSuspectRole) linked++;
 
             UITheme.DrawRect(new Rect(area.x + 16, cy, area.width - 32, 1), UITheme.Line);
-            cy += 8;
+            cy += 10;
 
             var linkedSt = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 10, fontStyle = FontStyle.Bold,
+                fontSize = 11, fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleLeft,
                 normal = { textColor = UITheme.NeonGreen }
             };
-            GUI.Label(new Rect(area.x + 16, cy, area.width - 32, 14),
+            GUI.Label(new Rect(area.x + 16, cy, area.width - 32, 20),
                 "▸ 수집된 단서 // EVIDENCE", linkedSt);
-            cy += 16;
+            cy += 24;
             var linkedNumSt = new GUIStyle(GUI.skin.label)
             {
                 fontSize = 26, fontStyle = FontStyle.Bold,
                 normal = { textColor = UITheme.NeonGreen }
             };
-            GUI.Label(new Rect(area.x + 16, cy, area.width - 32, 32),
+            GUI.Label(new Rect(area.x + 16, cy, area.width - 32, 36),
                 $"{linked} 건", linkedNumSt);
-            cy += 38;
+            cy += 44;
 
             // 안내
             var infoSt = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 11, wordWrap = true,
+                fontSize = 12, wordWrap = true,
                 normal = { textColor = UITheme.InkDim }
             };
             string infoText = sus >= 7
@@ -2264,7 +2273,7 @@ namespace ForTheCompany.Systems
                 : sus >= 4
                 ? "▸ 의심도 상승 중. 추가 단서를 모아 확신을 쌓아라."
                 : "▸ 아직 단서가 부족하다. 대화·환경 조사로 단서를 더 모아라.";
-            GUI.Label(new Rect(area.x + 16, cy, area.width - 32, 80), infoText, infoSt);
+            GUI.Label(new Rect(area.x + 16, cy, area.width - 32, 90), infoText, infoSt);
         }
 
         // ─── 헬퍼 ───
