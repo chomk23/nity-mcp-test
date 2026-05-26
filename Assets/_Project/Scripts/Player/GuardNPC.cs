@@ -176,16 +176,16 @@ namespace ForTheCompany.Player
                 "조사관님, 돌아오셨군요. 연구원과 보안 교육 모듈은 잘 마치셨습니까?",
                 "수집하신 단서는 인벤토리(I 키)에 다 기록돼 있을 겁니다. 지금 한번 정리해두시는 게 좋습니다.",
                 hintLine,
-                "그리고 다음 단계 — 휴게실에 보안 의식 평가용 '보안 레이싱' 단말이 있습니다. " +
+                "그리고 다음 단계 — 휴게실에 보안 의식 평가용 컴퓨터가 한 대 있습니다. " +
                 "직원들 보안 의식을 평가하는 시뮬레이션인데, 1등으로 통과하면 추가 단서를 얻을 수 있습니다.",
-                "긴장하지 마시고 차분히 도전해보세요. 결승선까지 다른 차들을 제치고 들어가시면 됩니다."
+                "휴게실 안 모니터 앞에 가서 상호작용하시면 평가가 시작됩니다. 결승선까지 다른 차들을 제치고 들어가세요."
             };
 
             var choices = new List<DialogueChoice>
             {
                 new DialogueChoice(
                     "지금 바로 휴게실로 가보겠습니다.",
-                    "좋습니다. 휴게실은 남쪽 초록 방, 시안색 캐비닛입니다. 행운을 빕니다."),
+                    "좋습니다. 휴게실은 남쪽 초록 방, 안쪽 컴퓨터 앞에서 SPACE로 시작하시면 됩니다. 행운을 빕니다."),
                 new DialogueChoice(
                     "보안 레이싱은 어떤 게임인가요?",
                     "8-bit 스타일 종스크롤 레이싱입니다. 60초 안에 보안 문제를 풀면서 다른 차를 제치세요. " +
@@ -202,7 +202,7 @@ namespace ForTheCompany.Player
                     quest.TryAdvance(QuestManager.Stage.GuardCheckIn);
                     GameSession.Instance?.AddClue(
                         "경비원 중간 브리핑",
-                        "연구원 정보 정리 + 보안 레이싱 단말 안내. " + hintLine,
+                        "연구원 정보 정리 + 휴게실 컴퓨터에서 보안 레이싱 평가 안내. " + hintLine,
                         ClueSource.NPC, -1, "BRIEF");
                 },
                 choices);

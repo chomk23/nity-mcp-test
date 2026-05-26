@@ -144,7 +144,7 @@ namespace ForTheCompany.Systems
                 case Stage.Briefing:            return "장소: 중앙복도 (시작 지점)";
                 case Stage.MeetResearcher:      return "장소: 연구실 (서북쪽 파랑 방)";
                 case Stage.GuardCheckIn:        return "장소: 중앙복도 (경비원, 시작 지점 근처)";
-                case Stage.RacingMission:       return "장소: 휴게실 (남쪽 초록 방, 시안색 캐비닛)";
+                case Stage.RacingMission:       return "장소: 휴게실 (남쪽 초록 방, 안쪽 컴퓨터/모니터 앞)";
                 case Stage.MeetNetworkAdmin:    return "장소: 서버실 (북쪽 빨강 방)";
                 case Stage.MeetFacilityManager: return "장소: 전력실 (동쪽 노랑 방)";
                 case Stage.Accusation:          return "장소: 보안통제실 (보라 방, 빨간 콘솔)";

@@ -54,24 +54,18 @@ namespace ForTheCompany.Systems
             Instance = this;
         }
 
-        /// <summary>휴게실 안에 RacingConsole GameObject 자동 배치 (시안색 캐비닛)</summary>
+        /// <summary>
+        /// 휴게실 안에 RacingConsole 인터랙션 마커 자동 배치.
+        /// 시각적 큐브 없음 — 휴게실에 미리 배치된 모니터/컴퓨터 prefab 옆 빈 GameObject로만 작동.
+        /// PlayerInteractor가 거리 기반이라 Collider/MeshRenderer 없어도 SPACE 인터랙션 정상.
+        /// </summary>
         private void SpawnConsole()
         {
             if (FindFirstObjectByType<RacingConsole>() != null) return;
 
-            var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            go.name = "RacingConsole";
+            var go = new GameObject("RacingConsole");
             go.transform.position = new Vector3(-13f, 0.75f, 2f);
-            go.transform.localScale = new Vector3(1.4f, 1.5f, 0.8f);
-
-            var mr = go.GetComponent<MeshRenderer>();
-            if (mr != null)
-            {
-                var mpb = new MaterialPropertyBlock();
-                mpb.SetColor("_BaseColor", new Color(0.1f, 0.85f, 1f));
-                mr.SetPropertyBlock(mpb);
-            }
-
+            // MeshRenderer / Collider 없음 → 보이지도 막히지도 않음
             go.AddComponent<RacingConsole>();
         }
 
