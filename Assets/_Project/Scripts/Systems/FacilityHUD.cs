@@ -171,7 +171,7 @@ namespace ForTheCompany.Systems
             float eased = 1f - Mathf.Pow(1f - t, 3f);
 
             float boxW = Mathf.Min(Screen.width - 80, 1120);
-            float boxH = 200;
+            float boxH = 130;  // 200 → 130 (본문 최대 2~3줄에 맞춤)
             float boxX = (Screen.width - boxW) * 0.5f;
             float targetY = Screen.height - boxH - 40;
             float startY = Screen.height + 20;
@@ -221,7 +221,7 @@ namespace ForTheCompany.Systems
                 alignment = TextAnchor.UpperLeft,
                 normal = { textColor = UITheme.Ink }
             };
-            float padX = 36, padTop = 40, padBottom = 40;
+            float padX = 36, padTop = 30, padBottom = 30;
             GUI.Label(new Rect(boxX + padX, boxY + padTop, boxW - padX * 2, boxH - padTop - padBottom),
                 ds.CurrentVisibleLine, bodyStyle);
 
