@@ -105,7 +105,7 @@ namespace ForTheCompany.Player
                 {
                     new DialogueChoice(
                         "연구원부터 먼저 만나보겠습니다.",
-                        "현명한 선택입니다. 연구실은 서북쪽 파란 방입니다. 대화 마치시면 다시 저에게 보고해주세요. 행운을 빕니다."),
+                        "현명한 선택입니다. 연구실은 서북쪽에 있습니다. 대화 마치시면 다시 저에게 보고해주세요. 행운을 빕니다."),
                     new DialogueChoice(
                         "조사 시 주의할 점이 있나요?",
                         "용의자 모두 상냥하게 대하세요. 직접 추궁하면 입을 닫습니다. 단서로 압박하는 게 정석입니다. 먼저 연구실의 연구원부터 만나보시죠."),
@@ -185,7 +185,7 @@ namespace ForTheCompany.Player
             {
                 new DialogueChoice(
                     "지금 바로 휴게실로 가보겠습니다.",
-                    "좋습니다. 휴게실은 남쪽 초록 방, 안쪽 컴퓨터 앞에서 SPACE로 시작하시면 됩니다. 행운을 빕니다."),
+                    "좋습니다. 휴게실은 남쪽에 있습니다. 안쪽 컴퓨터 앞에서 SPACE로 시작하시면 됩니다. 행운을 빕니다."),
                 new DialogueChoice(
                     "보안 레이싱은 어떤 게임인가요?",
                     "8-bit 스타일 종스크롤 레이싱입니다. 60초 안에 보안 문제를 풀면서 다른 차를 제치세요. " +
@@ -237,15 +237,15 @@ namespace ForTheCompany.Player
                         "먼저 연구실로 가서 연구원과 이야기해보세요. " +
                         "단서는 미니게임과 환경 조사로 추가 확보할 수 있습니다.";
                 case QuestManager.Stage.MeetResearcher:
-                    return "연구실의 연구원에게 먼저 가보세요. 서북쪽 파란 방입니다.";
+                    return "연구실의 연구원에게 먼저 가보세요. 서북쪽에 있습니다.";
                 case QuestManager.Stage.GuardCheckIn:
                     return "연구원 만나셨군요. 잠시 보고 받고 싶으니 말씀해주세요. (※ 다시 [Space])";
                 case QuestManager.Stage.RacingMission:
-                    return "휴게실의 보안 레이싱 게임에서 1등을 노리세요. 남쪽 초록 방입니다.";
+                    return "휴게실의 보안 레이싱 게임에서 1등을 노리세요. 남쪽에 있습니다.";
                 case QuestManager.Stage.MeetNetworkAdmin:
-                    return "다음은 서버실의 네트워크관리자와 대화하세요. 북쪽 빨간 방입니다.";
+                    return "다음은 서버실의 네트워크관리자와 대화하세요. 북쪽에 있습니다.";
                 case QuestManager.Stage.MeetFacilityManager:
-                    return "마지막 용의자, 시설관리자에게 가보세요. 동쪽 노란 방입니다.";
+                    return "마지막 용의자, 시설관리자에게 가보세요. 동쪽에 있습니다.";
                 case QuestManager.Stage.Accusation:
                     return "이제 보안통제실의 빨간 콘솔에서 스파이를 지목할 시간입니다.";
                 case QuestManager.Stage.Done:
