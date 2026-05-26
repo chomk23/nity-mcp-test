@@ -1960,7 +1960,7 @@ namespace ForTheCompany.Systems
             var tipR = new Rect(tx, ty, tipW, tipH);
 
             // GUI.depth 음수로 위에 그리도록
-            float prevDepth = GUI.depth;
+            int prevDepth = GUI.depth;
             GUI.depth = -500;
 
             UITheme.DrawRect(tipR, UITheme.Bg1);
