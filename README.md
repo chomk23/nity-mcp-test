@@ -126,32 +126,6 @@ Unity 6 + URP로 만든 **사이버펑크 / 다크 네온 터미널 톤**의 단
 
 ---
 
-## 🚀 실행 방법
-
-### 빌드된 .exe로 플레이
-1. 최신 릴리즈 다운로드 또는 본인이 빌드
-2. ZIP 압축 풀기
-3. `ForTheCompany.exe` 더블클릭
-4. Windows Defender SmartScreen 경고 시 "추가 정보 → 실행"
-
-### 소스에서 빌드 (개발자)
-```bash
-git lfs install                                # Git LFS 한 번만
-git clone https://github.com/chomk23/nity-mcp-test.git
-cd nity-mcp-test
-```
-1. Unity Hub → **6000.4.7f1** 버전으로 프로젝트 열기
-2. 첫 import 5~10분 (패키지 자동 다운로드)
-3. 상단 메뉴 → **For The Company → Build Windows (One Click)**
-4. `builds/ForTheCompany_Win/` 폴더에 빌드 생성
-5. `ForTheCompany.exe` 실행
-
-### Unity Editor에서 바로 플레이
-1. `Assets/_Project/Scenes/MainMenuScene.unity` 열기
-2. Play ▶ 버튼
-
----
-
 ## 📂 프로젝트 구조
 
 ```
@@ -191,11 +165,3 @@ Assets/_Project/
   - BGM: pixabay CC0
 
 ---
-
-## 🙌 크레딧
-
-- **개발**: chomk23
-- **AI 코딩 어시스턴트**: Claude (Anthropic) — 코드 작성·디자인·디버깅
-- **디자인 시스템**: Claude Design "SecureSense"
-- **모델**: Kenney Blocky Characters
-- **환경 에셋**: Terresquall ScifiOfficeLite, Synty Polygon Office
