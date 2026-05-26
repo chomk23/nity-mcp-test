@@ -146,10 +146,11 @@ namespace ForTheCompany.Systems
 
             var tagSt = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 10, fontStyle = FontStyle.Bold,
+                fontSize = 11, fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleLeft,
                 normal = { textColor = UITheme.NeonGreen }
             };
-            GUI.Label(new Rect(x + 44, headerY + 4, w - 80, 14),
+            GUI.Label(new Rect(x + 44, headerY, w - 80, 22),
                 "▸ 시스템 일시정지 // SYSTEM PAUSED", tagSt);
 
             var titleSt = new GUIStyle(GUI.skin.label)
@@ -209,10 +210,11 @@ namespace ForTheCompany.Systems
 
             var tagSt = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 10, fontStyle = FontStyle.Bold,
+                fontSize = 11, fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleLeft,
                 normal = { textColor = UITheme.NeonCyan }
             };
-            GUI.Label(new Rect(x + 44, headerY + 4, w - 80, 14),
+            GUI.Label(new Rect(x + 44, headerY, w - 80, 22),
                 "▸ 게임 설명 // BRIEFING", tagSt);
 
             var titleSt = new GUIStyle(GUI.skin.label)
@@ -287,10 +289,11 @@ namespace ForTheCompany.Systems
 
             var tagSt = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 10, fontStyle = FontStyle.Bold,
+                fontSize = 11, fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleLeft,
                 normal = { textColor = UITheme.NeonViolet }
             };
-            GUI.Label(new Rect(x + 44, headerY + 4, w - 80, 14),
+            GUI.Label(new Rect(x + 44, headerY, w - 80, 22),
                 "▸ 설정 // CONFIGURATION", tagSt);
 
             var titleSt = new GUIStyle(GUI.skin.label)

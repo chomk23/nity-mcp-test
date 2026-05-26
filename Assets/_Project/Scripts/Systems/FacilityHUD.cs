@@ -1075,12 +1075,12 @@ namespace ForTheCompany.Systems
             {
                 var progressSt = new GUIStyle(GUI.skin.label)
                 {
-                    fontSize = 11, fontStyle = FontStyle.Bold,
+                    fontSize = 12, fontStyle = FontStyle.Bold,
                     alignment = TextAnchor.MiddleRight,
                     padding = new RectOffset(0, 16, 0, 0),
                     normal = { textColor = UITheme.NeonGreen }
                 };
-                GUI.Label(new Rect(x, headerY + 4, w, 14),
+                GUI.Label(new Rect(x, headerY, w, 22),
                     $"▸ 문제 {ctrl.SessionCurrent} / {ctrl.SessionTotal}", progressSt);
             }
 
@@ -1561,10 +1561,11 @@ namespace ForTheCompany.Systems
 
             var motiveTagSt = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 10, fontStyle = FontStyle.Bold,
+                fontSize = 11, fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleLeft,
                 normal = { textColor = accent }
             };
-            GUI.Label(new Rect(motiveRect.x + 14, motiveRect.y + 8, motiveRect.width - 28, 14),
+            GUI.Label(new Rect(motiveRect.x + 14, motiveRect.y + 6, motiveRect.width - 28, 22),
                 "▸ MOTIVE // 유출 동기", motiveTagSt);
 
             var motiveBodySt = new GUIStyle(GUI.skin.label)
@@ -1573,7 +1574,7 @@ namespace ForTheCompany.Systems
                 alignment = TextAnchor.UpperLeft,
                 normal = { textColor = UITheme.Ink }
             };
-            GUI.Label(new Rect(motiveRect.x + 16, motiveRect.y + 26, motiveRect.width - 32, motiveH - 32),
+            GUI.Label(new Rect(motiveRect.x + 16, motiveRect.y + 30, motiveRect.width - 32, motiveH - 36),
                 motiveText, motiveBodySt);
 
             // ── 결과 메시지 (간단히) ──
