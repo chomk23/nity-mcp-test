@@ -33,6 +33,37 @@ namespace ForTheCompany.EditorTools
         private const string PartnerName = "AccusationPartner";
         private const string PartnerFbxPath = BasePath + "character-g.fbx"; // 보안수사관 동료 (보안통제실)
 
+        /// <summary>
+        /// AccusationPartner(보안수사관 동료) 하나만 character-g.fbx로 처리.
+        /// 다른 NPC(연구원·네트워크관리자·시설관리자·플레이어·경비원)는 건드리지 않음.
+        /// 사용자가 한 번 이 메뉴 실행 후 씬 저장(Ctrl+S)하면 빌드본에도 영구 포함.
+        /// </summary>
+        [MenuItem("For The Company/Replace Accusation Partner Only (character-g)")]
+        public static void ReplaceAccusationPartnerOnly()
+        {
+            var partnerGO = GameObject.Find(PartnerName);
+            if (partnerGO == null)
+            {
+                partnerGO = new GameObject(PartnerName);
+                partnerGO.transform.position = new Vector3(16f, 1.2f, 11f);
+                partnerGO.AddComponent<AccusationPartner>();
+                Undo.RegisterCreatedObjectUndo(partnerGO, "Create AccusationPartner");
+                Debug.Log("[NPCReplace] AccusationPartner GameObject 사전 생성 (보안통제실 16,1.2,11)");
+            }
+            CleanCapsuleMesh(partnerGO);
+            bool ok = ReplaceModel(partnerGO, PartnerFbxPath, "보안수사관 동료");
+
+            EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+
+            EditorUtility.DisplayDialog("AccusationPartner",
+                ok
+                    ? "✓ 보안통제실에 보안수사관 동료 (character-g) 배치 완료.\n\n" +
+                      "CharacterBobbing 자동 부착 — 이동 시 걷기 애니메이션.\n\n" +
+                      "⚠ 씬 저장 (Ctrl+S) 잊지 마세요. 그래야 빌드본에도 영구 포함됩니다."
+                    : "✗ AccusationPartner 모델 부착 실패. Console 확인.",
+                "확인");
+        }
+
         [MenuItem("For The Company/Replace NPCs with Kenney Characters")]
         public static void Replace()
         {
