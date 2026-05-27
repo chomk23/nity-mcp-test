@@ -116,11 +116,20 @@ namespace ForTheCompany.Core
             if (bridge != null && bridge.IsShowing) return;
             var rmc = RacingMissionController.Instance;
             if (rmc != null && rmc.IsOpen) return;
+            // 보안교육 미션 중 줌 차단
+            var sqc = SecurityQuizController.Instance;
+            if (sqc != null && sqc.IsOpen) return;
             // 대화 중 줌 차단
             var ds = DialogueSystem.Instance;
             if (ds != null && ds.IsActive) return;
             // 인벤토리 열림 중에도 줌 차단
             if (FacilityHUD.IsInventoryOpen) return;
+            // 일시정지 메뉴, 컷씬, 지목 모달
+            var pm = PauseMenu.Instance;
+            if (pm != null && pm.IsOpen) return;
+            if (IntroMonologue.IsCutsceneActive) return;
+            var partner = ForTheCompany.Player.AccusationPartner.Instance;
+            if (partner != null && partner.IsMenuOpen) return;
 
             var mouse = Mouse.current;
             if (mouse == null) return;

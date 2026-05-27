@@ -36,7 +36,7 @@ namespace ForTheCompany.Core
 
         [Header("Time Limit")]
         [Tooltip("총 제한 시간(초). 스토리 모드 기본 7분(420초).")]
-        public float totalTime = 420f;
+        public float totalTime = 900f;  // 15분
         public float TimeRemaining { get; private set; }
         public bool TimerActive { get; private set; }
 

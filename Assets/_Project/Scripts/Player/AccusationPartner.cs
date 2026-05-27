@@ -7,7 +7,7 @@ using ForTheCompany.Systems;
 namespace ForTheCompany.Player
 {
     /// <summary>
-    /// 보안통제실 보안수사관 동료 NPC.
+    /// 보안통제실 AI로봇 한세 NPC.
     /// 평소엔 일반 대화, Accusation 단계 + 단서 충분(>=3)하면 산업스파이 지목 메뉴 활성.
     /// 보안통제실 내부에서 어슬렁(patrol). Kenney character-g 모델 사용.
     /// 기존 AccusationConsole 큐브 대체 — 같은 GameObject에 자식 모델 + 이 컴포넌트.
@@ -17,7 +17,7 @@ namespace ForTheCompany.Player
         public static AccusationPartner Instance { get; private set; }
 
         [Header("Identity")]
-        public string displayName = "보안수사관 동료";
+        public string displayName = "AI로봇 한세";
 
         [Header("Interaction")]
         public float interactRadius = 2.5f;
@@ -31,6 +31,8 @@ namespace ForTheCompany.Player
 
         public string LastResult { get; private set; }
         public bool IsMenuOpen { get; private set; }
+        // 지목 직전 최종 대화를 한 번이라도 봤는지 — 봤으면 다음 인터랙트 시 바로 메뉴
+        private bool hasShownFinalDialogue;
 
         // IInteractable
         public Vector3 InteractPosition => transform.position;
@@ -150,12 +152,19 @@ namespace ForTheCompany.Player
         {
             FacePlayer();
 
-            // 지목 단계 + 단서 충분 → 자체 IsMenuOpen 토글 (FacilityHUD가 모달 표시)
+            // 지목 단계 + 단서 충분 → 최초 1회는 최종 대화 → 그 후 메뉴 자동
             if (IsStoryReady())
             {
                 var s = GameSession.Instance;
                 if (s != null && s.totalClues >= minimumClues)
                 {
+                    if (!hasShownFinalDialogue)
+                    {
+                        hasShownFinalDialogue = true;
+                        StartFinalDialogue();
+                        return;
+                    }
+                    // 이미 최종 대화 본 적 있음 → 메뉴 토글
                     IsMenuOpen = !IsMenuOpen;
                     return;
                 }
@@ -163,6 +172,35 @@ namespace ForTheCompany.Player
 
             // 일반 대화 (지목 불가 상태) 또는 동료 잡담
             StartGeneralDialogue();
+        }
+
+        /// <summary>지목 직전 최종 대화 — 끝나면 자동으로 지목 메뉴 오픈</summary>
+        private void StartFinalDialogue()
+        {
+            var ds = DialogueSystem.Instance;
+            if (ds == null) { IsMenuOpen = true; return; }
+
+            var s = GameSession.Instance;
+            int c = s != null ? s.totalClues : 0;
+            string spyName = NPCRoster.Instance != null && NPCRoster.Instance.Spy != null
+                ? NPCRoster.Instance.Spy.DisplayName
+                : "?";
+
+            var lines = new[]
+            {
+                $"조사관님, 돌아오셨군요. 단서를 {c}건이나 모으셨네요.",
+                "제가 수집된 정보를 다시 분석해봤습니다. 패턴이 명확해지고 있어요.",
+                "용의자 셋 중 한 명만 직무 권한과 동기, 그리고 행동 패턴이 모두 일치합니다.",
+                "...하지만 마지막 판단은 인간 조사관이 직접 내려야 한다는 게 회사 규정이에요.",
+                "잘못된 지목은 되돌릴 수 없습니다. 한 번에 끝내야 합니다.",
+                "준비되셨으면 지목 절차 시작하겠습니다. 화면에 용의자 목록이 표시됩니다."
+            };
+
+            ds.StartDialogue(displayName, lines, transform, () =>
+            {
+                // 대화 종료 → 자동으로 지목 메뉴 오픈
+                IsMenuOpen = true;
+            });
         }
 
         public void Close() => IsMenuOpen = false;
@@ -224,23 +262,23 @@ namespace ForTheCompany.Player
             }
             else if (curStage <= (int)QuestManager.Stage.MeetResearcher)
             {
-                // 게임 초반
+                // 게임 초반 — 자기소개 (AI로봇)
                 lines = new[]
                 {
-                    "고생 많으시네요, 조사관님.",
-                    "저는 이번 사건 보조로 배정된 동료입니다. 보안통제실은 제가 지키고 있을게요.",
-                    "용의자 셋 다 만나보시고 단서 모으신 다음 다시 오세요.",
-                    "조사 다 끝나시고 단서 충분히 모으시면 저에게 다시 와주세요. 산업스파이 지목 절차는 제가 직접 진행해드립니다."
+                    "안녕하세요, 조사관님. 저는 AI로봇 한세입니다.",
+                    "이번 사건 분석 보조로 배정됐어요. 보안통제실은 제가 지키고 있을게요.",
+                    "단서 수집 패턴 분석과 최종 지목 절차 진행이 제 주요 업무입니다.",
+                    "용의자 셋 다 만나보시고 단서 충분히 모으신 다음 저에게 다시 와주세요. 산업스파이 지목 절차는 제가 직접 진행해드립니다."
                 };
             }
             else
             {
-                // 진행 중
+                // 진행 중 — AI 분석 톤
                 lines = new[]
                 {
-                    "수사 잘 진행되고 계신가요?",
-                    $"현재까지 단서 {c}건. 좋은 페이스입니다.",
-                    "나머지 용의자들도 다 만나보시고, 환경 단서까지 모으신 다음 여기로 다시 오세요."
+                    "조사관님, 수사 잘 진행되고 계신가요?",
+                    $"현재까지 단서 {c}건 — 분석 결과 패턴이 점점 좁혀지고 있습니다.",
+                    "나머지 용의자들도 다 만나보시고, 환경 단서까지 모으신 다음 여기로 다시 오세요. 그때 종합 분석 결과 보여드릴게요."
                 };
             }
 

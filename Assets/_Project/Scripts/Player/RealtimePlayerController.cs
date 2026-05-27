@@ -29,11 +29,22 @@ namespace ForTheCompany.Player
             if (bridge != null && bridge.IsShowing) return true;
             var rmc = RacingMissionController.Instance;
             if (rmc != null && rmc.IsOpen) return true;
+            // 보안교육 미션 중 이동 차단
+            var sqc = SecurityQuizController.Instance;
+            if (sqc != null && sqc.IsOpen) return true;
             // 대화 진행 중에도 이동 차단
             var ds = DialogueSystem.Instance;
             if (ds != null && ds.IsActive) return true;
             // 인벤토리 열림 중에도 이동 차단
             if (FacilityHUD.IsInventoryOpen) return true;
+            // 일시정지 메뉴
+            var pm = PauseMenu.Instance;
+            if (pm != null && pm.IsOpen) return true;
+            // 오프닝 컷씬 중
+            if (IntroMonologue.IsCutsceneActive) return true;
+            // 지목 모달
+            var partner = AccusationPartner.Instance;
+            if (partner != null && partner.IsMenuOpen) return true;
             return false;
         }
 
