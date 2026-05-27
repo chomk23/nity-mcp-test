@@ -222,7 +222,7 @@ namespace ForTheCompany.Player
                         break;
                     case 3: // 시설관리자 스파이
                         transition = "보안 교육 자료요? 굳이 안 보셔도 되는데... 그래도 띄워는 드릴게요.";
-                        nextHint = "끝나시면 보안통제실 빨간 콘솔로 가시면 됩니다. 거기서 지목하시면 끝나는 거죠.";
+                        nextHint = "끝나시면 보안통제실의 동료 수사관에게 가시면 됩니다. 거기서 지목 절차 진행해주실 거예요.";
                         break;
                     default:
                         return new[] { "잠시만요... 자료 띄워드릴게요." };
@@ -243,7 +243,7 @@ namespace ForTheCompany.Player
                     break;
                 case 3: // 시설관리자
                     transition = "출입 기록 분석은 보안 교육 자료로 같이 보시는 게 좋아요. 띄워드릴게요.";
-                    nextHint = "끝나시면 보안통제실의 빨간 콘솔에서 산업스파이를 지목하세요. 마지막 단계입니다.";
+                    nextHint = "끝나시면 보안통제실의 동료 수사관에게 가서 산업스파이를 지목하세요. 마지막 단계입니다.";
                     break;
                 default:
                     return new[] { "잠시만요, 같이 봐주실 자료가 있어요." };

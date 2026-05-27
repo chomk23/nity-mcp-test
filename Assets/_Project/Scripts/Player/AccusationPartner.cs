@@ -30,6 +30,7 @@ namespace ForTheCompany.Player
         public float waitTimeAtPoint = 1.5f;
 
         public string LastResult { get; private set; }
+        public bool IsMenuOpen { get; private set; }
 
         // IInteractable
         public Vector3 InteractPosition => transform.position;
@@ -47,9 +48,7 @@ namespace ForTheCompany.Player
                     return $"Space: {displayName}과 대화";
                 if (c < minimumClues)
                     return $"Space: {displayName} — 단서 {c}/{minimumClues} (지목 불가)";
-                var console = GetConsole();
-                bool open = console != null && console.IsMenuOpen;
-                return open ? "ESC: 닫기" : "Space: 산업스파이 지목 절차 시작";
+                return IsMenuOpen ? "ESC: 닫기" : "Space: 산업스파이 지목 절차 시작";
             }
         }
 
@@ -141,41 +140,55 @@ namespace ForTheCompany.Player
         {
             var ds = DialogueSystem.Instance;
             if (ds != null && ds.IsActive) return true;
-            var console = GetConsole();
-            if (console != null && console.IsMenuOpen) return true;
+            if (IsMenuOpen) return true;
             var sqc = SecurityQuizController.Instance;
             if (sqc != null && sqc.IsOpen) return true;
             return false;
-        }
-
-        private AccusationConsole GetConsole()
-        {
-            // 기존 AccusationConsole이 씬에 있으면 그것의 IsMenuOpen/Accuse 위임 (기존 FacilityHUD/PauseMenu와 호환)
-            return FindFirstObjectByType<AccusationConsole>(FindObjectsInactive.Include);
         }
 
         public void Interact()
         {
             FacePlayer();
 
-            // 지목 단계 + 단서 충분 → 지목 메뉴 토글
+            // 지목 단계 + 단서 충분 → 자체 IsMenuOpen 토글 (FacilityHUD가 모달 표시)
             if (IsStoryReady())
             {
                 var s = GameSession.Instance;
                 if (s != null && s.totalClues >= minimumClues)
                 {
-                    var console = GetConsole();
-                    if (console != null)
-                    {
-                        // 기존 AccusationConsole이 IsMenuOpen·Accuse 처리 → FacilityHUD 모달 자동 표시
-                        console.SendMessage("Interact", SendMessageOptions.DontRequireReceiver);
-                        return;
-                    }
+                    IsMenuOpen = !IsMenuOpen;
+                    return;
                 }
             }
 
             // 일반 대화 (지목 불가 상태) 또는 동료 잡담
             StartGeneralDialogue();
+        }
+
+        public void Close() => IsMenuOpen = false;
+
+        public void Accuse(int npcIndex)
+        {
+            var s = GameSession.Instance;
+            var roster = NPCRoster.Instance;
+            if (s == null || roster == null) return;
+            if (s.Outcome != RunOutcome.Ongoing) return;
+            if (npcIndex < 0 || npcIndex >= roster.npcs.Count) return;
+            IsMenuOpen = false;
+
+            var accused = roster.npcs[npcIndex];
+            string chosenName = accused != null ? accused.DisplayName : "?";
+
+            if (accused != null && accused.isSpy)
+            {
+                s.DeclareWin($"정확히 지목 — {chosenName}가 산업스파이였다.");
+            }
+            else
+            {
+                string actual = roster.Spy != null ? roster.Spy.DisplayName : "?";
+                s.DeclareLose($"오인 — {chosenName}는 무고했다. 실제 스파이는 {actual}.");
+            }
+            Debug.Log($"[Accuse] chose={chosenName}, actualSpy={(roster.Spy != null ? roster.Spy.DisplayName : "?")}, result={s.Outcome}");
         }
 
         private void StartGeneralDialogue()
@@ -217,7 +230,7 @@ namespace ForTheCompany.Player
                     "고생 많으시네요, 조사관님.",
                     "저는 이번 사건 보조로 배정된 동료입니다. 보안통제실은 제가 지키고 있을게요.",
                     "용의자 셋 다 만나보시고 단서 모으신 다음 다시 오세요.",
-                    "여기 빨간 콘솔이 산업스파이 지목 시스템입니다. 모든 조사 마무리되면 안내해드릴게요."
+                    "조사 다 끝나시고 단서 충분히 모으시면 저에게 다시 와주세요. 산업스파이 지목 절차는 제가 직접 진행해드립니다."
                 };
             }
             else

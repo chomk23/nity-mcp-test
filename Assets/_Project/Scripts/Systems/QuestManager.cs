@@ -23,7 +23,7 @@ namespace ForTheCompany.Systems
             RacingMission,       // 휴게실 보안 레이싱 클리어
             MeetNetworkAdmin,    // 서버실의 네트워크관리자와 대화
             MeetFacilityManager, // 전력실의 시설관리자와 대화
-            Accusation,          // 보안통제실 콘솔로 지목
+            Accusation,          // 보안통제실 동료 수사관에게 지목
             Done                 // 게임 종료
         }
 
@@ -131,7 +131,7 @@ namespace ForTheCompany.Systems
                 case Stage.RacingMission:       return "휴게실 보안 레이싱 게임에서 1등 하기";
                 case Stage.MeetNetworkAdmin:    return "서버실의 네트워크관리자와 대화하기";
                 case Stage.MeetFacilityManager: return "전력실의 시설관리자와 대화하기";
-                case Stage.Accusation:          return "보안통제실의 빨간 콘솔에서 스파이 지목하기";
+                case Stage.Accusation:          return "보안통제실의 동료 수사관에게 가서 스파이 지목하기";
                 case Stage.Done:                return "게임 종료";
             }
             return "";
@@ -147,7 +147,7 @@ namespace ForTheCompany.Systems
                 case Stage.RacingMission:       return "장소: 휴게실 (남쪽, 안쪽 컴퓨터/모니터 앞)";
                 case Stage.MeetNetworkAdmin:    return "장소: 서버실 (북쪽)";
                 case Stage.MeetFacilityManager: return "장소: 전력실 (동쪽)";
-                case Stage.Accusation:          return "장소: 보안통제실 (빨간 콘솔)";
+                case Stage.Accusation:          return "장소: 보안통제실 (동료 수사관)";
                 case Stage.Done:                return "";
             }
             return "";

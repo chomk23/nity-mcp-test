@@ -16,17 +16,14 @@ namespace ForTheCompany.Player
         public Vector3 InteractPosition => transform.position;
         public float InteractRadius => interactRadius;
 
-        // 플레이어가 직접 콘솔에 접근 못 함 — AccusationPartner NPC를 통해서만 지목.
-        // 큐브는 시각적으로도 숨김. IsMenuOpen·Accuse 상태는 그대로 사용.
+        // 완전 폐기 — AccusationPartner NPC가 모든 지목 로직 처리. 씬에 남아있어도 Awake에서 자동 삭제.
         public bool CanInteract => false;
 
         private void Awake()
         {
-            // 빨간 콘솔 큐브 시각·충돌 비활성 (AccusationPartner NPC가 대체)
-            var mr = GetComponent<MeshRenderer>();
-            if (mr != null) mr.enabled = false;
-            var col = GetComponent<Collider>();
-            if (col != null) col.enabled = false;
+            // 빨간 콘솔 GameObject 자체를 즉시 삭제 (씬에 남아있어도 게임 시작 시 사라짐)
+            Debug.Log("[AccusationConsole] deprecated — AccusationPartner NPC로 대체됨. GameObject 삭제.");
+            Destroy(gameObject);
         }
 
         /// <summary>스토리 모드: QuestManager가 Accusation 단계여야 사용 가능</summary>

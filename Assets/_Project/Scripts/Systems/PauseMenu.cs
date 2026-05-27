@@ -84,8 +84,8 @@ namespace ForTheCompany.Systems
             if (rmc != null && rmc.IsOpen) return true;
             if (FacilityHUD.IsInventoryOpen) return true;
             // 액세시언 콘솔 메뉴
-            var console = Object.FindFirstObjectByType<ForTheCompany.Player.AccusationConsole>();
-            if (console != null && console.IsMenuOpen) return true;
+            var partner = ForTheCompany.Player.AccusationPartner.Instance;
+            if (partner != null && partner.IsMenuOpen) return true;
             // 게임 종료 화면
             var s = GameSession.Instance;
             if (s != null && s.Outcome != RunOutcome.Ongoing) return true;
@@ -244,7 +244,7 @@ namespace ForTheCompany.Systems
                 "▸ 목표", sectionSt);
             GUI.Label(new Rect(x + 32, bodyY + 22, w - 64, 50),
                 "당신은 보안조사관. 시설 내 3명의 용의자 중 산업스파이를 찾아내라.\n" +
-                "5분 안에 단서를 모아 보안통제실 콘솔에서 정확히 한 번만 지목할 수 있다.", bodySt);
+                "5분 안에 단서를 모아 보안통제실 동료 수사관에게 가서 정확히 한 번만 지목할 수 있다.", bodySt);
 
             GUI.Label(new Rect(x + 32, bodyY + 90, w - 64, 22),
                 "▸ 조작", sectionSt);
@@ -262,7 +262,7 @@ namespace ForTheCompany.Systems
                 "2. 휴게실에서 보안 레이싱 게임 1등 하기\n" +
                 "3. 네트워크관리자와 대화 → 카드키 획득\n" +
                 "4. 시설관리자와 대화 → 단서 마무리\n" +
-                "5. 보안통제실 빨간 콘솔에서 산업스파이 지목 (단 한 번!)", bodySt);
+                "5. 보안통제실 동료 수사관에게 가서 산업스파이 지목 (단 한 번!)", bodySt);
 
             // 닫기 버튼
             if (UITheme.NeonButton(new Rect(x + (w - 240) * 0.5f, y + h - 70, 240, 46),

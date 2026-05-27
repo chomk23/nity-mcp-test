@@ -106,11 +106,8 @@ namespace ForTheCompany.Systems
             };
         }
 
-        private AccusationConsole FindConsole()
-        {
-            var all = FindObjectsByType<AccusationConsole>(FindObjectsSortMode.None);
-            return all.Length > 0 ? all[0] : null;
-        }
+        /// <summary>AccusationPartner NPC 참조 (지목 모달은 이제 NPC가 처리. 빨간 콘솔 삭제됨)</summary>
+        private AccusationPartner FindPartner() => AccusationPartner.Instance;
 
         private void HandleInventoryToggle(Keyboard kb)
         {
@@ -123,8 +120,8 @@ namespace ForTheCompany.Systems
             }
 
             // 다른 모달 떠 있으면 토글 무시
-            var console = FindConsole();
-            if (console != null && console.IsMenuOpen) return;
+            var partner = FindPartner();
+            if (partner != null && partner.IsMenuOpen) return;
             var rmc = RacingMissionController.Instance;
             if (rmc != null && rmc.IsOpen) return;
             var ds = DialogueSystem.Instance;
@@ -370,8 +367,8 @@ namespace ForTheCompany.Systems
             var rmc = RacingMissionController.Instance;
             if (rmc != null && rmc.IsOpen) return true;
 
-            var console = FindConsole();
-            if (console != null && console.IsMenuOpen) return true;
+            var partner = FindPartner();
+            if (partner != null && partner.IsMenuOpen) return true;
 
             if (IsInventoryOpen) return true;
 
@@ -1209,9 +1206,9 @@ namespace ForTheCompany.Systems
             var kb = Keyboard.current;
             if (kb == null) return;
 
-            var console = FindConsole();
-            if (console != null && console.IsMenuOpen && kb.escapeKey.wasPressedThisFrame)
-                console.Close();
+            var partner = FindPartner();
+            if (partner != null && partner.IsMenuOpen && kb.escapeKey.wasPressedThisFrame)
+                partner.Close();
 
             // 인벤토리 토글 (I) — 다른 모달 없을 때만
             HandleInventoryToggle(kb);
@@ -1263,8 +1260,8 @@ namespace ForTheCompany.Systems
             if (p == null || p.Nearest == null) return;
 
             // Hide prompt while accusation modal open
-            var console = FindConsole();
-            if (console != null && console.IsMenuOpen) return;
+            var partner = FindPartner();
+            if (partner != null && partner.IsMenuOpen) return;
 
             string prompt = p.Nearest.PromptText;
 
@@ -1348,8 +1345,8 @@ namespace ForTheCompany.Systems
 
         private void DrawAccusationModal()
         {
-            var console = FindConsole();
-            if (console == null || !console.IsMenuOpen) return;
+            var partner = FindPartner();
+            if (partner == null || !partner.IsMenuOpen) return;
 
             // 어둠 오버레이
             UITheme.DrawRect(new Rect(0, 0, Screen.width, Screen.height),
@@ -1430,7 +1427,7 @@ namespace ForTheCompany.Systems
                 GUI.Label(r, display, btnSt);
 
                 if (GUI.Button(r, GUIContent.none, GUIStyle.none))
-                    console.Accuse(i);
+                    partner.Accuse(i);
             }
         }
 
@@ -2270,7 +2267,7 @@ namespace ForTheCompany.Systems
                 normal = { textColor = UITheme.InkDim }
             };
             string infoText = sus >= 7
-                ? "▸ 의심도 매우 높음. 보안통제실 콘솔에서 지목 가능.\n주의: 단 한 번만 지목할 수 있다."
+                ? "▸ 의심도 매우 높음. 보안통제실 동료 수사관에게 가서 지목 가능.\n주의: 단 한 번만 지목할 수 있다."
                 : sus >= 4
                 ? "▸ 의심도 상승 중. 추가 단서를 모아 확신을 쌓아라."
                 : "▸ 아직 단서가 부족하다. 대화·환경 조사로 단서를 더 모아라.";

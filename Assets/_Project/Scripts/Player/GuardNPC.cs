@@ -247,7 +247,7 @@ namespace ForTheCompany.Player
                 case QuestManager.Stage.MeetFacilityManager:
                     return "마지막 용의자, 시설관리자에게 가보세요. 동쪽에 있습니다.";
                 case QuestManager.Stage.Accusation:
-                    return "이제 보안통제실의 빨간 콘솔에서 스파이를 지목할 시간입니다.";
+                    return "이제 보안통제실의 동료 수사관에게 가서 스파이를 지목할 시간입니다.";
                 case QuestManager.Stage.Done:
                     return "수고하셨습니다.";
             }
