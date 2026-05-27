@@ -152,7 +152,7 @@ MonoBehaviour:
   clearedNodeIds: 
   totalClues: 0
   spyRoleIndex: -1
-  totalTime: 420
+  totalTime: 900
   playerHacking: 3
   playerInvestigation: 3
   playerSecurity: 3
