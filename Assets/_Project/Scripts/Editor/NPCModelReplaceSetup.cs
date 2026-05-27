@@ -30,6 +30,9 @@ namespace ForTheCompany.EditorTools
         private const string GuardName = "GuardNPC";
         private const string GuardFbxPath = BasePath + "character-j.fbx"; // 경비원
 
+        private const string PartnerName = "AccusationPartner";
+        private const string PartnerFbxPath = BasePath + "character-g.fbx"; // 보안수사관 동료 (보안통제실)
+
         [MenuItem("For The Company/Replace NPCs with Kenney Characters")]
         public static void Replace()
         {
@@ -64,6 +67,19 @@ namespace ForTheCompany.EditorTools
             }
             CleanCapsuleMesh(guardGO);
             if (ReplaceModel(guardGO, GuardFbxPath, "경비원")) replaced++;
+
+            // AccusationPartner — 보안통제실 동료 NPC (보안통제실 위치 16, 1.2, 11)
+            var partnerGO = GameObject.Find(PartnerName);
+            if (partnerGO == null)
+            {
+                partnerGO = new GameObject(PartnerName);
+                partnerGO.transform.position = new Vector3(16f, 1.2f, 11f);
+                partnerGO.AddComponent<AccusationPartner>();
+                Undo.RegisterCreatedObjectUndo(partnerGO, "Create AccusationPartner");
+                Debug.Log("[NPCReplace] AccusationPartner GameObject 사전 생성 (보안통제실)");
+            }
+            CleanCapsuleMesh(partnerGO);
+            if (ReplaceModel(partnerGO, PartnerFbxPath, "보안수사관 동료")) replaced++;
 
             EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
 

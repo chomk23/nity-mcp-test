@@ -16,8 +16,18 @@ namespace ForTheCompany.Player
         public Vector3 InteractPosition => transform.position;
         public float InteractRadius => interactRadius;
 
-        public bool CanInteract => GameSession.Instance != null
-            && GameSession.Instance.Outcome == RunOutcome.Ongoing;
+        // 플레이어가 직접 콘솔에 접근 못 함 — AccusationPartner NPC를 통해서만 지목.
+        // 큐브는 시각적으로도 숨김. IsMenuOpen·Accuse 상태는 그대로 사용.
+        public bool CanInteract => false;
+
+        private void Awake()
+        {
+            // 빨간 콘솔 큐브 시각·충돌 비활성 (AccusationPartner NPC가 대체)
+            var mr = GetComponent<MeshRenderer>();
+            if (mr != null) mr.enabled = false;
+            var col = GetComponent<Collider>();
+            if (col != null) col.enabled = false;
+        }
 
         /// <summary>스토리 모드: QuestManager가 Accusation 단계여야 사용 가능</summary>
         private bool IsStoryReady()
