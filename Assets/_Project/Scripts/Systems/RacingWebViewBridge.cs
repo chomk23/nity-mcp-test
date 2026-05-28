@@ -109,33 +109,37 @@ namespace ForTheCompany.Systems
         {
             string url = SecurityRaceUrl();
 
-            // 1) client 등장 대기 (최대 4초)
+            // 1) client 등장 대기 (최대 8초)
             object client = GetOrFindClient();
             float ct = 0f;
-            while (client == null && ct < 4f)
+            while (client == null && ct < 8f)
             {
                 ct += 0.3f;
                 yield return new WaitForSeconds(0.3f);
                 client = GetOrFindClient();
             }
-            if (client == null) { LoadUrlOnClient(url); yield break; }
+            if (client == null) yield break;
 
-            // 2) ready 폴링 (최대 10초) — ready되면 LoadUrl
+            // 2) ready 폴링 (최대 60초) — CEF cold start가 첫 실행 시 10초 이상 걸림.
+            //    ready 확인되면 LoadUrl. ready 전에는 LoadUrl 호출 안 함 (Exception 방지).
             float t = 0f;
-            while (t < 10f)
+            while (t < 60f)
             {
                 if (IsClientReady(client))
                 {
+                    // ready 직후 첫 LoadUrl이 가끔 실패하므로 짧게 한 번 더 시도
                     LoadUrlOnClient(url);
                     Debug.Log("[RacingWebView] CEF ready 확인 → LoadUrl");
+                    yield return new WaitForSeconds(0.6f);
+                    if (IsShowing || canvasRoot != null) LoadUrlOnClient(url);
                     yield break;
                 }
                 t += 0.3f;
                 yield return new WaitForSeconds(0.3f);
             }
-            // 3) 타임아웃이어도 마지막 시도
+            // 3) 60초 폴링에도 ready 안 됨 — Exception 위험 있지만 마지막 시도
+            Debug.LogWarning("[RacingWebView] CEF ready 60초 타임아웃 — 마지막 LoadUrl 시도");
             LoadUrlOnClient(url);
-            Debug.LogWarning("[RacingWebView] CEF ready 타임아웃 — LoadUrl 강행");
         }
 
         /// <summary>WebBrowserClient의 ready 상태를 reflection으로 확인 (여러 이름 후보 시도)</summary>
