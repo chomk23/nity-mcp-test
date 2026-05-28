@@ -361,10 +361,11 @@ SciFiFacilitySetup 메뉴를 prefab instantiate 방식으로 단순화.
 - 시간 제한 (실시간 또는 턴 제한)
 - 로그라이크 요소 (랜덤 단서 배치, 영구 업그레이드)
 
-## 사이드 씬 (참고)
+## 씬 구성
 
-- `Assets/_Project/Scenes/GameScene.unity` — 1차 피벗 단일 룸 탐정 MVP (백업, 사용 안 함)
-- `Assets/_Project/Scenes/OverworldScene.unity` — 2차 피벗 노드 맵 시안 (폐기, 사용 안 함)
+- `Assets/_Project/Scenes/MainMenuScene.unity` — 시작 화면 + 인트로
+- `Assets/_Project/Scenes/FacilityScene.unity` — 메인 게임플레이
+- (구 피벗 씬 GameScene·OverworldScene은 미사용으로 삭제됨)
 
 ## 기술 스택
 
