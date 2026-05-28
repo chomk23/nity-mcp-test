@@ -1757,7 +1757,7 @@ namespace ForTheCompany.Systems
                 fontSize = 11, fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleRight,
                 padding = new RectOffset(0, 24, 0, 0),
-                normal = { textColor = UITheme.InkFaint }
+                normal = { textColor = UITheme.InkDim }
             };
             GUI.Label(new Rect(x, headerY + 6, w, 22),
                 "// [I] 또는 [ESC] 닫기", hintSt);
@@ -1811,7 +1811,7 @@ namespace ForTheCompany.Systems
                 fontSize = 11,
                 alignment = TextAnchor.MiddleRight,
                 padding = new RectOffset(0, 14, 0, 0),
-                normal = { textColor = UITheme.InkFaint }
+                normal = { textColor = UITheme.InkDim }
             };
             GUI.Label(new Rect(boardRect.x, boardRect.y + 8, boardRect.width, 22),
                 selectedSuspectRole < 0
@@ -2104,7 +2104,7 @@ namespace ForTheCompany.Systems
             {
                 fontSize = 10, fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleLeft,
-                normal = { textColor = UITheme.InkFaint }
+                normal = { textColor = UITheme.InkDim }
             };
             GUI.Label(new Rect(rect.x + 12, rect.y + 30, rect.width - 24, 16), subTitle, subSt);
 
@@ -2187,11 +2187,11 @@ namespace ForTheCompany.Systems
             {
                 var emptySt = new GUIStyle(GUI.skin.label)
                 {
-                    fontSize = 12, wordWrap = true,
+                    fontSize = 13, wordWrap = true,
                     alignment = TextAnchor.MiddleCenter,
-                    normal = { textColor = UITheme.InkFaint }
+                    normal = { textColor = Color.white }
                 };
-                GUI.Label(new Rect(area.x + 20, area.y + area.height * 0.4f, area.width - 40, 80),
+                GUI.Label(new Rect(area.x + 20, area.y + area.height * 0.4f, area.width - 40, 90),
                     "용의자를 선택해주세요.\n\n좌측 하단 3개 카드 중 하나를\n클릭하면 상세 정보가 표시됩니다.", emptySt);
                 return;
             }
