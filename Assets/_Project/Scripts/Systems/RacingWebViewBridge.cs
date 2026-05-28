@@ -67,6 +67,10 @@ namespace ForTheCompany.Systems
 
             if (canvasRoot != null)
             {
+                // CEF 콜드 스타트(첫 실행)는 4초 기본 타임아웃을 넘겨서 UWB가 연결을 포기 → 빈 화면.
+                // SetActive(true)로 CEF Init이 트리거되기 전에 engineStartupTimeout을 크게 올린다.
+                SetEngineStartupTimeout(60000);
+
                 // 항상 active 유지 (CEF pre-warm), CanvasGroup으로 시각적/입력 차단
                 canvasRoot.SetActive(true);
                 canvasGroup = canvasRoot.GetComponent<CanvasGroup>();
@@ -262,6 +266,39 @@ namespace ForTheCompany.Systems
             catch (System.Exception e)
             {
                 Debug.LogWarning($"[RacingWebView] 페이지 리로드 실패: {e.Message}");
+            }
+        }
+
+        /// <summary>
+        /// CEF 엔진 시작 타임아웃(ms)을 reflection으로 변경.
+        /// 기본 4000ms는 콜드 스타트 시 너무 짧아 UWB가 연결을 포기 → 빈 화면 발생.
+        /// SetActive(true)로 CEF Init이 시작되기 전에 호출해야 효과 있음.
+        /// </summary>
+        private void SetEngineStartupTimeout(int ms)
+        {
+            var client = GetOrFindClient();
+            if (client == null)
+            {
+                Debug.LogWarning("[RacingWebView] WebBrowserClient를 못 찾음 — engineStartupTimeout 설정 스킵");
+                return;
+            }
+            try
+            {
+                var field = client.GetType().GetField("engineStartupTimeout",
+                    System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+                if (field != null && field.FieldType == typeof(int))
+                {
+                    field.SetValue(client, ms);
+                    Debug.Log($"[RacingWebView] engineStartupTimeout {ms}ms로 설정 (콜드 스타트 대응)");
+                }
+                else
+                {
+                    Debug.LogWarning("[RacingWebView] engineStartupTimeout 필드를 못 찾음");
+                }
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning($"[RacingWebView] engineStartupTimeout 설정 실패: {e.Message}");
             }
         }
 
