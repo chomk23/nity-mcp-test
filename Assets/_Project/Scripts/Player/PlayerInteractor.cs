@@ -89,8 +89,13 @@ namespace ForTheCompany.Player
             if (ds != null && ds.IsActive) return;
             // 인벤토리 열림 중에도 상호작용 차단
             if (ForTheCompany.Systems.FacilityHUD.IsInventoryOpen) return;
-            foreach (var ac in FindObjectsByType<AccusationConsole>(FindObjectsSortMode.None))
-                if (ac.IsMenuOpen) return;
+            // 일시정지 메뉴 / 오프닝 컷씬 중에도 상호작용 차단 (SPACE 먹통)
+            var pm = ForTheCompany.Systems.PauseMenu.Instance;
+            if (pm != null && pm.IsOpen) return;
+            if (ForTheCompany.Systems.IntroMonologue.IsCutsceneActive) return;
+            // 지목 모달 (AI로봇 한세)
+            var partner = AccusationPartner.Instance;
+            if (partner != null && partner.IsMenuOpen) return;
 
             if (Nearest == null) return;
             var kb = Keyboard.current;

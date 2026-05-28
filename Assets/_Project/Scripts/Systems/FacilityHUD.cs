@@ -336,9 +336,11 @@ namespace ForTheCompany.Systems
 
         // ═══════════════════ 미니맵 (좌상단) ═══════════════════
 
-        // 시설 좌표 범위 (SciFiFloorsSetup 방 좌표 기반)
-        private const float FacMinX = -28f, FacMaxX = 28f;
-        private const float FacMinZ = -22f, FacMaxZ = 18f;
+        // 시설 좌표 범위 — 실제 방 경계(SciFiFloorsSetup 카펫 중심±폭)에 타이트하게 맞춤
+        // X: 연구실 좌단 -22 / 카드키 우단 22 → 여유 두고 -25~25
+        // Z: 아래 방 -14-4=-18 / 위 방 11+4=15 → -19~16
+        private const float FacMinX = -25f, FacMaxX = 25f;
+        private const float FacMinZ = -19f, FacMaxZ = 16f;
 
         // 방 정보: (이름, 중심 X, 중심 Z, 폭, 깊이, 색)
         private static readonly (string label, float cx, float cz, float w, float d, System.Func<Color> col)[] Rooms =
@@ -371,6 +373,11 @@ namespace ForTheCompany.Systems
             if (partner != null && partner.IsMenuOpen) return true;
 
             if (IsInventoryOpen) return true;
+
+            // 일시정지 메뉴 / 오프닝 컷씬 중에도 상단 HUD 숨김
+            var pm = PauseMenu.Instance;
+            if (pm != null && pm.IsOpen) return true;
+            if (IntroMonologue.IsCutsceneActive) return true;
 
             var s = GameSession.Instance;
             if (s != null && s.Outcome != RunOutcome.Ongoing) return true;
@@ -947,9 +954,19 @@ namespace ForTheCompany.Systems
 
         private void DrawNPCNameplates()
         {
-            // WebView 레이싱 화면이 떠 있으면 NPC 이름표 숨김
+            // WebView 레이싱 / 일시정지 / 컷씬 / 모달 중엔 이름표 숨김
             var bridge = RacingWebViewBridge.Instance;
             if (bridge != null && bridge.IsShowing) return;
+            var pm = PauseMenu.Instance;
+            if (pm != null && pm.IsOpen) return;
+            if (IntroMonologue.IsCutsceneActive) return;
+            var sqc = SecurityQuizController.Instance;
+            if (sqc != null && sqc.IsOpen) return;
+            var rmc = RacingMissionController.Instance;
+            if (rmc != null && rmc.IsOpen) return;
+            if (IsInventoryOpen) return;
+            var partnerMenu = FindPartner();
+            if (partnerMenu != null && partnerMenu.IsMenuOpen) return;
 
             var cam = Camera.main;
             if (cam == null) return;
@@ -979,6 +996,14 @@ namespace ForTheCompany.Systems
             {
                 DrawSingleNameplate(cam, nameSt, guard.transform, guard.displayName,
                     suspicion: 0, fixedBorder: UITheme.NeonCyan);
+            }
+
+            // AI로봇 한세 — 보안통제실 동료 (NeonViolet 보더로 구분)
+            var partner = AccusationPartner.Instance;
+            if (partner != null)
+            {
+                DrawSingleNameplate(cam, nameSt, partner.transform, partner.displayName,
+                    suspicion: 0, fixedBorder: UITheme.NeonViolet);
             }
         }
 
@@ -1255,6 +1280,11 @@ namespace ForTheCompany.Systems
             // 대화창이 활성이면 상호작용 프롬프트 숨김
             var ds = DialogueSystem.Instance;
             if (ds != null && ds.IsActive) return;
+
+            // 일시정지 / 오프닝 컷씬 중에도 숨김
+            var pm = PauseMenu.Instance;
+            if (pm != null && pm.IsOpen) return;
+            if (IntroMonologue.IsCutsceneActive) return;
 
             var p = PlayerInteractor.Instance;
             if (p == null || p.Nearest == null) return;
@@ -1665,7 +1695,7 @@ namespace ForTheCompany.Systems
                 normal = { textColor = Color.white }
             };
             GUI.Label(new Rect(16, Screen.height - h, Screen.width - 32, h),
-                "// [WASD] 이동  ·  [SHIFT] 달리기  ·  [휠] 줌  ·  [SPACE] 상호작용  ·  [I] 인벤토리  ·  [ESC] 메뉴  ·  [R] 재시작  ·  [M] 메인메뉴",
+                "// [WASD] 이동  ·  [SHIFT] 달리기  ·  [휠] 줌  ·  [SPACE] 상호작용  ·  [I] 인벤토리  ·  [ESC] 메뉴",
                 st);
         }
 

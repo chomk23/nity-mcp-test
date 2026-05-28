@@ -67,10 +67,77 @@ namespace ForTheCompany.Player
             Debug.Log("[GuardNPC] 중앙복도에 경비원 배치 (0, 1.1, 4)");
         }
 
+        [Header("Patrol — 중앙복도 좁은 범위 어슬렁")]
+        public float patrolRadius = 3f;       // 너무 멀리 안 가게 작게
+        public float patrolSpeed = 0.9f;
+        public float waitTimeAtPoint = 2.5f;
+
+        private Vector3 patrolCenter;
+        private Vector3 currentTarget;
+        private float waitUntil;
+        private bool waiting;
+
         private void Awake()
         {
             if (Instance != null && Instance != this) { Destroy(this); return; }
             Instance = this;
+            patrolCenter = transform.position;   // 시작 위치 = 어슬렁 중심
+            ChoosePatrolTarget();
+        }
+
+        private void Update()
+        {
+            if (IsBlockedForPatrol()) return;
+
+            if (waiting)
+            {
+                if (Time.time >= waitUntil)
+                {
+                    waiting = false;
+                    ChoosePatrolTarget();
+                }
+                return;
+            }
+
+            Vector3 toTarget = currentTarget - transform.position;
+            toTarget.y = 0f;
+            if (toTarget.magnitude < 0.15f)
+            {
+                waiting = true;
+                waitUntil = Time.time + waitTimeAtPoint;
+                return;
+            }
+
+            Vector3 dir = toTarget.normalized;
+            transform.position += dir * patrolSpeed * Time.deltaTime;
+            // 진행 방향 회전 (CharacterBobbing이 걷기 애니메이션 표현)
+            transform.rotation = Quaternion.Slerp(transform.rotation,
+                Quaternion.LookRotation(dir), 8f * Time.deltaTime);
+        }
+
+        private void ChoosePatrolTarget()
+        {
+            Vector2 r = Random.insideUnitCircle * patrolRadius;
+            currentTarget = patrolCenter + new Vector3(r.x, 0f, r.y);
+            currentTarget.y = transform.position.y;
+        }
+
+        private bool IsBlockedForPatrol()
+        {
+            var ds = DialogueSystem.Instance;
+            if (ds != null && ds.IsActive) return true;
+            var pm = PauseMenu.Instance;
+            if (pm != null && pm.IsOpen) return true;
+            if (IntroMonologue.IsCutsceneActive) return true;
+            var sqc = SecurityQuizController.Instance;
+            if (sqc != null && sqc.IsOpen) return true;
+            var rmc = RacingMissionController.Instance;
+            if (rmc != null && rmc.IsOpen) return true;
+            var bridge = RacingWebViewBridge.Instance;
+            if (bridge != null && bridge.IsShowing) return true;
+            var s = ForTheCompany.Core.GameSession.Instance;
+            if (s != null && s.Outcome != ForTheCompany.Core.RunOutcome.Ongoing) return true;
+            return false;
         }
 
         public void Interact()
