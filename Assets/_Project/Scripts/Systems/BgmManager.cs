@@ -83,6 +83,15 @@ namespace ForTheCompany.Systems
 
         private void Update()
         {
+            // 보안 레이싱 게임(WebView) 진행 중엔 BGM 일시 음소거 (레이싱 자체 사운드에 집중)
+            var bridge = RacingWebViewBridge.Instance;
+            bool racingActive = bridge != null && bridge.IsShowing;
+            if (source != null && source.mute != racingActive)
+            {
+                source.mute = racingActive;
+                Debug.Log($"[BGM] 레이싱 {(racingActive ? "시작 — BGM 음소거" : "종료 — BGM 복원")}");
+            }
+
             // 게임 종료 상태(승/패) 감지 → 엔딩 트랙으로 전환
             var s = Core.GameSession.Instance;
             if (s != null && s.Outcome != lastOutcome)
