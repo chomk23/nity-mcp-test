@@ -90,17 +90,73 @@ namespace ForTheCompany.Systems
         private void Start()
         {
             if (canvasRoot == null) return;
-            StartCoroutine(EnsureCorrectUrlLoaded());
+            // 게임 시작 시 CEF pre-warm 로드 (ready 폴링)
+            StartCoroutine(LoadWhenReady());
         }
 
-        private System.Collections.IEnumerator EnsureCorrectUrlLoaded()
+        private static string SecurityRaceUrl()
         {
-            // CEF가 초기화될 때까지 잠시 대기 (빌드본은 첫 실행 시 1~2초 걸림)
-            yield return new WaitForSeconds(1.5f);
-
-            string url = "file:///" + System.IO.Path.Combine(
+            return "file:///" + System.IO.Path.Combine(
                 Application.streamingAssetsPath, "security-race.html").Replace("\\", "/");
+        }
+
+        /// <summary>
+        /// CEF 엔진이 ready 신호를 보낼 때까지 폴링한 뒤 LoadUrl.
+        /// cold start(첫 실행 시 CEF가 늦게 connect)로 빈 화면 뜨던 문제 해결.
+        /// ready 속성을 못 찾으면 일정 시간 후 그냥 시도.
+        /// </summary>
+        private System.Collections.IEnumerator LoadWhenReady()
+        {
+            string url = SecurityRaceUrl();
+
+            // 1) client 등장 대기 (최대 4초)
+            object client = GetOrFindClient();
+            float ct = 0f;
+            while (client == null && ct < 4f)
+            {
+                ct += 0.3f;
+                yield return new WaitForSeconds(0.3f);
+                client = GetOrFindClient();
+            }
+            if (client == null) { LoadUrlOnClient(url); yield break; }
+
+            // 2) ready 폴링 (최대 10초) — ready되면 LoadUrl
+            float t = 0f;
+            while (t < 10f)
+            {
+                if (IsClientReady(client))
+                {
+                    LoadUrlOnClient(url);
+                    Debug.Log("[RacingWebView] CEF ready 확인 → LoadUrl");
+                    yield break;
+                }
+                t += 0.3f;
+                yield return new WaitForSeconds(0.3f);
+            }
+            // 3) 타임아웃이어도 마지막 시도
             LoadUrlOnClient(url);
+            Debug.LogWarning("[RacingWebView] CEF ready 타임아웃 — LoadUrl 강행");
+        }
+
+        /// <summary>WebBrowserClient의 ready 상태를 reflection으로 확인 (여러 이름 후보 시도)</summary>
+        private static bool IsClientReady(object client)
+        {
+            if (client == null) return false;
+            var type = client.GetType();
+            string[] names = { "ReadySignalReceived", "IsConnected", "HasInitialized", "IsInitialized" };
+            const System.Reflection.BindingFlags BF =
+                System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance;
+            foreach (var name in names)
+            {
+                var p = type.GetProperty(name, BF);
+                if (p != null && p.PropertyType == typeof(bool))
+                    return (bool)p.GetValue(client);
+                var f = type.GetField(name, BF);
+                if (f != null && f.FieldType == typeof(bool))
+                    return (bool)f.GetValue(client);
+            }
+            // ready 속성을 못 찾으면 true로 간주 (그냥 시도)
+            return true;
         }
 
         private void LoadUrlOnClient(string url)
@@ -147,6 +203,10 @@ namespace ForTheCompany.Systems
                 canvasGroup.blocksRaycasts = true;
             }
             IsShowing = true;
+
+            // Show 시점에도 ready 폴링 후 LoadUrl — Start() pre-warm이 cold start로 실패했어도 복구.
+            // 플레이어가 콘솔 도착 = 게임 시작 후라 CEF가 거의 준비됨 → 빈 화면 방지.
+            StartCoroutine(LoadWhenReady());
         }
 
         public void Hide()
