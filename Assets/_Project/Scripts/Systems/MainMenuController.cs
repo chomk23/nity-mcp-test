@@ -340,19 +340,15 @@ namespace ForTheCompany.Systems
                 UITheme.DrawRect(new Rect(dotsX + i * dotGap, dotsY, dotSize, dotSize), c);
             }
 
-            // 버튼들
+            // 버튼 (NEXT/DEPLOY 단일 — 중앙 배치, SKIP 제거)
             float btnY = y + h - 68;
-            float btnW = 220, btnH = 44, gap = 14;
-            float twoW = btnW * 2 + gap;
-            float btnX = x + (w - twoW) * 0.5f;
+            float btnW = 220, btnH = 44;
+            float btnX = x + (w - btnW) * 0.5f;
 
             bool isLast = introIndex == introSlides.Length - 1;
             if (UITheme.NeonButton(new Rect(btnX, btnY, btnW, btnH),
                 isLast ? "▶ DEPLOY  [ENTER]" : "▸ NEXT  [ENTER]", UITheme.NeonGreen))
                 NextIntro();
-            if (UITheme.GhostButton(new Rect(btnX + btnW + gap, btnY, btnW, btnH),
-                "▣ SKIP  [S]"))
-                LoadGameScene();
 
             // 하단 힌트
             var hintStyle = new GUIStyle(GUI.skin.label)
@@ -362,7 +358,7 @@ namespace ForTheCompany.Systems
                 normal = { textColor = UITheme.InkFaint }
             };
             GUI.Label(new Rect(0, Screen.height - 22, Screen.width, 16),
-                "// ESC: ABORT MISSION  ·  S: SKIP TO DEPLOYMENT", hintStyle);
+                "// ENTER: 다음  ·  ESC: 뒤로", hintStyle);
         }
 
         // ═══════════════════ INPUT ═══════════════════
@@ -385,8 +381,6 @@ namespace ForTheCompany.Systems
                 if (e.keyCode == KeyCode.Return || e.keyCode == KeyCode.KeypadEnter ||
                     e.keyCode == KeyCode.Space)
                     NextIntro();
-                else if (e.keyCode == KeyCode.S)
-                    LoadGameScene();
                 else if (e.keyCode == KeyCode.Escape)
                 {
                     phase = Phase.Menu;

@@ -57,6 +57,10 @@ namespace ForTheCompany.Systems
             // 다른 모달이 떠있으면 ESC는 그쪽이 처리하므로 PauseMenu는 가만히
             if (!IsOpen && IsAnyOtherModalOpen()) return;
 
+            // 인벤토리를 방금(같은 프레임) ESC로 닫았으면 그 ESC로 메뉴를 열지 않음
+            // (FacilityHUD가 먼저 실행돼 인벤토리를 닫아버린 경우의 실행 순서 race 방지)
+            if (!IsOpen && FacilityHUD.InventoryClosedFrame == Time.frameCount) return;
+
             if (kb.escapeKey.wasPressedThisFrame)
             {
                 if (IsOpen)

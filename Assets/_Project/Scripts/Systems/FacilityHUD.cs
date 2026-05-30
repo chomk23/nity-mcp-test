@@ -25,6 +25,9 @@ namespace ForTheCompany.Systems
         private GUIStyle quizButtonStyle;
 
         public static bool IsInventoryOpen { get; private set; }
+        // 인벤토리를 ESC로 닫은 프레임 — 같은 프레임에 PauseMenu가 그 ESC로 열리는 것 방지
+        // (FacilityHUD/PauseMenu 실행 순서와 무관하게 ESC 1회=닫기만 되도록)
+        public static int InventoryClosedFrame { get; private set; } = -1;
         private Vector2 inventoryScroll;
 
         private void Init()
@@ -115,7 +118,12 @@ namespace ForTheCompany.Systems
             if (IsInventoryOpen)
             {
                 if (kb.escapeKey.wasPressedThisFrame || kb.iKey.wasPressedThisFrame)
+                {
                     IsInventoryOpen = false;
+                    // ESC로 닫은 경우, 같은 프레임에 PauseMenu가 그 ESC로 열리지 않도록 표시
+                    if (kb.escapeKey.wasPressedThisFrame)
+                        InventoryClosedFrame = Time.frameCount;
+                }
                 return;
             }
 
@@ -1911,17 +1919,21 @@ namespace ForTheCompany.Systems
                 UITheme.DrawRect(new Rect(cardR.x, cardR.y, 3f, cardR.height),
                     dim ? new Color(accent.r, accent.g, accent.b, 0.3f) : accent);
 
-                // 상단: 태그 + 번호
+                // 상단: 태그 + 번호 (태그 폭은 글자 길이에 맞춰 동적 — INTERVIEW 등 잘림 방지)
                 if (!string.IsNullOrEmpty(clue.tag))
                 {
-                    UITheme.DrawTag(new Rect(cardR.x + 8, cardR.y + 6, 60, 14),
+                    var tagMeasure = new GUIStyle(GUI.skin.label)
+                        { fontSize = 10, fontStyle = FontStyle.Bold };
+                    float tagW = tagMeasure.CalcSize(new GUIContent(clue.tag.ToUpper())).x + 16f;
+                    tagW = Mathf.Clamp(tagW, 40f, cardR.width - 44f); // 우측 #번호 공간 확보
+                    UITheme.DrawTag(new Rect(cardR.x + 8, cardR.y + 6, tagW, 14),
                         clue.tag, accent);
                 }
                 var numSt = new GUIStyle(GUI.skin.label)
                 {
                     fontSize = 9, alignment = TextAnchor.MiddleRight,
                     padding = new RectOffset(0, 8, 0, 0),
-                    normal = { textColor = UITheme.InkFaint }
+                    normal = { textColor = UITheme.Ink }
                 };
                 GUI.Label(new Rect(cardR.x, cardR.y + 4, cardR.width, 14),
                     $"#{i + 1:D2}", numSt);
@@ -2106,7 +2118,7 @@ namespace ForTheCompany.Systems
             {
                 fontSize = 11, fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleLeft,
-                normal = { textColor = linkedCount > 0 ? UITheme.NeonGreen : UITheme.InkFaint }
+                normal = { textColor = linkedCount > 0 ? UITheme.NeonGreen : UITheme.Ink }
             };
             GUI.Label(new Rect(rect.x + 12, rect.y + 54, rect.width - 24, 18),
                 $"수집 단서 {linkedCount}건 · 클릭", evLabelSt);

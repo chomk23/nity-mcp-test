@@ -130,13 +130,7 @@ namespace ForTheCompany.Systems
             {
                 GameSession.Instance.totalClues += ClueReward;
                 GameSession.Instance.LastEncounterRewardClues = ClueReward;
-                if (rank == 1)
-                {
-                    GameSession.Instance.AddClue(
-                        "보안 레이싱 우승",
-                        "휴게실 보안 의식 평가를 1등으로 통과. 차세대 보안 칩 보호 절차를 능숙히 수행함.",
-                        ClueSource.Minigame, -1, "RACE");
-                }
+                // 보안 레이싱 우승은 인벤토리 단서 목록에 넣지 않음 (추리용 단서가 아니라 통과 보상일 뿐)
             }
 
             HasCompleted = true;
