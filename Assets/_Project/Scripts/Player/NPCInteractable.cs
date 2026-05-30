@@ -65,6 +65,18 @@ namespace ForTheCompany.Player
             bool selfIsSpy = Actor != null && Actor.isSpy;
 
             string[] lines = BuildFirstTalkLines(my, spy, selfIsSpy);
+            // 알리바이 진술 한 줄 추가 — 인벤토리 보드 추리의 기준이 된다.
+            // 무고한 NPC는 진실, 스파이는 거짓(결정적 단서와 시간대가 어긋남).
+            string alibi = GameSession.GetAlibi(my);
+            if (!string.IsNullOrEmpty(alibi))
+            {
+                var withAlibi = new string[lines.Length + 1];
+                System.Array.Copy(lines, withAlibi, lines.Length);
+                withAlibi[lines.Length] = selfIsSpy
+                    ? $"...어제 제 행적이요? {alibi}"
+                    : $"아, 어제 제 행적은 — {alibi}";
+                lines = withAlibi;
+            }
             DialogueChoice[] choices = BuildFirstTalkChoices(my, spy, selfIsSpy);
             // 트랜지션 라인은 선택지 응답 이후에 별도 짧은 대화로 띄움
             // (StartTransitionAndOpenQuiz 코루틴 처리)
@@ -121,9 +133,8 @@ namespace ForTheCompany.Player
                 }
             }
 
-            var realSpy = NPCRoster.Instance != null ? NPCRoster.Instance.Spy : null;
-            if (Actor != null && Actor.isSpy) Actor.AddSuspicion(1);
-            else if (realSpy != null && firstTime) realSpy.AddSuspicion(2);
+            // (의심도 자동 카운터 폐기 — 범인 식별은 알리바이 모순 단서로 직접 추리한다.
+            //  대화만으로 스파이가 자동 지목되던 문제 제거.)
 
             var quest = QuestManager.Instance;
             if (quest != null && Actor != null && Actor.data != null)

@@ -1884,7 +1884,8 @@ namespace ForTheCompany.Systems
                 var cardR = new Rect(cx, cy, cardW, cardH);
 
                 var clue = s.CollectedClues[i];
-                Color accent = GetSourceColor(clue.source);
+                // 알리바이를 깨는 결정적 단서는 빨강 강조 (보드에서 즉시 눈에 띔)
+                Color accent = clue.contradictsAlibi ? UITheme.Danger : GetSourceColor(clue.source);
                 bool isLinkedToSelected = selectedSuspectRole >= 0
                     && clue.relatedRole == selectedSuspectRole;
                 bool dim = selectedSuspectRole >= 0 && !isLinkedToSelected;
@@ -2060,26 +2061,18 @@ namespace ForTheCompany.Systems
             bool isSelected = selectedSuspectRole == role;
             bool hover = rect.Contains(UITheme.GetMousePos());
 
-            // NPC 의심도 가져오기
-            int suspicion = 0;
-            var roster = NPCRoster.Instance;
-            if (roster != null)
-            {
-                foreach (var npc in roster.npcs)
-                {
-                    if (npc != null && npc.data != null && (int)npc.data.role == role)
-                    {
-                        suspicion = npc.suspicion;
-                        break;
-                    }
-                }
-            }
+            // 이 용의자에게 연결된 단서 수만 집계 (모순 여부는 카드에 노출하지 않음 —
+            // 중간 난이도: 플레이어가 클릭해서 알리바이↔증거를 직접 대조해야 함)
+            int linkedCount = 0;
+            var gsCard = GameSession.Instance;
+            if (gsCard != null)
+                foreach (var cl in gsCard.CollectedClues)
+                    if (cl.relatedRole == role) linkedCount++;
 
-            Color susColor = suspicion >= 7 ? UITheme.Danger
-                : suspicion >= 4 ? UITheme.NeonYellow
-                : UITheme.NeonCyan;
+            // 띠 색: 단서 있으면 시안, 없으면 흐림 (스파이를 한눈에 드러내지 않음)
+            Color stripeColor = linkedCount > 0 ? UITheme.NeonCyan : UITheme.InkFaint;
             Color borderC = isSelected ? UITheme.NeonGreen
-                : hover ? susColor
+                : hover ? stripeColor
                 : UITheme.Line;
 
             UITheme.DrawRect(rect, isSelected
@@ -2087,8 +2080,8 @@ namespace ForTheCompany.Systems
                 : UITheme.Bg3);
             UITheme.DrawBorder(rect, borderC, isSelected ? 2f : 1f);
 
-            // 좌측 띠 (의심도 색)
-            UITheme.DrawRect(new Rect(rect.x, rect.y, 3f, rect.height), susColor);
+            // 좌측 띠 (단서/모순 상태 색)
+            UITheme.DrawRect(new Rect(rect.x, rect.y, 3f, rect.height), stripeColor);
 
             // 이름
             var nameSt = new GUIStyle(GUI.skin.label)
@@ -2108,23 +2101,15 @@ namespace ForTheCompany.Systems
             };
             GUI.Label(new Rect(rect.x + 12, rect.y + 30, rect.width - 24, 16), subTitle, subSt);
 
-            // 의심도 막대
-            float barY = rect.y + 52;
-            float barW = rect.width - 24;
-            UITheme.DrawRect(new Rect(rect.x + 12, barY, barW, 4), UITheme.Bg4);
-            float pct = Mathf.Clamp01(suspicion / 10f);
-            if (pct > 0f)
-                UITheme.DrawRect(new Rect(rect.x + 12, barY, barW * pct, 4), susColor);
-
-            // 의심도 숫자
-            var susLabelSt = new GUIStyle(GUI.skin.label)
+            // 수집 단서 수만 표시 (의심도 자동 카운터 폐기 — 알리바이·증거로 직접 추리)
+            var evLabelSt = new GUIStyle(GUI.skin.label)
             {
                 fontSize = 11, fontStyle = FontStyle.Bold,
-                alignment = TextAnchor.MiddleRight,
-                normal = { textColor = susColor }
+                alignment = TextAnchor.MiddleLeft,
+                normal = { textColor = linkedCount > 0 ? UITheme.NeonGreen : UITheme.InkFaint }
             };
-            GUI.Label(new Rect(rect.x, barY + 8, rect.width - 12, 18),
-                $"의심도 {suspicion}/10", susLabelSt);
+            GUI.Label(new Rect(rect.x + 12, rect.y + 54, rect.width - 24, 18),
+                $"수집 단서 {linkedCount}건 · 클릭", evLabelSt);
 
             // 클릭
             if (GUI.Button(rect, GUIContent.none, GUIStyle.none))
@@ -2233,36 +2218,29 @@ namespace ForTheCompany.Systems
                 GetRoleSubtitle(selectedSuspectRole), subSt);
             cy += 28;
 
-            // 의심도 인덱스
+            // 알리바이 — 추리 기준 (수집한 결정적 단서와 시간대를 대조해 거짓을 찾는다)
             UITheme.DrawRect(new Rect(area.x + 16, cy, area.width - 32, 1), UITheme.Line);
             cy += 10;
-
-            int sus = selected.suspicion;
-            Color susColor = sus >= 7 ? UITheme.Danger
-                : sus >= 4 ? UITheme.NeonYellow
-                : UITheme.NeonCyan;
 
             var sectionSt = new GUIStyle(GUI.skin.label)
             {
                 fontSize = 11, fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleLeft,
-                normal = { textColor = susColor }
+                normal = { textColor = UITheme.NeonViolet }
             };
             GUI.Label(new Rect(area.x + 16, cy, area.width - 32, 20),
-                "▸ 의심도 // SUSPICION INDEX", sectionSt);
-            cy += 22;
-            UITheme.DrawRect(new Rect(area.x + 16, cy, area.width - 32, 8), UITheme.Bg4);
-            float pct = Mathf.Clamp01(sus / 10f);
-            UITheme.DrawRect(new Rect(area.x + 16, cy, (area.width - 32) * pct, 8), susColor);
-            var susNumSt = new GUIStyle(GUI.skin.label)
+                "▸ 알리바이 // ALIBI", sectionSt);
+            cy += 24;
+            var alibiSt = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 12, fontStyle = FontStyle.Bold,
-                alignment = TextAnchor.MiddleRight,
-                normal = { textColor = susColor }
+                fontSize = 12, fontStyle = FontStyle.Italic, wordWrap = true,
+                normal = { textColor = UITheme.Ink }
             };
-            GUI.Label(new Rect(area.x, cy + 14, area.width - 16, 18),
-                $"{sus} / 10", susNumSt);
-            cy += 42;
+            string alibiStmt = GameSession.GetAlibi(selectedSuspectRole);
+            string alibiShown = string.IsNullOrEmpty(alibiStmt) ? "(진술 없음)" : $"“{alibiStmt}”";
+            float alibiH = alibiSt.CalcHeight(new GUIContent(alibiShown), area.width - 44);
+            GUI.Label(new Rect(area.x + 16, cy, area.width - 32, alibiH), alibiShown, alibiSt);
+            cy += alibiH + 8;
 
             // 연결된 단서 수
             int linked = 0;
@@ -2290,18 +2268,15 @@ namespace ForTheCompany.Systems
                 $"{linked} 건", linkedNumSt);
             cy += 44;
 
-            // 안내
+            // 안내 — 추리 방법 (정답을 직접 알려주지 않음)
             var infoSt = new GUIStyle(GUI.skin.label)
             {
                 fontSize = 12, wordWrap = true,
                 normal = { textColor = UITheme.InkDim }
             };
-            string infoText = sus >= 7
-                ? "▸ 의심도 매우 높음. 보안통제실 동료 수사관에게 가서 지목 가능.\n주의: 단 한 번만 지목할 수 있다."
-                : sus >= 4
-                ? "▸ 의심도 상승 중. 추가 단서를 모아 확신을 쌓아라."
-                : "▸ 아직 단서가 부족하다. 대화·환경 조사로 단서를 더 모아라.";
-            GUI.Label(new Rect(area.x + 16, cy, area.width - 32, 90), infoText, infoSt);
+            GUI.Label(new Rect(area.x + 16, cy, area.width - 32, 90),
+                "▸ 이 사람의 알리바이를 좌측 보드의 단서와 대조하세요.\n시간대가 어긋나는 ▲ 단서가 연결돼 있으면 진술이 거짓 — 그 사람이 범인입니다.",
+                infoSt);
         }
 
         // ─── 헬퍼 ───

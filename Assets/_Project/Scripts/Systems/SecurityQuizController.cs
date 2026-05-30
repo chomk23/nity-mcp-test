@@ -114,9 +114,7 @@ namespace ForTheCompany.Systems
                 GameSession.Instance.totalClues += data.clueReward;
                 GameSession.Instance.LastEncounterRewardClues = data.clueReward;
             }
-            // 환경 단서 정답 → 진짜 스파이 의심도 +2 (문제마다 누적)
-            var realSpy = NPCRoster.Instance != null ? NPCRoster.Instance.Spy : null;
-            if (realSpy != null) realSpy.AddSuspicion(2);
+            // (의심도 자동 카운터 폐기 — 범인 식별은 알리바이 모순 단서로 직접 추리한다)
 
             Debug.Log($"[Quiz] {data.id} #{SessionCurrent}/{SessionTotal} 정답 — '{data.successClue}'");
 
@@ -136,10 +134,26 @@ namespace ForTheCompany.Systems
                 int totalReward = data.clueReward * sessionCorrectCount;
                 if (GameSession.Instance != null && sessionSuccessClues.Count > 0)
                 {
-                    string combinedText = string.Join("\n\n", sessionSuccessClues);
-                    string clueTitle = $"[{data.roomName}] {data.objectLabel}";
-                    GameSession.Instance.AddClue(clueTitle, combinedText,
-                        ClueSource.Environment, data.relatedRole, data.tag);
+                    // 이 장소의 담당 용의자(relatedRole)가 실제 스파이라면, 일반 단서 대신
+                    // 알리바이를 깨는 결정적 단서를 수집한다 (보드에서 ⚠ 모순 표시).
+                    int spyRole = NPCRoster.Instance != null && NPCRoster.Instance.Spy != null
+                        && NPCRoster.Instance.Spy.data != null
+                        ? (int)NPCRoster.Instance.Spy.data.role : -1;
+
+                    if (data.relatedRole > 0 && data.relatedRole == spyRole)
+                    {
+                        GameSession.Instance.AddClue(
+                            "▲ 결정적 단서 — 알리바이 모순",
+                            GameSession.GetContradictionClue(data.relatedRole),
+                            ClueSource.Environment, data.relatedRole, "ALIBI", true);
+                    }
+                    else
+                    {
+                        string combinedText = string.Join("\n\n", sessionSuccessClues);
+                        string clueTitle = $"[{data.roomName}] {data.objectLabel}";
+                        GameSession.Instance.AddClue(clueTitle, combinedText,
+                            ClueSource.Environment, data.relatedRole, data.tag);
+                    }
                 }
                 LastResultText = $"✓ 보안 교육 완료! {sessionCorrectCount}/{SessionTotal} 정답\n+{totalReward} 단서 획득";
                 ActiveClue.MarkResolved();
