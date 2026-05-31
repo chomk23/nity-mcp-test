@@ -37,16 +37,12 @@ namespace ForTheCompany.Player
 
         private static void EnsureSpawned()
         {
+            // 전력실 잠금문 제거 — 더 이상 자동 생성하지 않는다.
+            // (카드키 게이트는 서사/단서로만 유지되고, 물리 차단막은 없앰)
+            // 씬에 수동 배치된 잔존 인스턴스가 있으면 Awake에서 스스로 제거한다.
             if (SceneManager.GetActiveScene().name != "FacilityScene") return;
-            if (FindFirstObjectByType<LockedDoor>() != null) return;
-
-            // 임시 위치로 생성 — 실제 위치는 Start()에서 시설관리자 기준으로 다시 잡음
-            var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            go.name = "LockedDoor_PowerRoom";
-            go.transform.position = new Vector3(15f, 1.2f, -11f);
-            // 길이 5.5 — 입구 갭을 확실히 메우도록, 두께 0.4 — 너무 두껍지 않게
-            go.transform.localScale = new Vector3(5.5f, 2.4f, 0.4f);
-            go.AddComponent<LockedDoor>();
+            var existing = FindFirstObjectByType<LockedDoor>();
+            if (existing != null) Destroy(existing.gameObject);
         }
 
         private void Start()
@@ -94,11 +90,8 @@ namespace ForTheCompany.Player
 
         private void Awake()
         {
-            boxCol = GetComponent<BoxCollider>();
-            mr = GetComponent<MeshRenderer>();
-            originalScale = transform.localScale;
-            ApplyVisual(true); // 초기 잠금
-            // originalScale은 Start()에서 위치 조정 후 다시 캐시
+            // 전력실 문 제거 정책 — 어떤 경로로든 생성된 LockedDoor는 즉시 파괴.
+            Destroy(gameObject);
         }
 
         private void Update()

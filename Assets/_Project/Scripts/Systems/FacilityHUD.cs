@@ -1391,8 +1391,8 @@ namespace ForTheCompany.Systems
                 new Color(UITheme.Bg0.r, UITheme.Bg0.g, UITheme.Bg0.b, 0.88f));
             UITheme.DrawScanlines(new Rect(0, 0, Screen.width, Screen.height), 0.05f);
 
-            float w = Mathf.Min(680, Screen.width - 80);
-            float h = 440;
+            float w = Mathf.Min(900, Screen.width - 80);
+            float h = Mathf.Min(540, Screen.height - 80);
             float x = (Screen.width - w) * 0.5f;
             float y = (Screen.height - h) * 0.5f;
 
@@ -1425,31 +1425,147 @@ namespace ForTheCompany.Systems
             GUI.Label(new Rect(x + 40, headerY + 18, w - 80, 32),
                 "산업스파이 지목", titleSt);
 
-            // 구분선
-            UITheme.DrawRect(new Rect(x + 24, headerY + 60, w - 48, 1), UITheme.Line);
-
-            // 본문 설명
+            // 본문 설명 (한 줄)
             var bodySt = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 13, wordWrap = true,
+                fontSize = 12, wordWrap = true,
                 normal = { textColor = UITheme.InkDim }
             };
-            GUI.Label(new Rect(x + 30, headerY + 70, w - 60, 60),
-                "수집한 단서를 바탕으로 산업스파이를 지목하라.\n정답이면 승리, 오답이면 패배 — 되돌릴 수 없다.",
+            GUI.Label(new Rect(x + 40, headerY + 50, w - 80, 18),
+                "수집한 단서를 대조해 산업스파이를 지목하라 — 정답이면 승리, 오답이면 패배. 되돌릴 수 없다.",
                 bodySt);
 
-            // 용의자 버튼 리스트
+            // 구분선
+            UITheme.DrawRect(new Rect(x + 24, headerY + 74, w - 48, 1), UITheme.Line);
+
+            // ── 2열 레이아웃: 좌(수집 단서) / 우(용의자 지목) ──
+            float contentY = headerY + 86;
+            float contentBottom = y + h - 20;
+            float gapCol = 24f;
+            float colW = (w - 56 - gapCol) * 0.5f;
+            float leftX = x + 28;
+            float rightX = leftX + colW + gapCol;
+
+            DrawAccusationClueList(new Rect(leftX, contentY, colW, contentBottom - contentY));
+            DrawAccusationSuspectButtons(partner,
+                new Rect(rightX, contentY, colW, contentBottom - contentY));
+        }
+
+        /// <summary>지목 모달 좌측 — 수집 단서 목록 (스크롤). 알리바이 모순 단서는 빨강 강조.</summary>
+        private void DrawAccusationClueList(Rect area)
+        {
+            var s = GameSession.Instance;
+
+            var hdrSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 11, fontStyle = FontStyle.Bold,
+                normal = { textColor = UITheme.NeonCyan }
+            };
+            int total = s != null ? s.CollectedClues.Count : 0;
+            GUI.Label(new Rect(area.x, area.y, area.width, 16),
+                $"▸ 수집 단서 // EVIDENCE ({total})", hdrSt);
+
+            var listArea = new Rect(area.x, area.y + 22, area.width, area.height - 22);
+            UITheme.DrawRect(listArea, UITheme.Bg2);
+            UITheme.DrawBorder(listArea, UITheme.Line, 1f);
+
+            if (s == null || total == 0)
+            {
+                var emptySt = new GUIStyle(GUI.skin.label)
+                {
+                    fontSize = 12, alignment = TextAnchor.MiddleCenter,
+                    normal = { textColor = UITheme.InkDim }
+                };
+                GUI.Label(listArea, "// 수집된 단서가 없습니다", emptySt);
+                return;
+            }
+
+            float rowH = 58f, rowGap = 6f, pad = 8f;
+            float contentW = listArea.width - pad * 2 - 12; // 스크롤바 여유
+            float totalH = total * (rowH + rowGap);
+
+            var viewRect = new Rect(listArea.x + pad, listArea.y + pad,
+                listArea.width - pad * 2, listArea.height - pad * 2);
+            var contentRect = new Rect(0, 0, listArea.width - pad * 2 - 12, totalH);
+
+            accusationClueScroll = GUI.BeginScrollView(viewRect, accusationClueScroll, contentRect);
+
+            var titleSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 12, fontStyle = FontStyle.Bold, wordWrap = false,
+                normal = { textColor = Color.white }
+            };
+            var previewSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 10, wordWrap = true,
+                normal = { textColor = UITheme.Ink }
+            };
+
+            for (int i = 0; i < total; i++)
+            {
+                var clue = s.CollectedClues[i];
+                bool broken = clue.contradictsAlibi;
+                Color accent = broken ? UITheme.Danger : GetSourceColor(clue.source);
+
+                var cardR = new Rect(0, i * (rowH + rowGap), contentW, rowH);
+                UITheme.DrawRect(cardR, UITheme.Bg3);
+                UITheme.DrawRect(new Rect(cardR.x, cardR.y, 3f, cardR.height), accent);
+                if (broken) UITheme.DrawBorder(cardR, UITheme.Danger, 1f);
+
+                // 태그 (동적 폭) + 출처
+                string tagText = broken ? "▲ ALIBI 모순"
+                    : (string.IsNullOrEmpty(clue.tag) ? SourceLabel(clue.source) : clue.tag);
+                var tagChipSt = new GUIStyle(GUI.skin.label)
+                {
+                    fontSize = 9, fontStyle = FontStyle.Bold,
+                    normal = { textColor = accent }
+                };
+                GUI.Label(new Rect(cardR.x + 10, cardR.y + 5, contentW - 20, 13),
+                    tagText, tagChipSt);
+
+                // 제목
+                GUI.Label(new Rect(cardR.x + 10, cardR.y + 18, contentW - 20, 16),
+                    TruncateText(clue.title, 28), titleSt);
+
+                // 본문 미리보기
+                GUI.Label(new Rect(cardR.x + 10, cardR.y + 35, contentW - 20, 20),
+                    TruncateText(clue.text, 46), previewSt);
+            }
+
+            GUI.EndScrollView();
+        }
+
+        /// <summary>지목 모달 우측 — 용의자 3버튼.</summary>
+        private void DrawAccusationSuspectButtons(ForTheCompany.Player.AccusationPartner partner, Rect area)
+        {
+            var hdrSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 11, fontStyle = FontStyle.Bold,
+                normal = { textColor = UITheme.NeonMagenta }
+            };
+            GUI.Label(new Rect(area.x, area.y, area.width, 16),
+                "▸ 용의자 지목 // ACCUSE", hdrSt);
+
             var roster = NPCRoster.Instance;
             int n = roster != null ? roster.npcs.Count : 0;
-            float btnH = 50;
-            float gap = 8;
-            float startY = y + h - (btnH + gap) * Mathf.Max(1, n) - 24;
+
+            float listTop = area.y + 24;
+            float btnH = 56, gap = 10;
 
             for (int i = 0; i < n; i++)
             {
-                var r = new Rect(x + 30, startY + (btnH + gap) * i, w - 60, btnH);
+                var r = new Rect(area.x, listTop + (btnH + gap) * i, area.width, btnH);
                 string label = roster.npcs[i] != null ? roster.npcs[i].DisplayName : "?";
-                string display = $"  0{i + 1}    {label}";
+
+                // 이 용의자에게 연결된 단서 수 (모순 여부는 노출 안 함 — 중간 난이도)
+                int linked = 0;
+                var s = GameSession.Instance;
+                if (s != null && roster.npcs[i] != null && roster.npcs[i].data != null)
+                {
+                    int role = (int)roster.npcs[i].data.role;
+                    foreach (var c in s.CollectedClues)
+                        if (c.relatedRole == role) linked++;
+                }
 
                 bool hover = r.Contains(UITheme.GetMousePos());
                 UITheme.DrawRect(r, hover ? new Color(UITheme.NeonMagenta.r, UITheme.NeonMagenta.g,
@@ -1458,11 +1574,21 @@ namespace ForTheCompany.Systems
 
                 var btnSt = new GUIStyle(GUI.skin.label)
                 {
-                    fontSize = 14, fontStyle = FontStyle.Bold,
+                    fontSize = 15, fontStyle = FontStyle.Bold,
                     alignment = TextAnchor.MiddleLeft,
                     normal = { textColor = hover ? UITheme.NeonMagenta : UITheme.Ink }
                 };
-                GUI.Label(r, display, btnSt);
+                GUI.Label(new Rect(r.x + 14, r.y + 6, r.width - 28, 22),
+                    $"0{i + 1}   {label}", btnSt);
+
+                // 연결 단서 수 (하단)
+                var subSt = new GUIStyle(GUI.skin.label)
+                {
+                    fontSize = 10, alignment = TextAnchor.MiddleLeft,
+                    normal = { textColor = UITheme.InkDim }
+                };
+                GUI.Label(new Rect(r.x + 14, r.y + 30, r.width - 28, 18),
+                    $"연결 단서 {linked}건", subSt);
 
                 if (GUI.Button(r, GUIContent.none, GUIStyle.none))
                     partner.Accuse(i);
