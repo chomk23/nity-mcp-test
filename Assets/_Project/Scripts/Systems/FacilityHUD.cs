@@ -29,6 +29,7 @@ namespace ForTheCompany.Systems
         // (FacilityHUD/PauseMenu 실행 순서와 무관하게 ESC 1회=닫기만 되도록)
         public static int InventoryClosedFrame { get; private set; } = -1;
         private Vector2 inventoryScroll;
+        private Vector2 accusationClueScroll; // 지목 모달 좌측 단서 목록 스크롤
 
         private void Init()
         {
