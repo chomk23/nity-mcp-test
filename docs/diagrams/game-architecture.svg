@@ -1,0 +1,135 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="660" viewBox="0 0 900 660" font-family="'Malgun Gothic','AppleGothic',sans-serif">
+  <!-- ============ 정의 ============ -->
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#222"/>
+    </marker>
+  </defs>
+
+  <style>
+    .box   { fill:#ffffff; stroke:#333; stroke-width:1.2; }
+    .lbl   { fill:#1a1a1a; font-size:13px; text-anchor:middle; }
+    .lbl-b { fill:#1a1a1a; font-size:13px; font-weight:bold; text-anchor:middle; }
+    .cnt   { fill:#8a1a1a; font-size:10px; text-anchor:middle; }
+    .edge  { stroke:#222; stroke-width:1.4; fill:none; marker-end:url(#arrow); }
+    .num   { fill:#2e7d32; font-size:11px; font-weight:bold; text-anchor:middle; }
+    .numc  { fill:#ffffff; stroke:#2e7d32; stroke-width:1.4; }
+    .cap   { fill:#000; font-size:15px; font-weight:bold; text-anchor:middle; }
+  </style>
+
+  <!-- ============ 점선 영역 (게임 시스템 경계) ============ -->
+  <rect x="180" y="160" width="540" height="420" rx="4"
+        fill="none" stroke="#444" stroke-width="1.2" stroke-dasharray="6 5"/>
+
+  <!-- ============ 화살표 (도형보다 먼저 그려 뒤로) ============ -->
+  <!-- 데이터 소스 → 샘플/가공 -->
+  <line class="edge" x1="320" y1="145" x2="320" y2="205"/>
+  <line class="edge" x1="580" y1="145" x2="580" y2="205"/>
+  <!-- 보안교육 문제풀 → 교육 모듈 / 레이싱 -->
+  <line class="edge" x1="306" y1="278" x2="290" y2="320"/>
+  <line class="edge" x1="338" y1="278" x2="432" y2="320"/>
+  <!-- 용의자/단서 → 대화·알리바이 -->
+  <line class="edge" x1="580" y1="278" x2="600" y2="320"/>
+  <!-- SecureSense UI → 교육 모듈(웹 생성기 위치) -->
+  <line class="edge" x1="150" y1="350" x2="218" y2="350"/>
+  <!-- 산업보안 시나리오 → 대화·알리바이 -->
+  <line class="edge" x1="752" y1="350" x2="664" y2="350"/>
+  <!-- 생성기 3종 → 게임 코어 -->
+  <line class="edge" x1="282" y1="382" x2="282" y2="422"/>
+  <line class="edge" x1="448" y1="382" x2="448" y2="422"/>
+  <line class="edge" x1="614" y1="382" x2="614" y2="422"/>
+  <!-- 게임 코어 → 수사 결과 -->
+  <line class="edge" x1="448" y1="476" x2="448" y2="504"/>
+
+  <!-- ============ 상단 데이터 소스 (실린더) ============ -->
+  <!-- 보안 교육 문제 풀 -->
+  <g>
+    <ellipse cx="320" cy="130" rx="66" ry="13" class="box"/>
+    <rect x="254" y="52" width="132" height="78" fill="#fff" stroke="none"/>
+    <line x1="254" y1="52" x2="254" y2="130" stroke="#333" stroke-width="1.2"/>
+    <line x1="386" y1="52" x2="386" y2="130" stroke="#333" stroke-width="1.2"/>
+    <ellipse cx="320" cy="52" rx="66" ry="13" class="box"/>
+    <text class="lbl-b" x="320" y="72">보안 교육</text>
+    <text class="lbl-b" x="320" y="89">문제 풀</text>
+    <text class="cnt"   x="320" y="108">(20문제 · 3분야)</text>
+  </g>
+  <!-- 용의자 프로필 + 사건 데이터 -->
+  <g>
+    <ellipse cx="580" cy="130" rx="66" ry="13" class="box"/>
+    <rect x="514" y="52" width="132" height="78" fill="#fff" stroke="none"/>
+    <line x1="514" y1="52" x2="514" y2="130" stroke="#333" stroke-width="1.2"/>
+    <line x1="646" y1="52" x2="646" y2="130" stroke="#333" stroke-width="1.2"/>
+    <ellipse cx="580" cy="52" rx="66" ry="13" class="box"/>
+    <text class="lbl-b" x="580" y="72">용의자 프로필</text>
+    <text class="lbl-b" x="580" y="89">· 사건 데이터</text>
+    <text class="cnt"   x="580" y="108">(용의자 3인)</text>
+  </g>
+
+  <!-- ============ 중간 가공 데이터 (문서 더미) ============ -->
+  <!-- 퀴즈 세션 -->
+  <g>
+    <rect x="265" y="198" width="138" height="68" rx="3" class="box"/>
+    <rect x="259" y="204" width="138" height="68" rx="3" class="box"/>
+    <rect x="253" y="210" width="138" height="68" rx="3" class="box"/>
+    <text class="lbl-b" x="322" y="232">퀴즈 세션</text>
+    <text class="lbl-b" x="322" y="249">(연속 3문제)</text>
+    <text class="cnt"   x="322" y="267">랜덤 출제 · 셔플</text>
+  </g>
+  <!-- 알리바이·증언 단서 -->
+  <g>
+    <rect x="525" y="198" width="138" height="68" rx="3" class="box"/>
+    <rect x="519" y="204" width="138" height="68" rx="3" class="box"/>
+    <rect x="513" y="210" width="138" height="68" rx="3" class="box"/>
+    <text class="lbl-b" x="582" y="232">알리바이</text>
+    <text class="lbl-b" x="582" y="249">· 증언 단서</text>
+    <text class="cnt"   x="582" y="267">진술 · 모순 단서</text>
+  </g>
+
+  <!-- ============ 외부 입력 (점선 밖) ============ -->
+  <!-- SecureSense UI 시스템 -->
+  <rect x="48" y="316" width="102" height="74" rx="4" class="box"/>
+  <text class="lbl" x="99" y="341">SecureSense</text>
+  <text class="lbl" x="99" y="358">UI</text>
+  <text class="lbl" x="99" y="375">시스템</text>
+  <!-- 산업보안 시나리오 -->
+  <rect x="752" y="316" width="102" height="74" rx="4" class="box"/>
+  <text class="lbl" x="803" y="341">산업보안</text>
+  <text class="lbl" x="803" y="358">시나리오</text>
+
+  <!-- ============ 생성기/모듈 3종 ============ -->
+  <!-- ① 보안 교육 모듈 -->
+  <rect x="218" y="320" width="128" height="62" rx="4" class="box"/>
+  <text class="lbl-b" x="282" y="346">보안 교육</text>
+  <text class="lbl-b" x="282" y="363">모듈</text>
+  <circle class="numc" cx="236" cy="368" r="9"/>
+  <text class="num" x="236" y="372">1</text>
+  <!-- ② 보안 레이싱 미니게임 -->
+  <rect x="384" y="320" width="128" height="62" rx="4" class="box"/>
+  <text class="lbl-b" x="448" y="346">보안 레이싱</text>
+  <text class="lbl-b" x="448" y="363">미니게임</text>
+  <circle class="numc" cx="402" cy="368" r="9"/>
+  <text class="num" x="402" y="372">2</text>
+  <!-- ③ NPC 대화·알리바이 -->
+  <rect x="550" y="320" width="128" height="62" rx="4" class="box"/>
+  <text class="lbl-b" x="614" y="346">NPC 대화</text>
+  <text class="lbl-b" x="614" y="363">· 알리바이</text>
+  <circle class="numc" cx="568" cy="368" r="9"/>
+  <text class="num" x="568" y="372">3</text>
+
+  <!-- ============ 게임 코어 ============ -->
+  <rect x="218" y="422" width="460" height="54" rx="4" class="box"/>
+  <text class="lbl-b" x="448" y="447" font-size="15px">게임 코어</text>
+  <text class="cnt"   x="448" y="464">단서 수집 · 단계 진행 · 범인 추리</text>
+  <circle class="numc" cx="236" cy="462" r="9"/>
+  <text class="num" x="236" y="466">4</text>
+
+  <!-- ============ 수사 결과 (순위표 대응) ============ -->
+  <rect x="368" y="504" width="160" height="58" rx="4" class="box"/>
+  <text class="lbl-b" x="448" y="528">수사 결과</text>
+  <text class="cnt"   x="448" y="546">승패 · 통계 · 동기</text>
+  <circle class="numc" cx="386" cy="548" r="9"/>
+  <text class="num" x="386" y="552">5</text>
+
+  <!-- ============ 캡션 ============ -->
+  <text class="cap" x="450" y="620">그림 3: For The Company 게임 구성 요소</text>
+</svg>
