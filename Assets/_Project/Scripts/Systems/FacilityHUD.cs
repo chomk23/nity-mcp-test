@@ -1070,35 +1070,72 @@ namespace ForTheCompany.Systems
 
             var data = ctrl.ActiveClue.data;
 
-            // 어둠 오버레이
-            UITheme.DrawRect(new Rect(0, 0, Screen.width, Screen.height),
-                new Color(UITheme.Bg0.r, UITheme.Bg0.g, UITheme.Bg0.b, 0.86f));
-            UITheme.DrawScanlines(new Rect(0, 0, Screen.width, Screen.height), 0.05f);
+            // ── 흰색(라이트) 테마 색상 — 보안 교육 모달 전용 ──
+            // 가독성 위해 패널은 흰색, 글자는 검은색 계열, 액센트만 보라/시안 유지
+            Color panelBg     = new Color(0.97f, 0.98f, 0.99f);  // 거의 흰색
+            Color headerBg    = new Color(0.91f, 0.93f, 0.96f);  // 헤더바 (살짝 회색)
+            Color inkBlack    = new Color(0.08f, 0.09f, 0.11f);  // 본문 검정
+            Color inkSub      = new Color(0.32f, 0.35f, 0.40f);  // 보조 회색
+            Color lineLight   = new Color(0f, 0f, 0f, 0.12f);    // 옅은 구분선
+            Color optBg       = new Color(1f, 1f, 1f, 1f);       // 선택지 기본(흰)
+            Color optHoverBg  = new Color(0.85f, 0.80f, 0.98f);  // 선택지 hover (연보라)
+            Color accentViolet= new Color(0.46f, 0.30f, 0.78f);  // 진한 보라 (흰 배경 대비)
+            Color accentVioletDark = new Color(0.34f, 0.20f, 0.62f); // hover 배경용 더 진한 보라
+            Color dangerDark  = new Color(0.78f, 0.10f, 0.18f);  // 흰 배경용 진한 빨강 (경고·오답)
+            Color greenDark   = new Color(0.08f, 0.45f, 0.24f);  // 흰 배경용 진한 초록 (진행률)
+            Color cyanDark    = new Color(0.06f, 0.42f, 0.47f);  // 흰 배경용 진한 시안 (위치 태그)
 
-            float w = Mathf.Min(780, Screen.width - 80);
-            float h = 600;
+            // 어둠 오버레이 (배경은 그대로 어둡게 — 모달만 부각)
+            UITheme.DrawRect(new Rect(0, 0, Screen.width, Screen.height),
+                new Color(UITheme.Bg0.r, UITheme.Bg0.g, UITheme.Bg0.b, 0.90f));
+
+            // ── 사이즈 확대: 780×600 → 900×680 (화면 여백 확보) ──
+            float w = Mathf.Min(900, Screen.width - 60);
+            float h = Mathf.Min(680, Screen.height - 60);
             float x = (Screen.width - w) * 0.5f;
             float y = (Screen.height - h) * 0.5f;
 
             var rect = new Rect(x, y, w, h);
 
-            // 패널
-            UITheme.DrawRect(rect, UITheme.Bg1);
-            UITheme.DrawBorder(rect, UITheme.NeonViolet, 1f);
+            // 흰색 패널 + 보라 외곽선 (살짝 두껍게)
+            UITheme.DrawRect(rect, panelBg);
+            UITheme.DrawBorder(rect, accentViolet, 2f);
 
-            // 윈도우 헤더
-            UITheme.DrawWinBar(new Rect(x, y, w, 32), "security-training.module");
+            // ── 헤더바 (라이트 테마 전용 — DrawWinBar 대신 직접 그림) ──
+            float barH = 38f;
+            UITheme.DrawRect(new Rect(x, y, w, barH), headerBg);
+            UITheme.DrawRect(new Rect(x, y + barH - 1, w, 1), lineLight);
+            // mac 스타일 dot 3개
+            float dotY = y + barH * 0.5f - 6f;
+            UITheme.DrawRect(new Rect(x + 16, dotY, 12, 12), new Color(1f, 0.37f, 0.34f));
+            UITheme.DrawRect(new Rect(x + 34, dotY, 12, 12), new Color(1f, 0.74f, 0.18f));
+            UITheme.DrawRect(new Rect(x + 52, dotY, 12, 12), new Color(0.16f, 0.78f, 0.25f));
+            var barTitleSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 14, alignment = TextAnchor.MiddleCenter,
+                normal = { textColor = inkSub }
+            };
+            GUI.Label(new Rect(x, y, w, barH), "security-training.module", barTitleSt);
+            // 우상단 안내 (필수 미션)
+            var lockedSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 12, fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleRight,
+                padding = new RectOffset(0, 16, 0, 0),
+                normal = { textColor = dangerDark }
+            };
+            GUI.Label(new Rect(x, y, w, barH), "▸ 필수 미션 // 정답 시 자동 종료", lockedSt);
 
-            // 헤더
-            float headerY = y + 48;
-            UITheme.DrawPulseDot(new Vector2(x + 28, headerY + 12), UITheme.NeonViolet, 4f);
+            // ── 헤더 섹션 ──
+            float headerY = y + barH + 16;
+            UITheme.DrawPulseDot(new Vector2(x + 30, headerY + 13), accentViolet, 5f);
 
             var tagSt = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 10, fontStyle = FontStyle.Bold,
-                normal = { textColor = UITheme.NeonViolet }
+                fontSize = 12, fontStyle = FontStyle.Bold,
+                normal = { textColor = accentViolet }
             };
-            GUI.Label(new Rect(x + 44, headerY + 2, w - 100, 14),
+            GUI.Label(new Rect(x + 48, headerY, w - 120, 16),
                 "▸ SECURITY TRAINING // MODULE", tagSt);
 
             // 진행률 표시 (1/3, 2/3, 3/3) — 우측 상단
@@ -1106,98 +1143,104 @@ namespace ForTheCompany.Systems
             {
                 var progressSt = new GUIStyle(GUI.skin.label)
                 {
-                    fontSize = 12, fontStyle = FontStyle.Bold,
+                    fontSize = 16, fontStyle = FontStyle.Bold,
                     alignment = TextAnchor.MiddleRight,
-                    padding = new RectOffset(0, 16, 0, 0),
-                    normal = { textColor = UITheme.NeonGreen }
+                    padding = new RectOffset(0, 20, 0, 0),
+                    normal = { textColor = greenDark } // 진한 초록 (AA 통과)
                 };
-                GUI.Label(new Rect(x, headerY, w, 22),
+                GUI.Label(new Rect(x, headerY, w, 26),
                     $"▸ 문제 {ctrl.SessionCurrent} / {ctrl.SessionTotal}", progressSt);
             }
 
+            // 큰 타이틀
             var titleSt = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 22, fontStyle = FontStyle.Bold,
-                normal = { textColor = UITheme.Ink }
+                fontSize = 30, fontStyle = FontStyle.Bold,
+                normal = { textColor = inkBlack }
             };
-            GUI.Label(new Rect(x + 44, headerY + 16, w - 100, 30),
+            GUI.Label(new Rect(x + 48, headerY + 20, w - 120, 40),
                 "보안 교육 미션", titleSt);
 
             // 위치 / 객체 태그
             var locTagSt = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 11, fontStyle = FontStyle.Bold,
-                normal = { textColor = UITheme.NeonCyan }
+                fontSize = 13, fontStyle = FontStyle.Bold,
+                normal = { textColor = cyanDark } // 진한 시안 (AA 통과)
             };
-            GUI.Label(new Rect(x + 28, headerY + 54, w - 56, 18),
+            GUI.Label(new Rect(x + 30, headerY + 66, w - 60, 20),
                 $"▸ {data.roomName.ToUpper()}  //  {data.objectLabel.ToUpper()}", locTagSt);
 
             // 구분선
-            UITheme.DrawRect(new Rect(x + 24, headerY + 78, w - 48, 1), UITheme.Line);
+            UITheme.DrawRect(new Rect(x + 28, headerY + 94, w - 56, 1), lineLight);
 
-            // 질문
+            // 큰 질문 텍스트
             var qSt = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 16, fontStyle = FontStyle.Bold, wordWrap = true,
-                normal = { textColor = UITheme.Ink }
+                fontSize = 21, fontStyle = FontStyle.Bold, wordWrap = true,
+                normal = { textColor = inkBlack }
             };
-            GUI.Label(new Rect(x + 30, headerY + 92, w - 60, 100), data.quizQuestion, qSt);
-
-            // 선택지 버튼들
+            float qY = headerY + 110;
+            // 선택지·피드백이 모달 밖으로 밀려나지 않도록 질문 높이를 상한 클램프
             int n = data.quizOptions != null ? data.quizOptions.Length : 0;
-            float btnH = 52;
-            float gap = 8;
-            float startY = y + 240;
+            float btnH = 62;
+            float gap = 12;
+            float feedbackBand = 56f;                       // 하단 오답 피드백 영역
+            float optionsBlockH = n * btnH + (n - 1) * gap; // 선택지 전체 높이
+            // 선택지가 시작할 수 있는 최대 y (이보다 질문이 길면 질문을 잘라 표시)
+            float maxStartY = y + h - feedbackBand - optionsBlockH;
+            float rawQH = qSt.CalcHeight(new GUIContent(data.quizQuestion), w - 64);
+            float maxQH = Mathf.Max(40f, (maxStartY - 20f) - qY);
+            float qH = Mathf.Min(rawQH, maxQH);
+            GUI.Label(new Rect(x + 32, qY, w - 64, qH), data.quizQuestion, qSt);
+
+            // ── 선택지 버튼들 (크게) — 질문 아래, 단 모달 안에 들어오도록 ──
+            float startY = Mathf.Min(Mathf.Max(qY + qH + 20, y + 230), maxStartY);
 
             for (int i = 0; i < n; i++)
             {
-                var r = new Rect(x + 30, startY + (btnH + gap) * i, w - 60, btnH);
-                string label = $"  0{i + 1}    {data.quizOptions[i]}";
-
+                var r = new Rect(x + 32, startY + (btnH + gap) * i, w - 64, btnH);
                 bool hover = r.Contains(UITheme.GetMousePos());
-                Color accent = UITheme.NeonViolet;
 
-                UITheme.DrawRect(r, hover ? new Color(accent.r, accent.g, accent.b, 0.14f) : UITheme.Bg2);
-                UITheme.DrawBorder(r, hover ? accent : UITheme.Line, hover ? 2f : 1f);
+                UITheme.DrawRect(r, hover ? optHoverBg : optBg);
+                UITheme.DrawBorder(r, hover ? accentViolet : lineLight, hover ? 2.5f : 1.5f);
 
+                // 번호 뱃지 (hover 시 연보라 배경 대비 위해 더 진한 보라)
+                var numSt = new GUIStyle(GUI.skin.label)
+                {
+                    fontSize = 18, fontStyle = FontStyle.Bold,
+                    alignment = TextAnchor.MiddleCenter,
+                    normal = { textColor = hover ? accentVioletDark : accentViolet }
+                };
+                GUI.Label(new Rect(r.x + 14, r.y, 40, r.height), $"0{i + 1}", numSt);
+
+                // 선택지 본문 (검정, 큰 글씨)
                 var btnSt = new GUIStyle(GUI.skin.label)
                 {
-                    fontSize = 13, fontStyle = FontStyle.Bold,
-                    alignment = TextAnchor.MiddleLeft,
-                    normal = { textColor = hover ? accent : UITheme.Ink }
+                    fontSize = 18, fontStyle = hover ? FontStyle.Bold : FontStyle.Normal,
+                    alignment = TextAnchor.MiddleLeft, wordWrap = true,
+                    normal = { textColor = inkBlack }
                 };
-                GUI.Label(r, label, btnSt);
+                GUI.Label(new Rect(r.x + 60, r.y, r.width - 76, r.height),
+                    data.quizOptions[i], btnSt);
 
                 if (GUI.Button(r, GUIContent.none, GUIStyle.none))
                     ctrl.Answer(i);
             }
 
-            // 오답 피드백
+            // 오답 피드백 (흰 배경용 진한 빨강)
             if (!string.IsNullOrEmpty(ctrl.LastResultText)
                 && !ctrl.LastWasCorrect
                 && Time.time - ctrl.LastResultTime < 3.5f)
             {
                 var feedSt = new GUIStyle(GUI.skin.label)
                 {
-                    fontSize = 13, wordWrap = true,
+                    fontSize = 16, fontStyle = FontStyle.Bold, wordWrap = true,
                     alignment = TextAnchor.MiddleCenter,
-                    normal = { textColor = UITheme.Danger }
+                    normal = { textColor = dangerDark }
                 };
-                GUI.Label(new Rect(x + 24, y + h - 80, w - 48, 40),
+                GUI.Label(new Rect(x + 28, y + h - 48, w - 56, 36),
                     "▸ " + ctrl.LastResultText, feedSt);
             }
-
-            // 닫기 버튼 없음 — 보안 교육은 무조건 정답을 맞춰야 닫힘 (취소 불가)
-            // 대신 우상단에 안내 라벨
-            var lockedSt = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 10, fontStyle = FontStyle.Bold,
-                alignment = TextAnchor.MiddleRight,
-                padding = new RectOffset(0, 14, 0, 0),
-                normal = { textColor = UITheme.Danger }
-            };
-            GUI.Label(new Rect(x, y + 8, w, 24),
-                "▸ 필수 미션 // 정답 시 자동 종료", lockedSt);
         }
 
         private void DrawQuizResultToast(SecurityQuizController ctrl)
