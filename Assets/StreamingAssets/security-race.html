@@ -1406,6 +1406,14 @@ function endRace() {
       uwb.ExecuteJsMethod('OnRaceFinished', myRank);
     }
   } catch (e) { /* 외부 브라우저 환경 */ }
+
+  // WebGL(iframe) 환경: 부모 창(Unity WebGL 페이지)으로 등수 전달
+  // (RacingIframe.jslib의 message 리스너가 SendMessage로 Unity에 전달)
+  try {
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ type: 'securityRaceFinished', rank: myRank }, '*');
+    }
+  } catch (e) { /* standalone 환경 */ }
 }
 </script>
 

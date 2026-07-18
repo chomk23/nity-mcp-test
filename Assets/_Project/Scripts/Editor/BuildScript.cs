@@ -66,7 +66,61 @@ namespace ForTheCompany.EditorTools
             }
         }
 
-        [MenuItem("For The Company/Open Build Folder", priority = 2)]
+        private const string WebBuildFolder = "builds/ForTheCompany_Web";
+
+        [MenuItem("For The Company/Build WebGL (Website)", priority = 2)]
+        public static void BuildWebGL()
+        {
+            var scenes = new[]
+            {
+                "Assets/_Project/Scenes/MainMenuScene.unity",
+                "Assets/_Project/Scenes/FacilityScene.unity"
+            };
+
+            string fullPath = Path.Combine(Directory.GetCurrentDirectory(), WebBuildFolder);
+            if (Directory.Exists(fullPath))
+            {
+                Directory.Delete(fullPath, true);
+            }
+            Directory.CreateDirectory(fullPath);
+
+            // 어떤 정적 호스팅(서버 설정 불가 환경)에서도 돌아가도록 압축 해제 폴백 사용
+            PlayerSettings.WebGL.decompressionFallback = true;
+
+            var options = new BuildPlayerOptions
+            {
+                scenes = scenes,
+                locationPathName = WebBuildFolder,
+                target = BuildTarget.WebGL,
+                options = BuildOptions.None
+            };
+
+            Debug.Log("[Build] WebGL 빌드 시작... 첫 빌드는 10~30분 걸릴 수 있음");
+            BuildReport report = BuildPipeline.BuildPlayer(options);
+            BuildSummary summary = report.summary;
+
+            if (summary.result == BuildResult.Succeeded)
+            {
+                long sizeMb = (long)summary.totalSize / (1024 * 1024);
+                Debug.Log($"[Build] ✓ 성공 — {WebBuildFolder} ({sizeMb} MB, {summary.totalTime})");
+                EditorUtility.RevealInFinder(Path.Combine(fullPath, "index.html"));
+                EditorUtility.DisplayDialog(
+                    "WebGL 빌드 완료",
+                    $"경로: {WebBuildFolder}\n\n" +
+                    "이 폴더 전체(index.html, Build/, StreamingAssets/, TemplateData/)를\n" +
+                    "웹사이트에 업로드하고 index.html로 링크하거나 iframe으로 넣으세요.",
+                    "확인");
+            }
+            else
+            {
+                Debug.LogError($"[Build] ✗ 실패: {summary.result} ({summary.totalErrors} 오류)");
+                EditorUtility.DisplayDialog("빌드 실패",
+                    $"Console 창에서 오류 메시지를 확인하세요.\n결과: {summary.result}",
+                    "확인");
+            }
+        }
+
+        [MenuItem("For The Company/Open Build Folder", priority = 3)]
         public static void OpenBuildFolder()
         {
             string fullPath = Path.Combine(Directory.GetCurrentDirectory(), BuildFolder);

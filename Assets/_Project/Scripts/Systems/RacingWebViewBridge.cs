@@ -19,7 +19,19 @@ namespace ForTheCompany.Systems
         private CanvasGroup canvasGroup;
         private object cachedClient; // WebBrowserClient (reflection)
 
+#if UNITY_WEBGL && !UNITY_EDITOR
+        // WebGL: CEF(데스크톱 전용) 대신 DOM iframe 사용 — Assets/Plugins/WebGL/RacingIframe.jslib
+        [System.Runtime.InteropServices.DllImport("__Internal")]
+        private static extern void RacingIframe_Show(string url);
+        [System.Runtime.InteropServices.DllImport("__Internal")]
+        private static extern void RacingIframe_Hide();
+
+        private System.Action<int> webglRaceCallback;
+
+        public bool IsAvailable => true; // iframe은 항상 사용 가능
+#else
         public bool IsAvailable => canvasRoot != null;
+#endif
         public bool IsShowing { get; private set; }
 
         private bool jsRegistered;
@@ -50,6 +62,12 @@ namespace ForTheCompany.Systems
         {
             if (Instance != null && Instance != this) { Destroy(this); return; }
             Instance = this;
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+            // WebGL: CEF를 쓰지 않으므로 캔버스/UWB 초기화 전부 스킵.
+            // (씬의 RacingWebViewCanvas는 미사용 — missing script 경고는 무해)
+            return;
+#endif
 
             if (canvasRoot == null)
             {
@@ -198,6 +216,13 @@ namespace ForTheCompany.Systems
 
         public void Show()
         {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            // WebGL: StreamingAssets의 레이싱 HTML을 iframe으로 표시.
+            // Unity가 키 입력을 독점하면 iframe 조작 불가 → 잠시 해제.
+            WebGLInput.captureAllKeyboardInput = false;
+            RacingIframe_Show(Application.streamingAssetsPath + "/security-race.html");
+            IsShowing = true;
+#else
             if (canvasRoot == null)
             {
                 Debug.LogWarning("[RacingWebView] RacingWebViewCanvas를 찾을 수 없음 — 외부 브라우저로 폴백");
@@ -215,10 +240,16 @@ namespace ForTheCompany.Systems
             // Show 시점에도 ready 폴링 후 LoadUrl — Start() pre-warm이 cold start로 실패했어도 복구.
             // 플레이어가 콘솔 도착 = 게임 시작 후라 CEF가 거의 준비됨 → 빈 화면 방지.
             StartCoroutine(LoadWhenReady());
+#endif
         }
 
         public void Hide()
         {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            RacingIframe_Hide();
+            WebGLInput.captureAllKeyboardInput = true; // 키 입력을 Unity로 복귀
+            IsShowing = false;
+#else
             if (canvasRoot == null) return;
             if (canvasGroup != null)
             {
@@ -229,6 +260,7 @@ namespace ForTheCompany.Systems
             IsShowing = false;
             // 다음 진입 시 인트로 화면으로 시작하도록 페이지 리로드
             ReloadPage();
+#endif
         }
 
         /// <summary>
@@ -328,6 +360,10 @@ namespace ForTheCompany.Systems
         /// </summary>
         public void RegisterRaceFinishedCallback(System.Action<int> callback)
         {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            // WebGL: 콜백을 저장해두고 iframe postMessage(→ jslib → SendMessage)로 호출
+            if (callback != null) webglRaceCallback = callback;
+#else
             if (canvasRoot == null || callback == null) return;
             if (jsRegistered) return; // 이미 등록됨 — ArgumentException 방지
             try
@@ -361,6 +397,19 @@ namespace ForTheCompany.Systems
                 else
                     Debug.LogWarning($"[RacingWebView] JS 메서드 등록 실패: {e.Message}");
             }
+#endif
+        }
+
+        /// <summary>
+        /// WebGL 전용 — RacingIframe.jslib가 SendMessage("RacingWebViewBridge", "OnRaceFinishedFromJs", rank)로 호출.
+        /// iframe 안 레이싱 HTML이 postMessage로 보낸 등수를 게임 로직(콜백)에 전달.
+        /// </summary>
+        public void OnRaceFinishedFromJs(int rank)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            Debug.Log($"[RacingWebView] WebGL iframe 등수 수신: {rank}");
+            webglRaceCallback?.Invoke(rank);
+#endif
         }
 
         public static void FallbackOpenExternal()
