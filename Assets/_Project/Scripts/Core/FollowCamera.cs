@@ -130,6 +130,9 @@ namespace ForTheCompany.Core
             if (IntroMonologue.IsCutsceneActive) return;
             var partner = ForTheCompany.Player.AccusationPartner.Instance;
             if (partner != null && partner.IsMenuOpen) return;
+            // 게임 종료(결과창) 중 줌 차단 — 오답 노트 스크롤이 카메라 줌으로 새는 것 방지
+            var session = GameSession.Instance;
+            if (session != null && session.Outcome != RunOutcome.Ongoing) return;
 
             var mouse = Mouse.current;
             if (mouse == null) return;
