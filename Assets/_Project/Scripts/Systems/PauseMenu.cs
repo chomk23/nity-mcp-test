@@ -14,7 +14,7 @@ namespace ForTheCompany.Systems
     {
         public static PauseMenu Instance { get; private set; }
 
-        public enum Page { Main, Help, Settings }
+        public enum Page { Main, Help, Settings, License }
         public Page CurrentPage { get; private set; } = Page.Main;
         public bool IsOpen { get; private set; }
 
@@ -126,6 +126,7 @@ namespace ForTheCompany.Systems
                 case Page.Main:     DrawMainPage(); break;
                 case Page.Help:     DrawHelpPage(); break;
                 case Page.Settings: DrawSettingsPage(); break;
+                case Page.License:  DrawLicensePage(); break;
             }
         }
 
@@ -133,7 +134,7 @@ namespace ForTheCompany.Systems
 
         private void DrawMainPage()
         {
-            float w = 480, h = 480;
+            float w = 480, h = 560; // 라이센스 버튼 추가로 확장 (480 → 560)
             float x = (Screen.width - w) * 0.5f;
             float y = (Screen.height - h) * 0.5f;
 
@@ -183,14 +184,18 @@ namespace ForTheCompany.Systems
                 CurrentPage = Page.Help;
 
             if (UITheme.GhostButton(new Rect(btnX, btnY + (btnH + gap) * 2, btnW, btnH),
-                "▸ 설정"))
+                "▸ 볼륨"))
                 CurrentPage = Page.Settings;
 
             if (UITheme.GhostButton(new Rect(btnX, btnY + (btnH + gap) * 3, btnW, btnH),
+                "▸ 라이센스"))
+                CurrentPage = Page.License;
+
+            if (UITheme.GhostButton(new Rect(btnX, btnY + (btnH + gap) * 4, btnW, btnH),
                 "▸ 메인 메뉴로 돌아가기"))
                 ReturnToMainMenu();
 
-            if (UITheme.NeonButton(new Rect(btnX, btnY + (btnH + gap) * 4, btnW, btnH),
+            if (UITheme.NeonButton(new Rect(btnX, btnY + (btnH + gap) * 5, btnW, btnH),
                 "▣ 게임 종료", UITheme.Danger))
                 QuitGame();
         }
@@ -298,7 +303,7 @@ namespace ForTheCompany.Systems
                 normal = { textColor = UITheme.NeonViolet }
             };
             GUI.Label(new Rect(x + 44, headerY, w - 80, 22),
-                "▸ 설정 // CONFIGURATION", tagSt);
+                "▸ 볼륨 // VOLUME", tagSt);
 
             var titleSt = new GUIStyle(GUI.skin.label)
             {
@@ -306,7 +311,7 @@ namespace ForTheCompany.Systems
                 normal = { textColor = Color.white }
             };
             GUI.Label(new Rect(x + 44, headerY + 18, w - 80, 32),
-                "설정", titleSt);
+                "볼륨", titleSt);
 
             UITheme.DrawRect(new Rect(x + 24, headerY + 60, w - 48, 1), UITheme.Line);
 
@@ -370,18 +375,99 @@ namespace ForTheCompany.Systems
                 AudioListener.volume = 1f;
             }
 
-            // 안내 텍스트 (아래)
-            var noteSt = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 11, wordWrap = true,
-                normal = { textColor = UITheme.InkDim }
-            };
-            GUI.Label(new Rect(x + 32, btnY + 56, w - 64, 60),
-                "// 추후 효과음 / 음악 / UI 사운드 별도 조절 추가 예정.\n// 현재는 마스터 볼륨만 작동합니다.", noteSt);
-
             // 닫기 버튼
             if (UITheme.NeonButton(new Rect(x + (w - 240) * 0.5f, y + h - 70, 240, 46),
                 "◂ 메뉴로 돌아가기", UITheme.NeonViolet))
+                CurrentPage = Page.Main;
+        }
+
+        // ═══════════════════ LICENSE PAGE ═══════════════════
+
+        private void DrawLicensePage()
+        {
+            float w = 700, h = 560;
+            float x = (Screen.width - w) * 0.5f;
+            float y = (Screen.height - h) * 0.5f;
+
+            var rect = new Rect(x, y, w, h);
+            UITheme.DrawRect(rect, UITheme.Bg1);
+            UITheme.DrawBorder(rect, UITheme.NeonYellow, 1f);
+
+            UITheme.DrawWinBar(new Rect(x, y, w, 32), "licenses.dossier");
+
+            float headerY = y + 50;
+            UITheme.DrawPulseDot(new Vector2(x + 28, headerY + 14), UITheme.NeonYellow, 4f);
+
+            var tagSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 11, fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleLeft,
+                normal = { textColor = UITheme.NeonYellow }
+            };
+            GUI.Label(new Rect(x + 44, headerY, w - 80, 22),
+                "▸ 라이센스 // THIRD-PARTY ASSETS", tagSt);
+
+            var titleSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 26, fontStyle = FontStyle.Bold,
+                normal = { textColor = Color.white }
+            };
+            GUI.Label(new Rect(x + 44, headerY + 18, w - 80, 32),
+                "사용한 에셋 및 라이센스", titleSt);
+
+            UITheme.DrawRect(new Rect(x + 24, headerY + 60, w - 48, 1), UITheme.Line);
+
+            // 에셋 목록 (이름 — 라이센스)
+            var nameSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 14, fontStyle = FontStyle.Bold,
+                normal = { textColor = Color.white }
+            };
+            var licSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 12,
+                alignment = TextAnchor.MiddleRight,
+                padding = new RectOffset(0, 8, 0, 0),
+                normal = { textColor = UITheme.NeonCyan }
+            };
+
+            var entries = new (string name, string lic)[]
+            {
+                ("Kenney Blocky Characters (캐릭터 모델)", "CC0 — kenney.nl"),
+                ("ScifiOfficeLite by Terresquall (가구·벽·바닥)", "무료 라이센스"),
+                ("Synty POLYGON 시리즈 (환경 에셋)", "Synty Store EULA"),
+                ("BGM 3트랙 (메뉴·게임플레이·엔딩)", "Pixabay Content License"),
+                ("UnityWebBrowser by Voltstro-Studios", "MIT License"),
+                ("CEF (Chromium Embedded Framework)", "BSD 3-Clause"),
+                ("Unity 6 + Universal Render Pipeline", "Unity 엔진"),
+            };
+
+            float rowY = headerY + 80;
+            float rowH = 40;
+            for (int i = 0; i < entries.Length; i++)
+            {
+                var rowRect = new Rect(x + 32, rowY + rowH * i, w - 64, rowH - 6);
+                UITheme.DrawRect(rowRect, UITheme.Bg2);
+                UITheme.DrawRect(new Rect(rowRect.x, rowRect.y, 3f, rowRect.height), UITheme.NeonYellow);
+                GUI.Label(new Rect(rowRect.x + 14, rowRect.y, rowRect.width * 0.62f, rowRect.height),
+                    entries[i].name, nameSt);
+                GUI.Label(new Rect(rowRect.x + rowRect.width * 0.55f, rowRect.y,
+                    rowRect.width * 0.45f - 8, rowRect.height), entries[i].lic, licSt);
+            }
+
+            // 하단 안내
+            var footSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 11, wordWrap = true,
+                alignment = TextAnchor.MiddleCenter,
+                normal = { textColor = UITheme.InkDim }
+            };
+            GUI.Label(new Rect(x + 32, rowY + rowH * entries.Length + 6, w - 64, 34),
+                "본 게임은 개인 학습용 프로젝트이며, 각 에셋은 해당 라이센스 조건을 따릅니다.", footSt);
+
+            // 닫기 버튼
+            if (UITheme.NeonButton(new Rect(x + (w - 240) * 0.5f, y + h - 70, 240, 46),
+                "◂ 메뉴로 돌아가기", UITheme.NeonYellow))
                 CurrentPage = Page.Main;
         }
 

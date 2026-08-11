@@ -26,6 +26,9 @@ namespace ForTheCompany.Player
         public string quizQuestion;
         public string[] quizOptions;
         public int correctIndex;
+        // 정답 후 표시되는 해설 / 오답 시 [힌트 보기]로 공개되는 힌트
+        public string quizExplanation = "";
+        public string quizHint = "";
 
         [Header("Reward")]
         public string successClue;

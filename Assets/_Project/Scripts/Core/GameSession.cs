@@ -52,6 +52,17 @@ namespace ForTheCompany.Core
 
         public List<ClueEntry> CollectedClues { get; } = new List<ClueEntry>();
 
+        // ── 보안 교육 퀴즈 통계 (결과창 표시용) ──
+        [System.Serializable]
+        public class WrongQuizEntry
+        {
+            public string question;
+            public string explanation;
+        }
+        public int quizFirstTryCorrect;   // 첫 시도에 맞춘 문제 수
+        public int quizWrongCount;        // 한 번이라도 틀린 문제 수
+        public List<WrongQuizEntry> WrongQuizzes { get; } = new List<WrongQuizEntry>();
+
         [Header("Cardkey")]
         public bool hasFacilityCardkey; // 단계 4(NetworkAdmin) 완료 시 발급 — 전력실 잠금 해제
 
@@ -115,6 +126,9 @@ namespace ForTheCompany.Core
             OutcomeMessage = "";
             LastEncounterRewardClues = 0;
             CollectedClues.Clear();
+            quizFirstTryCorrect = 0;
+            quizWrongCount = 0;
+            WrongQuizzes.Clear();
             hasFacilityCardkey = false;
             hasShownIntroMonologue = false; // 새 런마다 속마음 인트로 다시 보임
             TimeRemaining = totalTime;

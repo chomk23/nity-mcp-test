@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using ForTheCompany.Core;
 using ForTheCompany.Player;
@@ -30,6 +31,10 @@ namespace ForTheCompany.Systems
 
         private float fadeAlpha = 0f;
         private bool monologueEnded = false;
+
+        // 인트로 대화 종료 후 표시되는 조작키 안내 창 (닫을 때까지 입력 차단 유지)
+        private bool showControlsPopup = false;
+        private float popupOpenTime;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Bootstrap()
@@ -129,6 +134,11 @@ namespace ForTheCompany.Systems
             // ── 5) 대화 종료 대기 ──
             while (!monologueEnded) yield return null;
 
+            // ── 6) 조작키 안내 창 — 닫을 때까지 입력 차단 유지 ──
+            showControlsPopup = true;
+            popupOpenTime = Time.time;
+            while (showControlsPopup) yield return null;
+
             // 컷씬 종료 — 인풋 정상화
             IsCutsceneActive = false;
             rtpc.enabled = true;
@@ -163,13 +173,133 @@ namespace ForTheCompany.Systems
             fadeAlpha = 0f;
         }
 
+        private void Update()
+        {
+            // 조작키 안내 창 — Space/Enter/ESC로도 닫기 (열린 직후 0.3초는 무시)
+            if (!showControlsPopup) return;
+            if (Time.time - popupOpenTime < 0.3f) return;
+            var kb = Keyboard.current;
+            if (kb != null && (kb.spaceKey.wasPressedThisFrame
+                || kb.enterKey.wasPressedThisFrame
+                || kb.escapeKey.wasPressedThisFrame))
+            {
+                SfxManager.PlayClick();
+                showControlsPopup = false;
+            }
+        }
+
         // 가장 위에 그려지도록 GUI.depth 매우 음수
         private void OnGUI()
         {
-            if (fadeAlpha < 0.01f) return;
-            GUI.depth = -10000;
-            var c = new Color(0f, 0f, 0f, fadeAlpha);
-            UITheme.DrawRect(new Rect(0, 0, Screen.width, Screen.height), c);
+            if (fadeAlpha >= 0.01f)
+            {
+                GUI.depth = -10000;
+                var c = new Color(0f, 0f, 0f, fadeAlpha);
+                UITheme.DrawRect(new Rect(0, 0, Screen.width, Screen.height), c);
+            }
+
+            if (showControlsPopup)
+            {
+                GUI.depth = -9000;
+                DrawControlsPopup();
+            }
+        }
+
+        /// <summary>인트로 직후 조작키 안내 창 — 흰색 라이트 테마 (보안 교육 모달과 통일)</summary>
+        private void DrawControlsPopup()
+        {
+            // 어둠 오버레이
+            UITheme.DrawRect(new Rect(0, 0, Screen.width, Screen.height),
+                new Color(0f, 0f, 0f, 0.75f));
+
+            Color panelBg  = new Color(0.97f, 0.98f, 0.99f);
+            Color inkBlack = new Color(0.08f, 0.09f, 0.11f);
+            Color inkSub   = new Color(0.32f, 0.35f, 0.40f);
+            Color violet   = new Color(0.46f, 0.30f, 0.78f);
+            Color line     = new Color(0f, 0f, 0f, 0.12f);
+            Color keyBg    = new Color(0.90f, 0.92f, 0.96f);
+
+            float w = Mathf.Min(640, Screen.width - 60);
+            float h = Mathf.Min(600, Screen.height - 60);
+            float x = (Screen.width - w) * 0.5f;
+            float y = (Screen.height - h) * 0.5f;
+
+            UITheme.DrawRect(new Rect(x, y, w, h), panelBg);
+            UITheme.DrawBorder(new Rect(x, y, w, h), violet, 2f);
+
+            // 헤더
+            var tagSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 12, fontStyle = FontStyle.Bold,
+                normal = { textColor = violet }
+            };
+            GUI.Label(new Rect(x + 30, y + 22, w - 60, 18), "▸ HOW TO PLAY // CONTROLS", tagSt);
+
+            var titleSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 28, fontStyle = FontStyle.Bold,
+                normal = { textColor = inkBlack }
+            };
+            GUI.Label(new Rect(x + 30, y + 42, w - 60, 38), "조작 방법", titleSt);
+
+            UITheme.DrawRect(new Rect(x + 26, y + 88, w - 52, 1), line);
+
+            // 키 안내 행들
+            var rows = new (string key, string desc)[]
+            {
+                ("W A S D",   "이동"),
+                ("Shift",     "달리기"),
+                ("마우스 휠", "카메라 줌인 / 줌아웃"),
+                ("Space",     "대화 · 조사 · 상호작용"),
+                ("1 ~ 3",     "대화 선택지 고르기"),
+                ("I",         "수사 보드 (단서 확인)"),
+                ("ESC",       "일시정지 메뉴"),
+            };
+
+            var keySt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 16, fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleCenter,
+                normal = { textColor = violet }
+            };
+            var descSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 17,
+                alignment = TextAnchor.MiddleLeft,
+                normal = { textColor = inkBlack }
+            };
+
+            float rowY = y + 104;
+            float rowH = 50;
+            for (int i = 0; i < rows.Length; i++)
+            {
+                float ry = rowY + rowH * i;
+                // 키 뱃지
+                var keyRect = new Rect(x + 40, ry + 6, 150, rowH - 14);
+                UITheme.DrawRect(keyRect, keyBg);
+                UITheme.DrawBorder(keyRect, line, 1.5f);
+                GUI.Label(keyRect, rows[i].key, keySt);
+                // 설명
+                GUI.Label(new Rect(x + 210, ry, w - 250, rowH), rows[i].desc, descSt);
+            }
+
+            // 시작 버튼
+            var br = new Rect(x + (w - 280) * 0.5f, y + h - 76, 280, 54);
+            bool hover = br.Contains(UITheme.GetMousePos());
+            UITheme.DrawRect(br, hover ? new Color(0.85f, 0.80f, 0.98f) : Color.white);
+            UITheme.DrawBorder(br, violet, hover ? 3f : 2f);
+            var bSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 19, fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleCenter,
+                normal = { textColor = violet }
+            };
+            GUI.Label(br, "▸ 수사 시작  [Space]", bSt);
+            if (GUI.Button(br, GUIContent.none, GUIStyle.none))
+            {
+                SfxManager.PlayClick();
+                showControlsPopup = false;
+            }
         }
     }
 }

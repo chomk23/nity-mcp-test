@@ -17,6 +17,8 @@ namespace ForTheCompany.Systems
             public string[] options;
             public int correctIndex;
             public string successClue;
+            public string explanation = ""; // 정답 후 표시되는 해설
+            public string hint = "";        // 오답 시 [힌트 보기]로 공개
             public int clueReward = 2;
         }
 
@@ -40,6 +42,8 @@ namespace ForTheCompany.Systems
                     },
                     correctIndex = 1,
                     successClue = "USB에 새벽 2시 연구실 서버 백업 데이터가 들어있다. 누군가 빼돌리려 했다.",
+                    explanation = "출처 불명 USB는 악성코드 감염의 대표 통로입니다. 직접 연결하는 순간 자동 실행될 수 있으므로, 손대지 않고 보안팀에 신고·전달하는 것이 원칙입니다.",
+                    hint = "직접 확인하는 순간 악성코드가 실행될 수 있습니다. 확인은 누가 해야 할까요?",
                     clueReward = 2
                 },
                 new QuizVariant {
@@ -53,6 +57,8 @@ namespace ForTheCompany.Systems
                     },
                     correctIndex = 1,
                     successClue = "협력사 USB에 평소와 다른 .exe 파일 다수. 사회공학 공격 시도로 추정.",
+                    explanation = "개인정보가 든 보조저장매체는 암호화 저장이 기본이고, 잠금장치가 있는 안전한 장소에 보관하며 반·출입을 통제해야 합니다(개인정보 안전성 확보조치 기준).",
+                    hint = "'어디에 두느냐'와 '어떻게 저장하느냐' 두 가지 모두 조치가 필요합니다.",
                     clueReward = 2
                 },
                 new QuizVariant {
@@ -66,6 +72,8 @@ namespace ForTheCompany.Systems
                     },
                     correctIndex = 1,
                     successClue = "개인 USB 무단 반출 시도 흔적. 자료 외부 유출 가능성 시사.",
+                    explanation = "업무상 본인이 만들었어도 개인정보의 관리 책임은 회사에 있어 무단 반출은 유출 행위입니다. '퇴사 시 USB로 개인정보 다운로드'는 실제 고의유출 사고의 대표 원인입니다.",
+                    hint = "'내가 만든 자료'라는 사실과 '가져갈 권한'은 별개입니다.",
                     clueReward = 2
                 },
                 new QuizVariant {
@@ -79,6 +87,8 @@ namespace ForTheCompany.Systems
                     },
                     correctIndex = 1,
                     successClue = "출장 직원 노트북에서 VPN 우회 흔적. 외부 망에서 사내 접근 시도.",
+                    explanation = "공공 와이파이는 통신 가로채기 위험이 있어, 외부에서 개인정보처리시스템에 접속할 땐 VPN(가상사설망) 같은 안전한 접속수단과 인증수단을 적용해야 합니다. https나 테더링만으로는 충분하지 않습니다.",
+                    hint = "망 자체를 믿는 게 아니라, 암호화된 전용 통로를 만들어야 합니다.",
                     clueReward = 2
                 },
                 new QuizVariant {
@@ -92,6 +102,8 @@ namespace ForTheCompany.Systems
                     },
                     correctIndex = 1,
                     successClue = "탕비실 쓰레기통에서 미파쇄 기밀 출력물 발견. 정보 유출 위험.",
+                    explanation = "개인정보 인쇄물은 파쇄·소각처럼 복원이 불가능한 방법으로 파기해야 합니다(개인정보 보호법 파기 규정). 손으로 찢거나 접어 버리는 건 복원될 수 있어 파기가 아닙니다.",
+                    hint = "복원할 수 있는 방법은 '파기'가 아닙니다.",
                     clueReward = 2
                 },
                 new QuizVariant {
@@ -105,6 +117,8 @@ namespace ForTheCompany.Systems
                     },
                     correctIndex = 1,
                     successClue = "점심시간 직원 부재 중 PC 미잠금 다수. 내부 자료 무단 열람 정황.",
+                    explanation = "자리를 비울 땐 화면 잠금 등으로 시스템 접속 자체를 차단해야 합니다. 화면보호기는 접속 차단이 아니어서 안전조치로 인정되지 않습니다(안전성 확보조치 기준 제6조).",
+                    hint = "화면이 '안 보이는 것'과 접속이 '차단된 것'은 다릅니다.",
                     clueReward = 2
                 },
                 new QuizVariant {
@@ -118,6 +132,8 @@ namespace ForTheCompany.Systems
                     },
                     correctIndex = 1,
                     successClue = "직원 개인 드롭박스에 회사 기밀 PDF 다수. 정책 위반 + 외부 유출.",
+                    explanation = "개인 클라우드는 공유설정 실수 한 번으로 검색엔진 노출·대량 유출로 이어진 사고가 많습니다. 회사 자료는 접근이 통제되는 승인된 사내 시스템에만 저장해야 합니다.",
+                    hint = "저장소의 기준은 '편리함'이 아니라 '회사가 통제할 수 있는가'입니다.",
                     clueReward = 2
                 }
             };
@@ -136,6 +152,8 @@ namespace ForTheCompany.Systems
                     },
                     correctIndex = 2,
                     successClue = "비밀번호 평문 저장 + 비정상 관리자 접근. 내부자 소행 가능성.",
+                    explanation = "접속기록은 침해사고 분석의 핵심 증거입니다. 위·변조 없이 보존한 채 보안팀에 즉시 보고해야 하며, 삭제·방치·개인적 확인은 증거를 훼손하거나 대응을 늦춥니다(제8조 접속기록 보관·점검).",
+                    hint = "로그는 '증거'입니다. 증거를 다루듯 행동하세요.",
                     clueReward = 2
                 },
                 new QuizVariant {
@@ -149,6 +167,8 @@ namespace ForTheCompany.Systems
                     },
                     correctIndex = 1,
                     successClue = "어제 23:47, 미식별 외부 IP로 1.2GB 전송. 발신 단말은 사내 네트워크 단말.",
+                    explanation = "업무시간 외 대량 다운로드·외부 전송은 접속기록 점검에서 정의하는 대표적 비정상 행위입니다. 즉시 차단하고 접속기록을 분석해 사유를 확인·조치해야 합니다.",
+                    hint = "새벽 + 외부 IP + 대용량 — 세 가지가 겹치면 정상 업무일 확률은 낮습니다.",
                     clueReward = 2
                 },
                 new QuizVariant {
@@ -162,6 +182,8 @@ namespace ForTheCompany.Systems
                     },
                     correctIndex = 1,
                     successClue = "임원 사칭 피싱 메일 다수. 발신 도메인이 미세하게 다름(o → 0).",
+                    explanation = "임원 사칭 메일(스피어피싱)은 발신 도메인 철자가 미세하게 다른 경우가 많습니다(예: o→0). 첨부를 열지 말고 발신 주소를 확인한 뒤 보안팀에 신고하는 것이 정답입니다. 전달하면 피해가 확산됩니다.",
+                    hint = "'긴급'과 '송금'이 한 메일에 같이 오면 일단 의심하세요. 발신 주소를 한 글자씩 보세요.",
                     clueReward = 2
                 },
                 new QuizVariant {
@@ -175,6 +197,8 @@ namespace ForTheCompany.Systems
                     },
                     correctIndex = 1,
                     successClue = "직원 다수가 사내·사외 공통 비밀번호 사용. 외부 유출이 사내 침입으로 직결됨.",
+                    explanation = "크리덴셜 스터핑은 다른 곳에서 유출된 ID·비밀번호를 무작위 대입해 로그인하는 실제 공격 수법입니다(개인정보위 의결 사례). 아무리 길고 복잡해도 재사용하면 이 공격에 그대로 노출됩니다.",
+                    hint = "공격자는 유출된 비밀번호를 '다른 사이트'에서 시험합니다.",
                     clueReward = 2
                 },
                 new QuizVariant {
@@ -188,6 +212,8 @@ namespace ForTheCompany.Systems
                     },
                     correctIndex = 1,
                     successClue = "주요 계정 다수 2FA 미설정. 비밀번호 유출 시 즉시 내부망 침입 가능 상태.",
+                    explanation = "외부에서 개인정보처리시스템에 접속할 땐 OTP·인증서 등 안전한 인증수단(2차 인증)을 추가 적용해야 합니다. 실제로 클라우드 2차 인증 미적용으로 유출돼 제재받은 기업 사례가 있습니다.",
+                    hint = "비밀번호 하나가 뚫려도 막아 줄 '두 번째 잠금장치'가 필요합니다.",
                     clueReward = 2
                 },
                 new QuizVariant {
@@ -201,6 +227,8 @@ namespace ForTheCompany.Systems
                     },
                     correctIndex = 1,
                     successClue = "직원 계정에 해외 IP 로그인 시도 다수. 자격증명 유출 정황.",
+                    explanation = "일정 횟수 이상 인증에 실패하면 계정 잠금 등 접근을 제한하는 기술적 조치가 필요합니다(안전성 확보조치 기준 제5조). 무제한 시도를 허용하면 무차별 대입 공격을 방치하는 것입니다.",
+                    hint = "시도 '횟수'에 한도를 두는 것이 표준 통제입니다.",
                     clueReward = 2
                 },
                 new QuizVariant {
@@ -214,6 +242,8 @@ namespace ForTheCompany.Systems
                     },
                     correctIndex = 1,
                     successClue = "재택 직원 일부 VPN 미경유 직접 접속 이력. 외부 가로채기 위험.",
+                    explanation = "비밀번호는 복호화되지 않도록 SHA-256 같은 일방향 해시로 암호화 저장해야 합니다(제7조 암호화). '나중에 복호화'가 가능한 저장은 비밀번호에는 오히려 위반이며, 평문 하드코딩으로 유출된 실제 사례가 있습니다.",
+                    hint = "비밀번호는 '되돌릴 수 없어야' 안전합니다.",
                     clueReward = 2
                 }
             };
@@ -232,6 +262,8 @@ namespace ForTheCompany.Systems
                     },
                     correctIndex = 1,
                     successClue = "복제 카드키가 새벽 1~3시 보안 구역 출입에 사용됐다.",
+                    explanation = "인사이동·퇴직이 발생하면 지체 없이 접근권한을 변경·말소하고 내역을 기록·보관해야 합니다(제5조 접근권한 관리). 방치된 계정·카드는 내부 유출과 무단 접근의 통로가 됩니다.",
+                    hint = "'나중에 정리하지'가 사고의 시작입니다. 기준 시점은 '인사이동 발생 즉시'입니다.",
                     clueReward = 2
                 },
                 new QuizVariant {
@@ -245,6 +277,8 @@ namespace ForTheCompany.Systems
                     },
                     correctIndex = 1,
                     successClue = "CCTV 점검 사유로 30분간 꺼졌으나 점검 일정 없음. 의도적 비활성 정황.",
+                    explanation = "접근권한은 업무 수행에 필요한 최소한의 범위로 차등 부여해야 합니다. 상담원 35명 전원에게 다운로드 권한을 줬다가 해커가 그중 한 계정을 도용해 99만 명 정보가 유출된 실제 사례가 있습니다.",
+                    hint = "'모두에게 편하게'는 공격자에게도 편합니다.",
                     clueReward = 2
                 },
                 new QuizVariant {
@@ -258,6 +292,8 @@ namespace ForTheCompany.Systems
                     },
                     correctIndex = 1,
                     successClue = "사회공학 무단 진입 시도 흔적. CCTV에 미사원 진입 다수 기록됨.",
+                    explanation = "출입증 없이 뒤따라 들어오는 '테일게이팅'은 대표적인 사회공학 침입 수법입니다. 보안 구역은 출입통제 절차가 원칙이므로 정중히 막고 안내 데스크로 안내한 뒤 보안팀에 알려야 합니다(제10조 물리적 안전조치).",
+                    hint = "친절과 출입 통제는 별개입니다. '나중에 확인'은 이미 늦습니다.",
                     clueReward = 2
                 },
                 new QuizVariant {
@@ -271,6 +307,8 @@ namespace ForTheCompany.Systems
                     },
                     correctIndex = 1,
                     successClue = "직원 카드 분실 신고 지연 다수. 분실 카드가 외부 침입에 악용된 흔적.",
+                    explanation = "유출을 인지하면 정보주체에게 지체 없이 통지하고, 1천 명 이상 유출·해킹 등 요건에 해당하면 72시간 이내 보호위원회·KISA에 신고해야 합니다. 기준은 '조사가 끝난 때'가 아니라 '알게 된 때'입니다.",
+                    hint = "통지·신고의 시계는 '유출을 알게 된 순간'부터 돌아갑니다.",
                     clueReward = 2
                 },
                 new QuizVariant {
@@ -284,6 +322,8 @@ namespace ForTheCompany.Systems
                     },
                     correctIndex = 1,
                     successClue = "위장 USB 충전기 + 키로거가 든 익명 택배. 명백한 사회공학 공격 시도.",
+                    explanation = "위탁 범위 내에서 수탁자가 낸 개인정보 사고의 책임은 위탁자에게 있습니다(개인정보위 의결 사례 — 수탁사 실수 게시에 위탁사 과태료). 그래서 수탁자 교육·관리·감독이 법적 의무입니다.",
+                    hint = "일을 맡겨도 '책임'까지 맡겨지는 것은 아닙니다.",
                     clueReward = 2
                 },
                 new QuizVariant {
@@ -297,6 +337,8 @@ namespace ForTheCompany.Systems
                     },
                     correctIndex = 1,
                     successClue = "회의실 미감시 자료에 외부인 접근 흔적. 사진 촬영 또는 USB 복사 가능성.",
+                    explanation = "숨긴 시트·행·열, 배경색과 같은 글자색, 메모는 받는 사람이 몇 번의 클릭으로 되살릴 수 있습니다. 실제 개인정보 노출 사고의 단골 원인이라, 외부 공유 전 반드시 확인해 삭제·마스킹해야 합니다.",
+                    hint = "'숨긴 것'은 '지워진 것'이 아닙니다.",
                     clueReward = 2
                 }
             };
@@ -364,6 +406,8 @@ namespace ForTheCompany.Systems
             data.quizOptions = shuffled;
             data.correctIndex = newCorrect;
             data.successClue = q.successClue;
+            data.quizExplanation = q.explanation ?? "";
+            data.quizHint = q.hint ?? "";
             data.clueReward = q.clueReward;
         }
 

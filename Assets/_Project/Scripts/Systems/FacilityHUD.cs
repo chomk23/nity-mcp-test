@@ -29,7 +29,7 @@ namespace ForTheCompany.Systems
         // (FacilityHUD/PauseMenu 실행 순서와 무관하게 ESC 1회=닫기만 되도록)
         public static int InventoryClosedFrame { get; private set; } = -1;
         private Vector2 inventoryScroll;
-        private Vector2 accusationClueScroll; // 지목 모달 좌측 단서 목록 스크롤
+        private Vector2 endWrongScroll; // 결과창 오답 노트 스크롤
 
         // ───── 인벤토리/모달 라이트(흰색) 테마 색 팔레트 ─────
         // 보안 교육 모달과 동일한 톤 — 흰 패널 + 검은 글자, 의미 색은 흰 배경 대비 진하게.
@@ -1226,7 +1226,7 @@ namespace ForTheCompany.Systems
             int n = data.quizOptions != null ? data.quizOptions.Length : 0;
             float btnH = 62;
             float gap = 12;
-            float feedbackBand = 56f;                       // 하단 오답 피드백 영역
+            float feedbackBand = 100f;                      // 하단 오답 피드백 + 힌트 버튼 영역
             float optionsBlockH = n * btnH + (n - 1) * gap; // 선택지 전체 높이
             // 선택지가 시작할 수 있는 최대 y (이보다 질문이 길면 질문을 잘라 표시)
             float maxStartY = y + h - feedbackBand - optionsBlockH;
@@ -1235,53 +1235,151 @@ namespace ForTheCompany.Systems
             float qH = Mathf.Min(rawQH, maxQH);
             GUI.Label(new Rect(x + 32, qY, w - 64, qH), data.quizQuestion, qSt);
 
-            // ── 선택지 버튼들 (크게) — 질문 아래, 단 모달 안에 들어오도록 ──
+            // ── 선택지 시작 위치 (질문 아래, 단 모달 안에 들어오도록) ──
             float startY = Mathf.Min(Mathf.Max(qY + qH + 20, y + 230), maxStartY);
 
-            for (int i = 0; i < n; i++)
+            if (ctrl.ShowingExplanation)
             {
-                var r = new Rect(x + 32, startY + (btnH + gap) * i, w - 64, btnH);
-                bool hover = r.Contains(UITheme.GetMousePos());
+                // ══════ 정답 해설 패널 — 선택지 대신 표시, [다음] 버튼으로만 진행 ══════
+                float exBottom = y + h - 88;
+                var exRect = new Rect(x + 32, startY, w - 64, exBottom - startY);
+                UITheme.DrawRect(exRect, new Color(0.90f, 0.97f, 0.92f)); // 연초록 배경
+                UITheme.DrawBorder(exRect, greenDark, 2f);
+                UITheme.DrawRect(new Rect(exRect.x, exRect.y, 4f, exRect.height), greenDark);
 
-                UITheme.DrawRect(r, hover ? optHoverBg : optBg);
-                UITheme.DrawBorder(r, hover ? accentViolet : lineLight, hover ? 2.5f : 1.5f);
-
-                // 번호 뱃지 (hover 시 연보라 배경 대비 위해 더 진한 보라)
-                var numSt = new GUIStyle(GUI.skin.label)
+                var exTagSt = new GUIStyle(GUI.skin.label)
                 {
-                    fontSize = 18, fontStyle = FontStyle.Bold,
-                    alignment = TextAnchor.MiddleCenter,
-                    normal = { textColor = hover ? accentVioletDark : accentViolet }
+                    fontSize = 15, fontStyle = FontStyle.Bold,
+                    normal = { textColor = greenDark }
                 };
-                GUI.Label(new Rect(r.x + 14, r.y, 40, r.height), $"0{i + 1}", numSt);
+                GUI.Label(new Rect(exRect.x + 18, exRect.y + 10, exRect.width - 36, 22),
+                    "✓ 정답입니다!  //  해설", exTagSt);
 
-                // 선택지 본문 (검정, 큰 글씨)
-                var btnSt = new GUIStyle(GUI.skin.label)
+                var exBodySt = new GUIStyle(GUI.skin.label)
                 {
-                    fontSize = 18, fontStyle = hover ? FontStyle.Bold : FontStyle.Normal,
-                    alignment = TextAnchor.MiddleLeft, wordWrap = true,
+                    fontSize = 17, wordWrap = true,
                     normal = { textColor = inkBlack }
                 };
-                GUI.Label(new Rect(r.x + 60, r.y, r.width - 76, r.height),
-                    data.quizOptions[i], btnSt);
+                GUI.Label(new Rect(exRect.x + 18, exRect.y + 38, exRect.width - 36, exRect.height - 48),
+                    ctrl.CurrentExplanation, exBodySt);
 
-                if (GUI.Button(r, GUIContent.none, GUIStyle.none))
-                    ctrl.Answer(i);
-            }
-
-            // 오답 피드백 (흰 배경용 진한 빨강)
-            if (!string.IsNullOrEmpty(ctrl.LastResultText)
-                && !ctrl.LastWasCorrect
-                && Time.time - ctrl.LastResultTime < 3.5f)
-            {
-                var feedSt = new GUIStyle(GUI.skin.label)
+                // [다음 문제 ▸] / [교육 완료] 버튼
+                bool lastQuestion = ctrl.SessionCurrent >= ctrl.SessionTotal;
+                string nbLabel = lastQuestion ? "▸ 교육 완료" : "다음 문제 ▸";
+                var nbr = new Rect(x + (w - 260) * 0.5f, y + h - 74, 260, 54);
+                bool nHover = nbr.Contains(UITheme.GetMousePos());
+                UITheme.DrawRect(nbr, nHover ? new Color(0.74f, 0.92f, 0.80f) : new Color(0.88f, 0.96f, 0.90f));
+                UITheme.DrawBorder(nbr, greenDark, nHover ? 3f : 2f);
+                var nbSt = new GUIStyle(GUI.skin.label)
                 {
-                    fontSize = 16, fontStyle = FontStyle.Bold, wordWrap = true,
+                    fontSize = 19, fontStyle = FontStyle.Bold,
                     alignment = TextAnchor.MiddleCenter,
-                    normal = { textColor = dangerDark }
+                    normal = { textColor = greenDark }
                 };
-                GUI.Label(new Rect(x + 28, y + h - 48, w - 56, 36),
-                    "▸ " + ctrl.LastResultText, feedSt);
+                GUI.Label(nbr, nbLabel, nbSt);
+                if (GUI.Button(nbr, GUIContent.none, GUIStyle.none))
+                {
+                    SfxManager.PlayClick();
+                    ctrl.ProceedAfterExplanation();
+                }
+            }
+            else
+            {
+                // ══════ 선택지 버튼들 ══════
+                for (int i = 0; i < n; i++)
+                {
+                    var r = new Rect(x + 32, startY + (btnH + gap) * i, w - 64, btnH);
+                    bool hover = r.Contains(UITheme.GetMousePos());
+
+                    UITheme.DrawRect(r, hover ? optHoverBg : optBg);
+                    UITheme.DrawBorder(r, hover ? accentViolet : lineLight, hover ? 2.5f : 1.5f);
+
+                    // 번호 뱃지 (hover 시 연보라 배경 대비 위해 더 진한 보라)
+                    var numSt = new GUIStyle(GUI.skin.label)
+                    {
+                        fontSize = 18, fontStyle = FontStyle.Bold,
+                        alignment = TextAnchor.MiddleCenter,
+                        normal = { textColor = hover ? accentVioletDark : accentViolet }
+                    };
+                    GUI.Label(new Rect(r.x + 14, r.y, 40, r.height), $"0{i + 1}", numSt);
+
+                    // 선택지 본문 (검정, 큰 글씨)
+                    var btnSt = new GUIStyle(GUI.skin.label)
+                    {
+                        fontSize = 18, fontStyle = hover ? FontStyle.Bold : FontStyle.Normal,
+                        alignment = TextAnchor.MiddleLeft, wordWrap = true,
+                        normal = { textColor = inkBlack }
+                    };
+                    GUI.Label(new Rect(r.x + 60, r.y, r.width - 76, r.height),
+                        data.quizOptions[i], btnSt);
+
+                    if (GUI.Button(r, GUIContent.none, GUIStyle.none))
+                        ctrl.Answer(i);
+                }
+
+                // ══════ 오답 상태 — 피드백 + 힌트 ══════
+                if (ctrl.CurrentQuestionMissed)
+                {
+                    if (ctrl.HintRevealed)
+                    {
+                        // 힌트 박스 (주황 톤)
+                        var hintRect = new Rect(x + 32, y + h - 100, w - 64, 84);
+                        UITheme.DrawRect(hintRect, new Color(1f, 0.96f, 0.86f));
+                        UITheme.DrawBorder(hintRect, new Color(0.72f, 0.50f, 0.04f), 2f);
+                        UITheme.DrawRect(new Rect(hintRect.x, hintRect.y, 4f, hintRect.height),
+                            new Color(0.72f, 0.50f, 0.04f));
+
+                        var hintTagSt = new GUIStyle(GUI.skin.label)
+                        {
+                            fontSize = 13, fontStyle = FontStyle.Bold,
+                            normal = { textColor = new Color(0.62f, 0.42f, 0.02f) }
+                        };
+                        GUI.Label(new Rect(hintRect.x + 16, hintRect.y + 8, hintRect.width - 32, 18),
+                            "▸ 힌트", hintTagSt);
+
+                        var hintBodySt = new GUIStyle(GUI.skin.label)
+                        {
+                            fontSize = 15, wordWrap = true,
+                            normal = { textColor = inkBlack }
+                        };
+                        GUI.Label(new Rect(hintRect.x + 16, hintRect.y + 30, hintRect.width - 32, hintRect.height - 38),
+                            ctrl.CurrentHint, hintBodySt);
+                    }
+                    else
+                    {
+                        // 오답 피드백 문구 (3.5초) + [힌트 보기] 버튼 (오답 후 상시)
+                        if (!string.IsNullOrEmpty(ctrl.LastResultText)
+                            && !ctrl.LastWasCorrect
+                            && Time.time - ctrl.LastResultTime < 3.5f)
+                        {
+                            var feedSt = new GUIStyle(GUI.skin.label)
+                            {
+                                fontSize = 16, fontStyle = FontStyle.Bold,
+                                alignment = TextAnchor.MiddleCenter,
+                                normal = { textColor = dangerDark }
+                            };
+                            GUI.Label(new Rect(x + 28, y + h - 98, w - 56, 24),
+                                "▸ " + ctrl.LastResultText, feedSt);
+                        }
+
+                        var hbr = new Rect(x + (w - 200) * 0.5f, y + h - 66, 200, 46);
+                        bool hHover = hbr.Contains(UITheme.GetMousePos());
+                        UITheme.DrawRect(hbr, hHover ? new Color(1f, 0.93f, 0.76f) : new Color(1f, 0.97f, 0.88f));
+                        UITheme.DrawBorder(hbr, new Color(0.72f, 0.50f, 0.04f), hHover ? 2.5f : 1.5f);
+                        var hbSt = new GUIStyle(GUI.skin.label)
+                        {
+                            fontSize = 16, fontStyle = FontStyle.Bold,
+                            alignment = TextAnchor.MiddleCenter,
+                            normal = { textColor = new Color(0.62f, 0.42f, 0.02f) }
+                        };
+                        GUI.Label(hbr, "▸ 힌트 보기", hbSt);
+                        if (GUI.Button(hbr, GUIContent.none, GUIStyle.none))
+                        {
+                            SfxManager.PlayClick();
+                            ctrl.RevealHint();
+                        }
+                    }
+                }
             }
         }
 
@@ -1477,8 +1575,9 @@ namespace ForTheCompany.Systems
                 new Color(UITheme.Bg0.r, UITheme.Bg0.g, UITheme.Bg0.b, 0.88f));
             UITheme.DrawScanlines(new Rect(0, 0, Screen.width, Screen.height), 0.05f);
 
-            float w = Mathf.Min(900, Screen.width - 80);
-            float h = Mathf.Min(540, Screen.height - 80);
+            // 단서 전체를 스크롤 없이 다 보여주기 위해 크게 (거의 풀스크린)
+            float w = Mathf.Min(1240, Screen.width - 40);
+            float h = Mathf.Min(720, Screen.height - 40);
             float x = (Screen.width - w) * 0.5f;
             float y = (Screen.height - h) * 0.5f;
 
@@ -1524,20 +1623,21 @@ namespace ForTheCompany.Systems
             // 구분선
             UITheme.DrawRect(new Rect(x + 24, headerY + 74, w - 48, 1), UITheme.Line);
 
-            // ── 2열 레이아웃: 좌(수집 단서) / 우(용의자 지목) ──
+            // ── 2열 레이아웃: 좌(수집 단서 62%) / 우(용의자 지목 38%) ──
             float contentY = headerY + 86;
             float contentBottom = y + h - 20;
             float gapCol = 24f;
-            float colW = (w - 56 - gapCol) * 0.5f;
             float leftX = x + 28;
-            float rightX = leftX + colW + gapCol;
+            float leftW = (w - 56 - gapCol) * 0.62f;
+            float rightW = (w - 56 - gapCol) - leftW;
 
-            DrawAccusationClueList(new Rect(leftX, contentY, colW, contentBottom - contentY));
+            DrawAccusationClueList(new Rect(leftX, contentY, leftW, contentBottom - contentY));
             DrawAccusationSuspectButtons(partner,
-                new Rect(rightX, contentY, colW, contentBottom - contentY));
+                new Rect(leftX + leftW + gapCol, contentY, rightW, contentBottom - contentY));
         }
 
-        /// <summary>지목 모달 좌측 — 수집 단서 목록 (스크롤). 알리바이 모순 단서는 빨강 강조.</summary>
+        /// <summary>지목 모달 좌측 — 수집 단서 전체를 스크롤 없이 표시 (3열 동적 높이, 텍스트 잘림 없음).
+        /// 알리바이 모순 단서는 빨강 강조.</summary>
         private void DrawAccusationClueList(Rect area)
         {
             var s = GameSession.Instance;
@@ -1566,26 +1666,29 @@ namespace ForTheCompany.Systems
                 return;
             }
 
-            float rowH = 58f, rowGap = 6f, pad = 8f;
-            float contentW = listArea.width - pad * 2 - 12; // 스크롤바 여유
-            float totalH = total * (rowH + rowGap);
-
-            var viewRect = new Rect(listArea.x + pad, listArea.y + pad,
-                listArea.width - pad * 2, listArea.height - pad * 2);
-            var contentRect = new Rect(0, 0, listArea.width - pad * 2 - 12, totalH);
-
-            accusationClueScroll = GUI.BeginScrollView(viewRect, accusationClueScroll, contentRect);
+            // ── 3열 동적 높이 배치 — 전체 텍스트를 자르지 않고 모두 표시 ──
+            float pad = 10f;
+            float colGap = 8f;
+            int cols = 3;
+            float colW = (listArea.width - pad * 2 - colGap * (cols - 1)) / cols;
+            float textW = colW - 22;
 
             var titleSt = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 12, fontStyle = FontStyle.Bold, wordWrap = false,
+                fontSize = 11, fontStyle = FontStyle.Bold, wordWrap = true,
                 normal = { textColor = Color.white }
             };
-            var previewSt = new GUIStyle(GUI.skin.label)
+            var bodySt = new GUIStyle(GUI.skin.label)
             {
                 fontSize = 10, wordWrap = true,
                 normal = { textColor = UITheme.Ink }
             };
+
+            // 각 열의 현재 y (가장 짧은 열에 다음 카드 배치)
+            var colY = new float[cols];
+            for (int c = 0; c < cols; c++) colY[c] = listArea.y + pad;
+
+            GUI.BeginGroup(new Rect(listArea.x, listArea.y, listArea.width, listArea.height));
 
             for (int i = 0; i < total; i++)
             {
@@ -1593,12 +1696,25 @@ namespace ForTheCompany.Systems
                 bool broken = clue.contradictsAlibi;
                 Color accent = broken ? UITheme.Danger : GetSourceColor(clue.source);
 
-                var cardR = new Rect(0, i * (rowH + rowGap), contentW, rowH);
+                float titleH = titleSt.CalcHeight(new GUIContent(clue.title), textW);
+                float bodyH = bodySt.CalcHeight(new GUIContent(clue.text), textW);
+                float cardH = 6 + 12 + 3 + titleH + 2 + bodyH + 8;
+
+                // 가장 짧은 열 선택
+                int col = 0;
+                for (int c = 1; c < cols; c++) if (colY[c] < colY[col]) col = c;
+
+                // BeginGroup 내부 좌표 (listArea 기준 상대)
+                float cx = pad + col * (colW + colGap);
+                float cy = colY[col] - listArea.y;
+                var cardR = new Rect(cx, cy, colW, cardH);
+                colY[col] += cardH + colGap;
+
                 UITheme.DrawRect(cardR, UITheme.Bg3);
                 UITheme.DrawRect(new Rect(cardR.x, cardR.y, 3f, cardR.height), accent);
                 if (broken) UITheme.DrawBorder(cardR, UITheme.Danger, 1f);
 
-                // 태그 (동적 폭) + 출처
+                // 태그/출처 라벨
                 string tagText = broken ? "▲ ALIBI 모순"
                     : (string.IsNullOrEmpty(clue.tag) ? SourceLabel(clue.source) : clue.tag);
                 var tagChipSt = new GUIStyle(GUI.skin.label)
@@ -1606,19 +1722,16 @@ namespace ForTheCompany.Systems
                     fontSize = 9, fontStyle = FontStyle.Bold,
                     normal = { textColor = accent }
                 };
-                GUI.Label(new Rect(cardR.x + 10, cardR.y + 5, contentW - 20, 13),
-                    tagText, tagChipSt);
+                GUI.Label(new Rect(cardR.x + 11, cardR.y + 5, textW, 12), tagText, tagChipSt);
 
-                // 제목
-                GUI.Label(new Rect(cardR.x + 10, cardR.y + 18, contentW - 20, 16),
-                    TruncateText(clue.title, 28), titleSt);
+                // 제목 전체 (잘림 없음)
+                GUI.Label(new Rect(cardR.x + 11, cardR.y + 20, textW, titleH), clue.title, titleSt);
 
-                // 본문 미리보기
-                GUI.Label(new Rect(cardR.x + 10, cardR.y + 35, contentW - 20, 20),
-                    TruncateText(clue.text, 46), previewSt);
+                // 본문 전체 (잘림 없음)
+                GUI.Label(new Rect(cardR.x + 11, cardR.y + 22 + titleH, textW, bodyH), clue.text, bodySt);
             }
 
-            GUI.EndScrollView();
+            GUI.EndGroup();
         }
 
         /// <summary>지목 모달 우측 — 용의자 3버튼.</summary>
@@ -1694,14 +1807,13 @@ namespace ForTheCompany.Systems
             int em = Mathf.FloorToInt(elapsedSec / 60f);
             int es = Mathf.FloorToInt(elapsedSec % 60f);
             int total = s.totalClues;
-            int envCnt = 0, npcCnt = 0, miniCnt = 0;
+            int envCnt = 0, npcCnt = 0;
             foreach (var c in s.CollectedClues)
             {
                 switch (c.source)
                 {
                     case ClueSource.Environment: envCnt++; break;
                     case ClueSource.NPC: npcCnt++; break;
-                    case ClueSource.Minigame: miniCnt++; break;
                 }
             }
             string spyName = "?";
@@ -1720,7 +1832,7 @@ namespace ForTheCompany.Systems
             UITheme.DrawScanlines(new Rect(0, 0, Screen.width, Screen.height), 0.06f);
 
             float w = Mathf.Min(780, Screen.width - 80);
-            float h = 700;  // 모티브 박스 추가로 높이 확장 (560 → 700)
+            float h = Mathf.Min(760, Screen.height - 40);  // 오답 노트 추가로 높이 확장 (700 → 760)
             float x = (Screen.width - w) * 0.5f;
             float y = (Screen.height - h) * 0.5f;
             var rect = new Rect(x, y, w, h);
@@ -1783,8 +1895,9 @@ namespace ForTheCompany.Systems
                 npcCnt > 0 ? UITheme.NeonCyan : UITheme.InkFaint);
             DrawStatRow(statsRect, 3, "▸ 보안 교육 모듈", $"{envCnt}개",
                 envCnt > 0 ? UITheme.NeonYellow : UITheme.InkFaint);
-            DrawStatRow(statsRect, 4, "▸ 미니게임 (레이싱)", $"{miniCnt}개",
-                miniCnt > 0 ? UITheme.NeonMagenta : UITheme.InkFaint);
+            DrawStatRow(statsRect, 4, "▸ 보안 문제 (첫 시도)",
+                $"{s.quizFirstTryCorrect} 맞음 · {s.quizWrongCount} 틀림",
+                s.quizWrongCount == 0 ? UITheme.NeonGreen : UITheme.NeonYellow);
 
             // ── 진짜 스파이 공개 ──
             float msgY = statsY + statsH + 10;
@@ -1833,6 +1946,75 @@ namespace ForTheCompany.Systems
             };
             GUI.Label(new Rect(x + 40, motiveY + motiveH + 6, w - 80, 28),
                 s.OutcomeMessage, bodySt);
+
+            // ── 오답 노트 — 틀렸던 보안 문제 해설 ──
+            float reviewY = motiveY + motiveH + 38;
+            float reviewH = (y + h - 70) - reviewY;
+            var reviewRect = new Rect(x + 30, reviewY, w - 60, reviewH);
+            UITheme.DrawRect(reviewRect, UITheme.Bg2);
+            UITheme.DrawBorder(reviewRect, UITheme.Line, 1f);
+
+            var rvTagSt = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 10, fontStyle = FontStyle.Bold,
+                normal = { textColor = UITheme.NeonYellow }
+            };
+            GUI.Label(new Rect(reviewRect.x + 14, reviewRect.y + 6, reviewRect.width - 28, 14),
+                s.WrongQuizzes.Count > 0
+                    ? $"▸ 오답 노트 // 틀렸던 문제 해설 ({s.WrongQuizzes.Count})"
+                    : "▸ 오답 노트 // WRONG ANSWERS", rvTagSt);
+
+            if (s.WrongQuizzes.Count == 0)
+            {
+                var perfectSt = new GUIStyle(GUI.skin.label)
+                {
+                    fontSize = 13, fontStyle = FontStyle.Bold,
+                    alignment = TextAnchor.MiddleCenter,
+                    normal = { textColor = UITheme.NeonGreen }
+                };
+                GUI.Label(new Rect(reviewRect.x, reviewRect.y + 20, reviewRect.width, reviewRect.height - 24),
+                    "모든 보안 문제를 첫 시도에 맞혔습니다!", perfectSt);
+            }
+            else
+            {
+                var wqSt = new GUIStyle(GUI.skin.label)
+                {
+                    fontSize = 11, fontStyle = FontStyle.Bold, wordWrap = true,
+                    normal = { textColor = Color.white }
+                };
+                var weSt = new GUIStyle(GUI.skin.label)
+                {
+                    fontSize = 11, wordWrap = true,
+                    normal = { textColor = UITheme.Ink }
+                };
+
+                float pad = 12f;
+                float innerW = reviewRect.width - pad * 2 - 14; // 스크롤바 여유
+                // 전체 콘텐츠 높이 계산
+                float contentH = 0f;
+                foreach (var wq in s.WrongQuizzes)
+                {
+                    contentH += wqSt.CalcHeight(new GUIContent("Q. " + wq.question), innerW) + 2;
+                    contentH += weSt.CalcHeight(new GUIContent("→ " + wq.explanation), innerW) + 10;
+                }
+
+                var viewRect = new Rect(reviewRect.x + pad, reviewRect.y + 24,
+                    reviewRect.width - pad * 2, reviewRect.height - 30);
+                var contentRect = new Rect(0, 0, innerW, contentH);
+                endWrongScroll = GUI.BeginScrollView(viewRect, endWrongScroll, contentRect);
+
+                float wy = 0f;
+                foreach (var wq in s.WrongQuizzes)
+                {
+                    float qH = wqSt.CalcHeight(new GUIContent("Q. " + wq.question), innerW);
+                    GUI.Label(new Rect(0, wy, innerW, qH), "Q. " + wq.question, wqSt);
+                    wy += qH + 2;
+                    float eH = weSt.CalcHeight(new GUIContent("→ " + wq.explanation), innerW);
+                    GUI.Label(new Rect(0, wy, innerW, eH), "→ " + wq.explanation, weSt);
+                    wy += eH + 10;
+                }
+                GUI.EndScrollView();
+            }
 
             // ── 버튼 영역 ──
             float btnW = 230, btnH = 42, gap = 14;

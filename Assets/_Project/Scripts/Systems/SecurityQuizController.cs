@@ -18,6 +18,15 @@ namespace ForTheCompany.Systems
         public float LastResultTime { get; private set; }
         public bool LastWasCorrect { get; private set; }
 
+        // ── 해설/힌트 상태 ──
+        public bool ShowingExplanation { get; private set; }    // 정답 직후 해설 표시 중 ([다음] 버튼으로만 진행)
+        public bool HintRevealed { get; private set; }           // [힌트 보기]를 눌렀는지
+        public bool CurrentQuestionMissed { get; private set; }  // 현재 문제에서 한 번이라도 오답 냈는지
+        public string CurrentExplanation => ActiveClue != null && ActiveClue.data != null
+            ? ActiveClue.data.quizExplanation : "";
+        public string CurrentHint => ActiveClue != null && ActiveClue.data != null
+            ? ActiveClue.data.quizHint : "";
+
         // ── 연속 3문제 세션 진행 ──
         private List<QuizPool.QuizVariant> sessionQuizzes;
         private int sessionCorrectCount;
@@ -74,6 +83,11 @@ namespace ForTheCompany.Systems
             else
                 QuizPool.ApplyRandomTo(clue.data); // 풀 없으면 fallback (기존 단일 quiz)
 
+            ShowingExplanation = false;
+            HintRevealed = false;
+            CurrentQuestionMissed = false;
+            LastResultText = "";
+
             ActiveClue = clue;
             SfxManager.PlayModalOpen();
             Debug.Log($"[Quiz] {clue.data.id} 세션 시작 ({sessionQuizzes.Count}문제 출제, 풀 {QuizPool.GetPoolSize(clue.data.id)})");
@@ -89,6 +103,7 @@ namespace ForTheCompany.Systems
         public void Answer(int index)
         {
             if (ActiveClue == null || ActiveClue.data == null) return;
+            if (ShowingExplanation) return; // 해설 표시 중엔 답변 무시 — [다음] 버튼으로만 진행
             var data = ActiveClue.data;
             bool correct = index == data.correctIndex;
             LastWasCorrect = correct;
@@ -96,14 +111,28 @@ namespace ForTheCompany.Systems
 
             if (!correct)
             {
-                // 오답 — 같은 문제 재시도
+                // 오답 — 같은 문제 재시도. 첫 오답이면 통계 기록(결과창 오답 노트용)
                 LastResultText = "✗ 오답. 다시 시도하세요.";
                 SfxManager.PlayWrong();
+                if (!CurrentQuestionMissed)
+                {
+                    CurrentQuestionMissed = true;
+                    var gs = GameSession.Instance;
+                    if (gs != null)
+                    {
+                        gs.quizWrongCount++;
+                        gs.WrongQuizzes.Add(new GameSession.WrongQuizEntry
+                        {
+                            question = data.quizQuestion,
+                            explanation = data.quizExplanation
+                        });
+                    }
+                }
                 Debug.Log($"[Quiz] {data.id} #{SessionCurrent}/{SessionTotal} 오답");
                 return;
             }
 
-            // ── 정답 처리 ──
+            // ── 정답 처리 — 즉시 넘어가지 않고 해설을 먼저 보여준다 ──
             sessionCorrectCount++;
             sessionSuccessClues.Add(data.successClue);  // 통합 단서용 모음
             SfxManager.PlayCorrect();
@@ -113,55 +142,82 @@ namespace ForTheCompany.Systems
             {
                 GameSession.Instance.totalClues += data.clueReward;
                 GameSession.Instance.LastEncounterRewardClues = data.clueReward;
+                if (!CurrentQuestionMissed)
+                    GameSession.Instance.quizFirstTryCorrect++; // 첫 시도 정답 통계
             }
-            // (의심도 자동 카운터 폐기 — 범인 식별은 알리바이 모순 단서로 직접 추리한다)
 
-            Debug.Log($"[Quiz] {data.id} #{SessionCurrent}/{SessionTotal} 정답 — '{data.successClue}'");
+            LastResultText = "";
+            ShowingExplanation = true;
+            Debug.Log($"[Quiz] {data.id} #{SessionCurrent}/{SessionTotal} 정답 — 해설 표시");
+        }
 
-            // 다음 문제 또는 세션 종료
+        /// <summary>오답 후 [힌트 보기] 버튼 — 현재 문제의 힌트 공개</summary>
+        public void RevealHint()
+        {
+            if (ShowingExplanation) return;
+            HintRevealed = true;
+        }
+
+        /// <summary>해설 확인 후 [다음 문제/교육 완료] 버튼 — 진행 또는 세션 종료</summary>
+        public void ProceedAfterExplanation()
+        {
+            if (!ShowingExplanation || ActiveClue == null || ActiveClue.data == null) return;
+            var data = ActiveClue.data;
+
+            ShowingExplanation = false;
+            HintRevealed = false;
+            CurrentQuestionMissed = false;
+
             SessionIndex++;
             bool hasNext = sessionQuizzes != null && SessionIndex < sessionQuizzes.Count;
-
             if (hasNext)
             {
                 // 다음 문제로 전환 — 모달 유지, quiz 내용만 바뀜
                 QuizPool.ApplyTo(data, sessionQuizzes[SessionIndex]);
-                LastResultText = $"✓ 정답! 다음 문제로 ({SessionCurrent}/{SessionTotal})";
+                LastResultText = "";
+                SfxManager.PlayDialogue();
             }
             else
             {
-                // 세션 완료 — 통합 단서 1개로 인벤토리에 추가 + 모달 닫기
-                int totalReward = data.clueReward * sessionCorrectCount;
-                if (GameSession.Instance != null && sessionSuccessClues.Count > 0)
-                {
-                    // 이 장소의 담당 용의자(relatedRole)가 실제 스파이라면, 일반 단서 대신
-                    // 알리바이를 깨는 결정적 단서를 수집한다 (보드에서 ⚠ 모순 표시).
-                    int spyRole = NPCRoster.Instance != null && NPCRoster.Instance.Spy != null
-                        && NPCRoster.Instance.Spy.data != null
-                        ? (int)NPCRoster.Instance.Spy.data.role : -1;
-
-                    if (data.relatedRole > 0 && data.relatedRole == spyRole)
-                    {
-                        GameSession.Instance.AddClue(
-                            "▲ 결정적 단서 — 알리바이 모순",
-                            GameSession.GetContradictionClue(data.relatedRole),
-                            ClueSource.Environment, data.relatedRole, "ALIBI", true);
-                    }
-                    else
-                    {
-                        string combinedText = string.Join("\n\n", sessionSuccessClues);
-                        string clueTitle = $"[{data.roomName}] {data.objectLabel}";
-                        GameSession.Instance.AddClue(clueTitle, combinedText,
-                            ClueSource.Environment, data.relatedRole, data.tag);
-                    }
-                }
-                LastResultText = $"✓ 보안 교육 완료! {sessionCorrectCount}/{SessionTotal} 정답\n+{totalReward} 단서 획득";
-                ActiveClue.MarkResolved();
-                ActiveClue = null;
-                sessionQuizzes = null;
-                sessionSuccessClues.Clear();
-                Debug.Log($"[Quiz] {data.id} 세션 완료 ({sessionCorrectCount}/{QuestionsPerSession} 정답, +{totalReward} 단서)");
+                FinalizeSession(data);
             }
+        }
+
+        /// <summary>세션 완료 — 통합/모순 단서를 인벤토리에 추가 + 모달 닫기</summary>
+        private void FinalizeSession(ClueData data)
+        {
+            int totalReward = data.clueReward * sessionCorrectCount;
+            if (GameSession.Instance != null && sessionSuccessClues.Count > 0)
+            {
+                // 이 장소의 담당 용의자(relatedRole)가 실제 스파이라면, 일반 단서 대신
+                // 알리바이를 깨는 결정적 단서를 수집한다 (보드에서 ⚠ 모순 표시).
+                int spyRole = NPCRoster.Instance != null && NPCRoster.Instance.Spy != null
+                    && NPCRoster.Instance.Spy.data != null
+                    ? (int)NPCRoster.Instance.Spy.data.role : -1;
+
+                if (data.relatedRole > 0 && data.relatedRole == spyRole)
+                {
+                    GameSession.Instance.AddClue(
+                        "▲ 결정적 단서 — 알리바이 모순",
+                        GameSession.GetContradictionClue(data.relatedRole),
+                        ClueSource.Environment, data.relatedRole, "ALIBI", true);
+                }
+                else
+                {
+                    string combinedText = string.Join("\n\n", sessionSuccessClues);
+                    string clueTitle = $"[{data.roomName}] {data.objectLabel}";
+                    GameSession.Instance.AddClue(clueTitle, combinedText,
+                        ClueSource.Environment, data.relatedRole, data.tag);
+                }
+            }
+            LastResultText = $"✓ 보안 교육 완료! {sessionCorrectCount}/{SessionTotal} 정답\n+{totalReward} 단서 획득";
+            LastResultTime = Time.time; // 완료 토스트 타이머
+            LastWasCorrect = true;
+            ActiveClue.MarkResolved();
+            ActiveClue = null;
+            sessionQuizzes = null;
+            sessionSuccessClues.Clear();
+            Debug.Log($"[Quiz] {data.id} 세션 완료 ({sessionCorrectCount}/{QuestionsPerSession} 정답, +{totalReward} 단서)");
         }
 
         /// <summary>
