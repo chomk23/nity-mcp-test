@@ -281,16 +281,15 @@
       "url": "https://upm-pkgs.voltstro.dev"
     },
     "dev.voltstro.unitywebbrowser": {
-      "version": "2.2.8",
+      "version": "file:dev.voltstro.unitywebbrowser",
       "depth": 0,
-      "source": "registry",
+      "source": "embedded",
       "dependencies": {
         "dev.voltstro.nativearrayspanextensions": "1.0.1",
         "com.unity.nuget.newtonsoft-json": "3.2.1",
         "com.cysharp.unitask": "2.5.10",
         "org.nuget.voltrpc": "3.2.1"
-      },
-      "url": "https://upm-pkgs.voltstro.dev"
+      }
     },
     "dev.voltstro.unitywebbrowser.engine.cef": {
       "version": "2.2.8",

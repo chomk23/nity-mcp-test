@@ -1,4 +1,7 @@
 ﻿<Solution>
+  <Project Path="VoltstroStudios.UnityWebBrowser.csproj" />
   <Project Path="Assembly-CSharp-Editor.csproj" />
   <Project Path="Assembly-CSharp.csproj" />
+  <Project Path="VoltstroStudios.UnityWebBrowser.Tests.Editor.csproj" />
+  <Project Path="VoltstroStudios.UnityWebBrowser.Tests.csproj" />
 </Solution>
