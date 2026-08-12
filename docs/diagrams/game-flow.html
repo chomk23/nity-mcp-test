@@ -7,7 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600&family=Geist+Mono&display=swap" rel="stylesheet">
 <style>
   *{box-sizing:border-box}
-  body{background:#ffffff;color:#111111;margin:0;padding:24px;
+  body{background:#ffffff;color:#000000;margin:0;padding:24px;
        font-family:Geist,'Malgun Gothic',sans-serif}
 </style>
 </head>
@@ -19,12 +19,12 @@
 
   <defs>
     <marker id="m-ink" viewBox="0 0 8 6" refX="7" refY="3" markerWidth="8" markerHeight="6" orient="auto-start-reverse">
-      <polygon points="0 0, 8 3, 0 6" fill="#111111"/>
+      <polygon points="0 0, 8 3, 0 6" fill="#000000"/>
     </marker>
   </defs>
 
   <!-- ══ 세로 연결 ══ -->
-  <g stroke="#111111" stroke-width="1.2" fill="none" marker-end="url(#m-ink)">
+  <g stroke="#000000" stroke-width="1.2" fill="none" marker-end="url(#m-ink)">
     <path d="M516,80 V101"/>
     <path d="M516,168 V189"/>
     <path d="M516,256 V277"/>
@@ -34,107 +34,100 @@
     <path d="M516,608 V629"/>
   </g>
 
-  <!-- ══ 참조 연결 (점선) ══ -->
-  <g stroke="#111111" stroke-width="1.2" fill="none" stroke-dasharray="4 3" marker-end="url(#m-ink)">
-    <path d="M748,180 H744 Q736,180 736,172 V144 Q736,136 728,136 H719"/>
-    <path d="M748,260 H744 Q736,260 736,268 V304 Q736,312 728,312 H719"/>
-    <path d="M748,340 H744 Q736,340 736,348 V392 Q736,400 728,400 H719"/>
+  <!-- ══ 참조 연결 (실선) ══ -->
+  <g stroke="#000000" stroke-width="1.2" fill="none" marker-end="url(#m-ink)">
+    <path d="M748,136 H719"/>
+    <path d="M748,200 H744 Q736,200 736,208 V304 Q736,312 728,312 H719"/>
+    <path d="M748,256 H744 Q736,256 736,264 V392 Q736,400 728,400 H719"/>
     <path d="M284,488 H313"/>
   </g>
 
   <!-- ══ 중앙 8단계 (W400 · H64 · 갭24) ══ -->
   <!-- 1 -->
   <g>
-    <rect x="316" y="16" width="400" height="64" rx="6" fill="#ffffff" stroke="#111111" stroke-width="1"/>
-    <rect x="326" y="26" width="26" height="16" rx="2" fill="#ffffff" stroke="#111111" stroke-width="0.8"/>
-    <text x="339" y="38" font-family="'Geist Mono',Consolas,monospace" font-size="9" fill="#111111" text-anchor="middle">01</text>
-    <text x="516" y="45" font-size="16" font-weight="600" text-anchor="middle" fill="#111111">사건 발생 · 브리핑</text>
-    <text x="516" y="67" font-family="'Geist Mono',Consolas,monospace" font-size="12" text-anchor="middle" fill="#111111">보안 칩 설계도 유출 · 경비원의 임무 전달</text>
+    <rect x="316" y="16" width="400" height="64" rx="6" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+    <rect x="326" y="26" width="26" height="16" rx="2" fill="#ffffff" stroke="#000000" stroke-width="0.8"/>
+    <text x="339" y="38" font-family="'Geist Mono',Consolas,monospace" font-size="9" fill="#000000" text-anchor="middle">01</text>
+    <text x="516" y="45" font-size="16" font-weight="600" text-anchor="middle" fill="#000000">사건 발생 · 브리핑</text>
+    <text x="516" y="67" font-family="'Geist Mono',Consolas,monospace" font-size="12" text-anchor="middle" fill="#000000">보안 칩 설계도 유출 · 경비원의 임무 전달</text>
   </g>
   <!-- 2 -->
   <g>
-    <rect x="316" y="104" width="400" height="64" rx="6" fill="#ffffff" stroke="#111111" stroke-width="1"/>
-    <rect x="326" y="114" width="26" height="16" rx="2" fill="#ffffff" stroke="#111111" stroke-width="0.8"/>
-    <text x="339" y="126" font-family="'Geist Mono',Consolas,monospace" font-size="9" fill="#111111" text-anchor="middle">02</text>
-    <text x="516" y="133" font-size="16" font-weight="600" text-anchor="middle" fill="#111111">연구원 조사</text>
-    <text x="516" y="155" font-family="'Geist Mono',Consolas,monospace" font-size="12" text-anchor="middle" fill="#111111">대화로 단서 수집 → 보안교육 문항 출제</text>
+    <rect x="316" y="104" width="400" height="64" rx="6" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+    <rect x="326" y="114" width="26" height="16" rx="2" fill="#ffffff" stroke="#000000" stroke-width="0.8"/>
+    <text x="339" y="126" font-family="'Geist Mono',Consolas,monospace" font-size="9" fill="#000000" text-anchor="middle">02</text>
+    <text x="516" y="133" font-size="16" font-weight="600" text-anchor="middle" fill="#000000">연구원 조사</text>
+    <text x="516" y="155" font-family="'Geist Mono',Consolas,monospace" font-size="12" text-anchor="middle" fill="#000000">대화로 단서 수집 → 보안교육 문항 출제</text>
   </g>
   <!-- 3 -->
   <g>
-    <rect x="316" y="192" width="400" height="64" rx="6" fill="#ffffff" stroke="#111111" stroke-width="1"/>
-    <rect x="326" y="202" width="26" height="16" rx="2" fill="#ffffff" stroke="#111111" stroke-width="0.8"/>
-    <text x="339" y="214" font-family="'Geist Mono',Consolas,monospace" font-size="9" fill="#111111" text-anchor="middle">03</text>
-    <text x="516" y="221" font-size="16" font-weight="600" text-anchor="middle" fill="#111111">중간 보고 · 보안 레이싱</text>
-    <text x="516" y="243" font-family="'Geist Mono',Consolas,monospace" font-size="12" text-anchor="middle" fill="#111111">경비원 보고 → 휴게실 HTML5 미니게임 1등</text>
+    <rect x="316" y="192" width="400" height="64" rx="6" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+    <rect x="326" y="202" width="26" height="16" rx="2" fill="#ffffff" stroke="#000000" stroke-width="0.8"/>
+    <text x="339" y="214" font-family="'Geist Mono',Consolas,monospace" font-size="9" fill="#000000" text-anchor="middle">03</text>
+    <text x="516" y="221" font-size="16" font-weight="600" text-anchor="middle" fill="#000000">중간 보고 · 보안 레이싱</text>
+    <text x="516" y="243" font-family="'Geist Mono',Consolas,monospace" font-size="12" text-anchor="middle" fill="#000000">경비원 보고 → 휴게실 HTML5 미니게임 1등</text>
   </g>
   <!-- 4 -->
   <g>
-    <rect x="316" y="280" width="400" height="64" rx="6" fill="#ffffff" stroke="#111111" stroke-width="1"/>
-    <rect x="326" y="290" width="26" height="16" rx="2" fill="#ffffff" stroke="#111111" stroke-width="0.8"/>
-    <text x="339" y="302" font-family="'Geist Mono',Consolas,monospace" font-size="9" fill="#111111" text-anchor="middle">04</text>
-    <text x="516" y="309" font-size="16" font-weight="600" text-anchor="middle" fill="#111111">네트워크관리자 조사</text>
-    <text x="516" y="331" font-family="'Geist Mono',Consolas,monospace" font-size="12" text-anchor="middle" fill="#111111">대화로 단서 수집 → 보안교육 · 카드키 획득</text>
+    <rect x="316" y="280" width="400" height="64" rx="6" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+    <rect x="326" y="290" width="26" height="16" rx="2" fill="#ffffff" stroke="#000000" stroke-width="0.8"/>
+    <text x="339" y="302" font-family="'Geist Mono',Consolas,monospace" font-size="9" fill="#000000" text-anchor="middle">04</text>
+    <text x="516" y="309" font-size="16" font-weight="600" text-anchor="middle" fill="#000000">네트워크관리자 조사</text>
+    <text x="516" y="331" font-family="'Geist Mono',Consolas,monospace" font-size="12" text-anchor="middle" fill="#000000">대화로 단서 수집 → 보안교육 · 카드키 획득</text>
   </g>
   <!-- 5 -->
   <g>
-    <rect x="316" y="368" width="400" height="64" rx="6" fill="#ffffff" stroke="#111111" stroke-width="1"/>
-    <rect x="326" y="378" width="26" height="16" rx="2" fill="#ffffff" stroke="#111111" stroke-width="0.8"/>
-    <text x="339" y="390" font-family="'Geist Mono',Consolas,monospace" font-size="9" fill="#111111" text-anchor="middle">05</text>
-    <text x="516" y="397" font-size="16" font-weight="600" text-anchor="middle" fill="#111111">시설관리자 조사</text>
-    <text x="516" y="419" font-family="'Geist Mono',Consolas,monospace" font-size="12" text-anchor="middle" fill="#111111">대화로 단서 수집 → 보안교육 문항 출제</text>
+    <rect x="316" y="368" width="400" height="64" rx="6" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+    <rect x="326" y="378" width="26" height="16" rx="2" fill="#ffffff" stroke="#000000" stroke-width="0.8"/>
+    <text x="339" y="390" font-family="'Geist Mono',Consolas,monospace" font-size="9" fill="#000000" text-anchor="middle">05</text>
+    <text x="516" y="397" font-size="16" font-weight="600" text-anchor="middle" fill="#000000">시설관리자 조사</text>
+    <text x="516" y="419" font-family="'Geist Mono',Consolas,monospace" font-size="12" text-anchor="middle" fill="#000000">대화로 단서 수집 → 보안교육 문항 출제</text>
   </g>
   <!-- 6 -->
   <g>
-    <rect x="316" y="456" width="400" height="64" rx="6" fill="#ffffff" stroke="#111111" stroke-width="1"/>
-    <rect x="326" y="466" width="26" height="16" rx="2" fill="#ffffff" stroke="#111111" stroke-width="0.8"/>
-    <text x="339" y="478" font-family="'Geist Mono',Consolas,monospace" font-size="9" fill="#111111" text-anchor="middle">06</text>
-    <text x="516" y="485" font-size="16" font-weight="600" text-anchor="middle" fill="#111111">단서 분석</text>
-    <text x="516" y="507" font-family="'Geist Mono',Consolas,monospace" font-size="12" text-anchor="middle" fill="#111111">알리바이 ↔ 증거 대조 · 모순 단서 찾기</text>
+    <rect x="316" y="456" width="400" height="64" rx="6" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+    <rect x="326" y="466" width="26" height="16" rx="2" fill="#ffffff" stroke="#000000" stroke-width="0.8"/>
+    <text x="339" y="478" font-family="'Geist Mono',Consolas,monospace" font-size="9" fill="#000000" text-anchor="middle">06</text>
+    <text x="516" y="485" font-size="16" font-weight="600" text-anchor="middle" fill="#000000">단서 분석</text>
+    <text x="516" y="507" font-family="'Geist Mono',Consolas,monospace" font-size="12" text-anchor="middle" fill="#000000">알리바이 ↔ 증거 대조 · 모순 단서 찾기</text>
   </g>
   <!-- 7 (강조 — 굵은 테두리) -->
   <g>
-    <rect x="316" y="544" width="400" height="64" rx="6" fill="#ffffff" stroke="#111111" stroke-width="2.4"/>
-    <rect x="326" y="554" width="26" height="16" rx="2" fill="#111111"/>
+    <rect x="316" y="544" width="400" height="64" rx="6" fill="#ffffff" stroke="#000000" stroke-width="2.4"/>
+    <rect x="326" y="554" width="26" height="16" rx="2" fill="#000000"/>
     <text x="339" y="566" font-family="'Geist Mono',Consolas,monospace" font-size="9" fill="#ffffff" text-anchor="middle">07</text>
-    <text x="516" y="573" font-size="16" font-weight="600" text-anchor="middle" fill="#111111">스파이 지목</text>
-    <text x="516" y="595" font-family="'Geist Mono',Consolas,monospace" font-size="12" text-anchor="middle" fill="#111111">단 한 번의 기회 · 동료 AI로봇 한세에게 지목</text>
+    <text x="516" y="573" font-size="16" font-weight="600" text-anchor="middle" fill="#000000">산업스파이 지목</text>
+    <text x="516" y="595" font-family="'Geist Mono',Consolas,monospace" font-size="12" text-anchor="middle" fill="#000000">단서 종합 · 산업스파이 지목</text>
   </g>
   <!-- 8 -->
   <g>
-    <rect x="316" y="632" width="400" height="64" rx="6" fill="#ffffff" stroke="#111111" stroke-width="1"/>
-    <rect x="326" y="642" width="26" height="16" rx="2" fill="#ffffff" stroke="#111111" stroke-width="0.8"/>
-    <text x="339" y="654" font-family="'Geist Mono',Consolas,monospace" font-size="9" fill="#111111" text-anchor="middle">08</text>
-    <text x="516" y="661" font-size="16" font-weight="600" text-anchor="middle" fill="#111111">결과 확인</text>
-    <text x="516" y="683" font-family="'Geist Mono',Consolas,monospace" font-size="12" text-anchor="middle" fill="#111111">소요 시간 · 단서 통계 · 보안문제 정답/오답 · 오답 노트</text>
+    <rect x="316" y="632" width="400" height="64" rx="6" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+    <rect x="326" y="642" width="26" height="16" rx="2" fill="#ffffff" stroke="#000000" stroke-width="0.8"/>
+    <text x="339" y="654" font-family="'Geist Mono',Consolas,monospace" font-size="9" fill="#000000" text-anchor="middle">08</text>
+    <text x="516" y="661" font-size="16" font-weight="600" text-anchor="middle" fill="#000000">결과 확인</text>
+    <text x="516" y="683" font-family="'Geist Mono',Consolas,monospace" font-size="12" text-anchor="middle" fill="#000000">소요 시간 · 단서 통계 · 보안문제 정답/오답 · 오답 노트</text>
   </g>
 
-  <!-- ══ 우측 참조: 보안교육 문항 ══ -->
+  <!-- ══ 우측 참조: 보안교육 문항 (실선) ══ -->
   <g>
-    <rect x="748" y="104" width="272" height="296" rx="6" fill="#ffffff"
-          stroke="#111111" stroke-width="1" stroke-dasharray="4 3"/>
-    <text x="884" y="134" font-size="16" font-weight="600" text-anchor="middle" fill="#111111">보안교육 문항</text>
-    <text x="884" y="154" font-family="'Geist Mono',Consolas,monospace" font-size="10" letter-spacing=".14em" text-anchor="middle" fill="#111111">QUIZ POOL · 20</text>
-    <line x1="764" y1="166" x2="1004" y2="166" stroke="rgba(0,0,0,.25)" stroke-width="1"/>
-    <text x="768" y="192" font-family="'Geist Mono',Consolas,monospace" font-size="12" fill="#111111">외부매체 · 자료 — 7문항</text>
-    <text x="768" y="216" font-family="'Geist Mono',Consolas,monospace" font-size="12" fill="#111111">네트워크 · 인증 — 7문항</text>
-    <text x="768" y="240" font-family="'Geist Mono',Consolas,monospace" font-size="12" fill="#111111">물리 · 출입 — 6문항</text>
-    <line x1="764" y1="256" x2="1004" y2="256" stroke="rgba(0,0,0,.25)" stroke-width="1"/>
-    <text x="768" y="282" font-family="'Geist Mono',Consolas,monospace" font-size="12" fill="#111111">방마다 3문항 연속 출제</text>
-    <text x="768" y="306" font-family="'Geist Mono',Consolas,monospace" font-size="12" fill="#111111">중복 없이 무작위 · 선택지 셔플</text>
-    <text x="768" y="330" font-family="'Geist Mono',Consolas,monospace" font-size="12" fill="#111111">정답 해설 · 오답 힌트 제공</text>
-    <text x="768" y="362" font-family="'Geist Mono',Consolas,monospace" font-size="11" fill="#111111">정답 시 추리 단서 획득</text>
+    <rect x="748" y="104" width="272" height="176" rx="6" fill="#ffffff"
+          stroke="#000000" stroke-width="1"/>
+    <text x="884" y="134" font-size="16" font-weight="600" text-anchor="middle" fill="#000000">보안교육 문항</text>
+    <line x1="764" y1="148" x2="1004" y2="148" stroke="#000000" stroke-width="0.8"/>
+    <text x="768" y="174" font-family="'Geist Mono',Consolas,monospace" font-size="12" fill="#000000">외부매체 · 자료 — 7문항</text>
+    <text x="768" y="198" font-family="'Geist Mono',Consolas,monospace" font-size="12" fill="#000000">네트워크 · 인증 — 7문항</text>
+    <text x="768" y="222" font-family="'Geist Mono',Consolas,monospace" font-size="12" fill="#000000">물리 · 출입 — 6문항</text>
+    <text x="768" y="256" font-family="'Geist Mono',Consolas,monospace" font-size="12" fill="#000000">정답 해설 · 오답 힌트 제공</text>
   </g>
 
-  <!-- ══ 좌측 참조: 수사 보드 ══ -->
+  <!-- ══ 좌측 참조: 수사 보드 (실선) ══ -->
   <g>
-    <rect x="24" y="420" width="260" height="160" rx="6" fill="#ffffff"
-          stroke="#111111" stroke-width="1" stroke-dasharray="4 3"/>
-    <text x="154" y="450" font-size="16" font-weight="600" text-anchor="middle" fill="#111111">수사 보드</text>
-    <text x="154" y="470" font-family="'Geist Mono',Consolas,monospace" font-size="10" letter-spacing=".14em" text-anchor="middle" fill="#111111">INVENTORY · [I]</text>
-    <line x1="40" y1="482" x2="268" y2="482" stroke="rgba(0,0,0,.25)" stroke-width="1"/>
-    <text x="44" y="508" font-family="'Geist Mono',Consolas,monospace" font-size="12" fill="#111111">단서 유형별 색 태그 구분</text>
-    <text x="44" y="532" font-family="'Geist Mono',Consolas,monospace" font-size="12" fill="#111111">용의자 – 단서 점선 연결</text>
-    <text x="44" y="556" font-family="'Geist Mono',Consolas,monospace" font-size="12" fill="#111111">알리바이 대조 · 모순 강조</text>
+    <rect x="24" y="432" width="260" height="112" rx="6" fill="#ffffff"
+          stroke="#000000" stroke-width="1"/>
+    <text x="154" y="462" font-size="16" font-weight="600" text-anchor="middle" fill="#000000">수사 보드</text>
+    <line x1="40" y1="476" x2="268" y2="476" stroke="#000000" stroke-width="0.8"/>
+    <text x="44" y="502" font-family="'Geist Mono',Consolas,monospace" font-size="12" fill="#000000">단서 유형별 색 태그 구분</text>
+    <text x="44" y="526" font-family="'Geist Mono',Consolas,monospace" font-size="12" fill="#000000">용의자 – 단서 점선 연결</text>
   </g>
 </svg>
 </body>
