@@ -7,7 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600&family=Geist+Mono&display=swap" rel="stylesheet">
 <style>
   *{box-sizing:border-box}
-  body{background:#ffffff;color:#1c1917;margin:0;padding:24px;
+  body{background:#ffffff;color:#111111;margin:0;padding:24px;
        font-family:Geist,'Malgun Gothic',sans-serif}
 </style>
 </head>
@@ -18,81 +18,81 @@
   <desc id="ts-desc">AI 도구 Claude Code가 Unity 6 기반 독립 실행형 교육용 게임 개발을 보조하는 기술 스택 구조.</desc>
 
   <defs>
-    <marker id="m-muted" viewBox="0 0 8 6" refX="7" refY="3" markerWidth="8" markerHeight="6" orient="auto-start-reverse">
-      <polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/>
+    <marker id="m-ink" viewBox="0 0 8 6" refX="7" refY="3" markerWidth="8" markerHeight="6" orient="auto-start-reverse">
+      <polygon points="0 0, 8 3, 0 6" fill="#111111"/>
     </marker>
   </defs>
 
   <!-- ══ Zone 1: AI 도구 ══ -->
-  <rect x="32" y="16" width="696" height="108" rx="8" fill="rgba(45,49,66,.03)"
-        stroke="rgba(45,49,66,.14)" stroke-width="1"/>
+  <rect x="32" y="16" width="696" height="108" rx="8" fill="#ffffff"
+        stroke="#111111" stroke-width="1"/>
   <rect x="320" y="9" width="120" height="14" rx="2" fill="#ffffff"/>
   <text x="380" y="20" font-family="'Geist Mono',Consolas,monospace" font-size="10"
-        letter-spacing=".14em" text-anchor="middle" fill="#4f5d75">AI TOOLING</text>
+        letter-spacing=".14em" text-anchor="middle" fill="#111111">AI TOOLING</text>
 
   <g>
     <rect x="200" y="40" width="360" height="64" rx="6" fill="#ffffff"
-          stroke="rgba(28,25,23,.35)" stroke-width="1"/>
-    <text x="380" y="69" font-size="16" font-weight="600" text-anchor="middle" fill="#1c1917">Claude Code (Fable 5)</text>
-    <text x="380" y="91" font-family="'Geist Mono',Consolas,monospace" font-size="12" text-anchor="middle" fill="#4f5d75">개발 · 콘텐츠 생성 보조</text>
+          stroke="#111111" stroke-width="1"/>
+    <text x="380" y="69" font-size="16" font-weight="600" text-anchor="middle" fill="#111111">Claude Code (Fable 5)</text>
+    <text x="380" y="91" font-family="'Geist Mono',Consolas,monospace" font-size="12" text-anchor="middle" fill="#111111">개발 · 콘텐츠 생성 보조</text>
   </g>
 
   <!-- AI → 게임 클라이언트 -->
-  <path d="M380,104 V151" stroke="#4f5d75" stroke-width="1.2" fill="none" marker-end="url(#m-muted)"/>
+  <path d="M380,124 V151" stroke="#111111" stroke-width="1.2" fill="none" marker-end="url(#m-ink)"/>
 
   <!-- ══ Zone 2: 교육용 게임 ══ -->
-  <rect x="32" y="156" width="696" height="484" rx="8" fill="rgba(45,49,66,.03)"
-        stroke="rgba(45,49,66,.14)" stroke-width="1"/>
+  <rect x="32" y="156" width="696" height="484" rx="8" fill="#ffffff"
+        stroke="#111111" stroke-width="1" stroke-dasharray="6 4"/>
   <rect x="230" y="149" width="300" height="14" rx="2" fill="#ffffff"/>
   <text x="380" y="160" font-family="'Geist Mono',Consolas,monospace" font-size="10"
-        letter-spacing=".1em" text-anchor="middle" fill="#4f5d75">교육용 게임 — 독립 실행형 클라이언트</text>
+        letter-spacing=".1em" text-anchor="middle" fill="#111111">교육용 게임 — 독립 실행형 클라이언트</text>
 
   <!-- Row 1: 엔진 -->
   <g>
-    <rect x="64" y="188" width="632" height="64" rx="6" fill="#ffffff" stroke="#1c1917" stroke-width="1"/>
-    <text x="380" y="217" font-size="16" font-weight="600" text-anchor="middle" fill="#1c1917">Unity 6 · URP</text>
-    <text x="380" y="239" font-family="'Geist Mono',Consolas,monospace" font-size="12" text-anchor="middle" fill="#4f5d75">C# 기반 개발 · 6000.4.7f1</text>
+    <rect x="64" y="188" width="632" height="64" rx="6" fill="#ffffff" stroke="#111111" stroke-width="1"/>
+    <text x="380" y="217" font-size="16" font-weight="600" text-anchor="middle" fill="#111111">Unity 6 · URP</text>
+    <text x="380" y="239" font-family="'Geist Mono',Consolas,monospace" font-size="12" text-anchor="middle" fill="#111111">C# 기반 개발 · 6000.4.7f1</text>
   </g>
 
   <!-- Row 2: 입력 / 화면 -->
   <g>
-    <rect x="64" y="276" width="304" height="64" rx="6" fill="#ffffff" stroke="#1c1917" stroke-width="1"/>
-    <text x="216" y="305" font-size="16" font-weight="600" text-anchor="middle" fill="#1c1917">입력 처리</text>
-    <text x="216" y="327" font-family="'Geist Mono',Consolas,monospace" font-size="12" text-anchor="middle" fill="#4f5d75">New Input System</text>
+    <rect x="64" y="276" width="304" height="64" rx="6" fill="#ffffff" stroke="#111111" stroke-width="1"/>
+    <text x="216" y="305" font-size="16" font-weight="600" text-anchor="middle" fill="#111111">입력 처리</text>
+    <text x="216" y="327" font-family="'Geist Mono',Consolas,monospace" font-size="12" text-anchor="middle" fill="#111111">New Input System</text>
   </g>
   <g>
-    <rect x="392" y="276" width="304" height="64" rx="6" fill="#ffffff" stroke="#1c1917" stroke-width="1"/>
-    <text x="544" y="305" font-size="16" font-weight="600" text-anchor="middle" fill="#1c1917">화면 구성</text>
-    <text x="544" y="327" font-family="'Geist Mono',Consolas,monospace" font-size="12" text-anchor="middle" fill="#4f5d75">IMGUI (OnGUI)</text>
+    <rect x="392" y="276" width="304" height="64" rx="6" fill="#ffffff" stroke="#111111" stroke-width="1"/>
+    <text x="544" y="305" font-size="16" font-weight="600" text-anchor="middle" fill="#111111">화면 구성</text>
+    <text x="544" y="327" font-family="'Geist Mono',Consolas,monospace" font-size="12" text-anchor="middle" fill="#111111">IMGUI (OnGUI)</text>
   </g>
 
   <!-- Row 3: 미니게임 / 리소스 -->
   <g>
-    <rect x="64" y="364" width="304" height="64" rx="6" fill="#ffffff" stroke="#1c1917" stroke-width="1"/>
-    <text x="216" y="393" font-size="16" font-weight="600" text-anchor="middle" fill="#1c1917">미니게임</text>
-    <text x="216" y="415" font-family="'Geist Mono',Consolas,monospace" font-size="12" text-anchor="middle" fill="#4f5d75">HTML5 · UnityWebBrowser</text>
+    <rect x="64" y="364" width="304" height="64" rx="6" fill="#ffffff" stroke="#111111" stroke-width="1"/>
+    <text x="216" y="393" font-size="16" font-weight="600" text-anchor="middle" fill="#111111">미니게임</text>
+    <text x="216" y="415" font-family="'Geist Mono',Consolas,monospace" font-size="12" text-anchor="middle" fill="#111111">HTML5 · UnityWebBrowser</text>
   </g>
   <g>
-    <rect x="392" y="364" width="304" height="64" rx="6" fill="#ffffff" stroke="#1c1917" stroke-width="1"/>
-    <text x="544" y="393" font-size="16" font-weight="600" text-anchor="middle" fill="#1c1917">리소스</text>
-    <text x="544" y="415" font-family="'Geist Mono',Consolas,monospace" font-size="12" text-anchor="middle" fill="#4f5d75">공개 에셋 — Kenney · Synty</text>
+    <rect x="392" y="364" width="304" height="64" rx="6" fill="#ffffff" stroke="#111111" stroke-width="1"/>
+    <text x="544" y="393" font-size="16" font-weight="600" text-anchor="middle" fill="#111111">리소스</text>
+    <text x="544" y="415" font-family="'Geist Mono',Consolas,monospace" font-size="12" text-anchor="middle" fill="#111111">공개 에셋 — Kenney · Synty</text>
   </g>
 
   <!-- Row 4: MCP 연동 -->
   <g>
-    <rect x="64" y="452" width="632" height="64" rx="6" fill="#ffffff" stroke="#1c1917" stroke-width="1"/>
-    <text x="380" y="481" font-size="16" font-weight="600" text-anchor="middle" fill="#1c1917">Unity MCP · Claude Code 연동</text>
-    <text x="380" y="503" font-family="'Geist Mono',Consolas,monospace" font-size="12" text-anchor="middle" fill="#4f5d75">C# 스크립트 생성 · 수정 보조</text>
+    <rect x="64" y="452" width="632" height="64" rx="6" fill="#ffffff" stroke="#111111" stroke-width="1"/>
+    <text x="380" y="481" font-size="16" font-weight="600" text-anchor="middle" fill="#111111">Unity MCP · Claude Code 연동</text>
+    <text x="380" y="503" font-family="'Geist Mono',Consolas,monospace" font-size="12" text-anchor="middle" fill="#111111">C# 스크립트 생성 · 수정 보조</text>
   </g>
 
   <!-- Row4 → Row5 -->
-  <path d="M380,516 V535" stroke="#4f5d75" stroke-width="1.2" fill="none" marker-end="url(#m-muted)"/>
+  <path d="M380,516 V535" stroke="#111111" stroke-width="1.2" fill="none" marker-end="url(#m-ink)"/>
 
-  <!-- Row 5: 결과물 (FOCAL) -->
+  <!-- Row 5: 결과물 (강조 — 굵은 테두리) -->
   <g>
-    <rect x="64" y="540" width="632" height="68" rx="6" fill="#f4e5de" stroke="#b5523a" stroke-width="1.2"/>
-    <text x="380" y="571" font-size="17" font-weight="600" text-anchor="middle" fill="#1c1917">산업보안 추리 게임 《For The Company》</text>
-    <text x="380" y="595" font-family="'Geist Mono',Consolas,monospace" font-size="12" text-anchor="middle" fill="#b5523a">3D 탐정 어드벤처 × 보안 교육 · Windows 클라이언트</text>
+    <rect x="64" y="540" width="632" height="68" rx="6" fill="#ffffff" stroke="#111111" stroke-width="2.4"/>
+    <text x="380" y="571" font-size="17" font-weight="600" text-anchor="middle" fill="#111111">산업보안 추리 게임 《For The Company》</text>
+    <text x="380" y="595" font-family="'Geist Mono',Consolas,monospace" font-size="12" text-anchor="middle" fill="#111111">3D 탐정 어드벤처 × 보안 교육 · Windows 클라이언트</text>
   </g>
 </svg>
 </body>
